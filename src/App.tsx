@@ -5,6 +5,7 @@ import { TripDetail } from './pages/TripDetail'
 import { TripCreation } from './pages/TripCreation'
 import { Explore } from './pages/Explore'
 import { Profile } from './pages/Profile'
+import { ApiStatus } from './pages/ApiStatus'
 import { UserProvider } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 
@@ -20,6 +21,7 @@ function App() {
               <Route path="/create" element={<TripCreation />} />
               <Route path="/trip/:id" element={<TripDetail />} />
               <Route path="/profile" element={<Profile />} />
+              <Route path="/api-status" element={<ApiStatus />} />
             </Routes>
           </Layout>
         </Router>

@@ -80,6 +80,13 @@ export function Header() {
                   >
                     Profile Settings
                   </Link>
+                  <Link
+                    to="/api-status"
+                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    API Status
+                  </Link>
                   <button
                     onClick={() => {
                       logout()

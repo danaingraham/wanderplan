@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Calendar, ChevronLeft, ChevronRight } from 'lucide-react'
 import { format, startOfMonth, endOfMonth, startOfWeek, endOfWeek, addDays, addMonths, subMonths, isSameMonth, isSameDay, isAfter, isBefore, isWithinInterval } from 'date-fns'
 import { cn } from '../../utils/cn'
@@ -31,9 +31,40 @@ export function DateRangePicker({
   const [selectingStart, setSelectingStart] = useState(true)
   const lastClickTimeRef = useRef<number>(0)
   const lastClickDateRef = useRef<Date | null>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
   
-  const selectedStartDate = startDate ? new Date(startDate) : null
-  const selectedEndDate = endDate ? new Date(endDate) : null
+  // Create dates in local timezone to avoid UTC offset issues
+  const createLocalDate = (dateString: string) => {
+    const [year, month, day] = dateString.split('-').map(Number)
+    return new Date(year, month - 1, day) // month is 0-indexed
+  }
+  
+  const selectedStartDate = startDate ? createLocalDate(startDate) : null
+  const selectedEndDate = endDate ? createLocalDate(endDate) : null
+  
+  // Handle clicks outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+  
+  // Handle escape key
+  useEffect(() => {
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
   
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(monthStart)
@@ -48,12 +79,21 @@ export function DateRangePicker({
     day = addDays(day, 1)
   }
   
+  const formatDateForInput = (date: Date) => {
+    // Create date string in local timezone to avoid timezone offset issues
+    const year = date.getFullYear()
+    const month = String(date.getMonth() + 1).padStart(2, '0')
+    const day = String(date.getDate()).padStart(2, '0')
+    return `${year}-${month}-${day}`
+  }
+
   const handleDateClick = (date: Date) => {
-    console.log('🗓️ Date clicked:', format(date, 'yyyy-MM-dd'))
+    const dateString = formatDateForInput(date)
+    console.log('🗓️ Date clicked:', dateString, 'Raw date:', date)
     console.log('🗓️ Current state:', {
       selectingStart,
-      selectedStartDate: selectedStartDate ? format(selectedStartDate, 'yyyy-MM-dd') : null,
-      selectedEndDate: selectedEndDate ? format(selectedEndDate, 'yyyy-MM-dd') : null
+      selectedStartDate: selectedStartDate ? formatDateForInput(selectedStartDate) : null,
+      selectedEndDate: selectedEndDate ? formatDateForInput(selectedEndDate) : null
     })
     
     if (minDate && isBefore(date, minDate)) {
@@ -72,7 +112,7 @@ export function DateRangePicker({
     console.log('🖱️ Click timing:', {
       timeSinceLastClick,
       isDoubleClick,
-      lastClickDate: lastClickDateRef.current ? format(lastClickDateRef.current, 'yyyy-MM-dd') : null
+      lastClickDate: lastClickDateRef.current ? formatDateForInput(lastClickDateRef.current) : null
     })
     
     lastClickTimeRef.current = now
@@ -81,13 +121,13 @@ export function DateRangePicker({
     if (isDoubleClick) {
       // Double click: reset and start new range from this date
       console.log('✨ Double click detected - starting new range')
-      onStartDateChange(format(date, 'yyyy-MM-dd'))
+      onStartDateChange(dateString)
       onEndDateChange('')
       setSelectingStart(false) // Next click will be end date
     } else if (selectingStart || !selectedStartDate) {
       // First click or selecting start date
       console.log('🟢 Setting start date')
-      onStartDateChange(format(date, 'yyyy-MM-dd'))
+      onStartDateChange(dateString)
       onEndDateChange('')
       setSelectingStart(false) // Next click will be end date
     } else {
@@ -95,12 +135,12 @@ export function DateRangePicker({
       if (selectedStartDate && isBefore(date, selectedStartDate)) {
         // If clicked date is before start date, swap them
         console.log('🔄 End date before start date - swapping')
-        onStartDateChange(format(date, 'yyyy-MM-dd'))
-        onEndDateChange(format(selectedStartDate, 'yyyy-MM-dd'))
+        onStartDateChange(dateString)
+        onEndDateChange(formatDateForInput(selectedStartDate))
       } else {
         // Normal case - set end date
         console.log('🔴 Setting end date')
-        onEndDateChange(format(date, 'yyyy-MM-dd'))
+        onEndDateChange(dateString)
       }
       setSelectingStart(true) // Next click will start new range
       setIsOpen(false) // Close picker after selecting range
@@ -142,7 +182,7 @@ export function DateRangePicker({
   }
   
   return (
-    <div className="relative">
+    <div className="relative" ref={containerRef}>
       {label && (
         <label className="block text-sm font-medium text-gray-700 mb-1">
           {label}
@@ -168,7 +208,7 @@ export function DateRangePicker({
       )}
       
       {isOpen && (
-        <div className="absolute z-50 mt-1 bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-80">
+        <div className="absolute z-[90] mt-1 bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-80">
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
