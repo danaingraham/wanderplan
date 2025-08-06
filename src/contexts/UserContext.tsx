@@ -28,6 +28,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [sessionChecked, setSessionChecked] = useState(false)
 
   useEffect(() => {
+    // Prevent double-initialization in StrictMode
+    if (sessionChecked) return
+    
     console.log('🔐 UserContext: Checking for existing session...')
     
     // Check for existing login session
@@ -65,7 +68,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setSessionChecked(true)
   }, [])
 
-  // Add debugging to track when user state changes
+  // Add debugging to track when user state changes and recover from storage
   useEffect(() => {
     if (sessionChecked) {
       console.log('🔐 UserContext: User state changed:', user ? user.email : 'null')
@@ -73,8 +76,15 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('🔐 UserContext: User was logged out! Checking storage...')
         const storageUser = storage.get<User>(STORAGE_KEYS.USER)
         const storageSession = storage.get<string>('wanderplan_session')
+        const sessionExpiry = storage.get<string>('wanderplan_session_expiry')
         console.log('🔐 UserContext: Storage still has user:', !!storageUser)
         console.log('🔐 UserContext: Storage still has session:', !!storageSession)
+        
+        // If storage has valid session but user state is null, restore it
+        if (storageUser && storageSession && sessionExpiry && parseInt(sessionExpiry) > Date.now()) {
+          console.log('🔧 UserContext: Restoring user from storage due to unexpected logout')
+          setUser(storageUser)
+        }
       }
     }
   }, [user, sessionChecked])
@@ -174,10 +184,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   const refreshSession = () => {
-    console.log('🔐 UserContext: Refreshing session...')
+    const isDevelopment = import.meta.env.DEV
+    if (isDevelopment) {
+      console.log('🔐 UserContext: Refreshing session...')
+    }
+    
     const savedUser = storage.get<User>(STORAGE_KEYS.USER)
     const currentSession = storage.get<string>('wanderplan_session')
     const sessionExpiry = storage.get<string>('wanderplan_session_expiry')
+    
+    if (isDevelopment) {
+      console.log('🔐 UserContext: Session check - User:', !!savedUser, 'Session:', !!currentSession, 'Valid:', sessionExpiry ? parseInt(sessionExpiry) > Date.now() : false)
+    }
     
     if (savedUser && currentSession && sessionExpiry && parseInt(sessionExpiry) > Date.now()) {
       // Extend session by another 30 days
@@ -188,17 +206,30 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.log('🔐 UserContext: Restoring user from valid session')
         setUser(savedUser)
       }
+    } else if (isDevelopment) {
+      console.warn('🔐 UserContext: Session refresh failed - clearing invalid session data')
+      if (savedUser && currentSession && (!sessionExpiry || parseInt(sessionExpiry) <= Date.now())) {
+        // Clean up expired session
+        storage.remove(STORAGE_KEYS.USER)
+        storage.remove('wanderplan_session')
+        storage.remove('wanderplan_session_expiry')
+        setUser(null)
+      }
     }
   }
 
-  // Periodic session check and refresh - run every 5 minutes
+  // Periodic session check and refresh - less aggressive in development
   useEffect(() => {
     if (!user) return
 
+    // Less frequent checks in development to avoid interference
+    const isDevelopment = import.meta.env.DEV
+    const checkInterval = isDevelopment ? 15 * 60 * 1000 : 5 * 60 * 1000 // 15 min dev, 5 min prod
+
     const interval = setInterval(() => {
-      console.log('🔐 UserContext: Periodic session check...')
+      console.log('🔐 UserContext: Periodic session check...', isDevelopment ? '(dev mode)' : '(prod mode)')
       refreshSession()
-    }, 5 * 60 * 1000) // 5 minutes
+    }, checkInterval)
 
     return () => clearInterval(interval)
   }, [user])
@@ -207,12 +238,20 @@ export function UserProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (!user) return
 
+    let isActive = true // Prevent stale closures
+
     const handleActivity = () => {
-      // Throttle session refresh to once per minute
-      const lastRefresh = parseInt(localStorage.getItem('wanderplan_last_refresh') || '0')
-      if (Date.now() - lastRefresh > 60000) { // 1 minute
-        refreshSession()
-        localStorage.setItem('wanderplan_last_refresh', Date.now().toString())
+      if (!isActive) return
+      
+      try {
+        // Throttle session refresh to once per minute
+        const lastRefresh = parseInt(localStorage.getItem('wanderplan_last_refresh') || '0')
+        if (Date.now() - lastRefresh > 60000) { // 1 minute
+          refreshSession()
+          localStorage.setItem('wanderplan_last_refresh', Date.now().toString())
+        }
+      } catch (error) {
+        console.error('🔐 UserContext: Error in activity handler:', error)
       }
     }
 
@@ -223,6 +262,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     })
 
     return () => {
+      isActive = false
       events.forEach(event => {
         document.removeEventListener(event, handleActivity)
       })
