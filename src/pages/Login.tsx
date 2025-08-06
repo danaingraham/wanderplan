@@ -11,7 +11,7 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login } = useUser()
+  const { login, register } = useUser()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -130,6 +130,41 @@ export function Login() {
               </Link>
             </p>
           </div>
+          
+          {/* Development bypass - only show in dev mode */}
+          {import.meta.env.DEV && (
+            <div className="mt-4 pt-4 border-t border-gray-200 text-center">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  setIsLoading(true)
+                  try {
+                    // Create or login as dev user
+                    const devEmail = 'dev@test.com'
+                    const devPassword = 'password'
+                    
+                    // Try to login first
+                    const loginSuccess = await login(devEmail, devPassword)
+                    if (!loginSuccess) {
+                      // Register dev user if login fails
+                      await register(devEmail, devPassword, 'Dev User')
+                    }
+                    navigate('/')
+                  } catch (err) {
+                    console.error('Dev login failed:', err)
+                  } finally {
+                    setIsLoading(false)
+                  }
+                }}
+                className="text-xs text-gray-500 hover:text-gray-700 px-3 py-1"
+                disabled={isLoading}
+              >
+                🚀 Dev Login (dev@test.com / password)
+              </Button>
+              <p className="text-xs text-gray-400 mt-1">Development mode only</p>
+            </div>
+          )}
         </form>
       </div>
     </div>
