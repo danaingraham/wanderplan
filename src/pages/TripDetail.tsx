@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, GripVertical, Check, X } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, GripVertical, Check, X, Plus } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { formatDate } from '../utils/date'
 import { TripMap } from '../components/maps/TripMap'
@@ -318,6 +318,24 @@ export function TripDetail() {
   const [draggedItem, setDraggedItem] = useState<string | null>(null)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
+  const [showAddForm, setShowAddForm] = useState(false)
+  const [newItemData, setNewItemData] = useState<{
+    name: string
+    address: string
+    category: 'restaurant' | 'attraction' | 'hotel' | 'activity' | 'shop' | 'transport' | 'tip' | 'cafe' | 'bar' | 'flight' | 'accommodation'
+    day: number
+    start_time: string
+    duration: number
+    notes: string
+  }>({
+    name: '',
+    address: '',
+    category: 'attraction',
+    day: 1,
+    start_time: '09:00',
+    duration: 90,
+    notes: ''
+  })
   
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
@@ -381,6 +399,45 @@ export function TripDetail() {
     }
     
     setDraggedItem(null)
+  }
+
+  const handleCreateNewItem = () => {
+    if (!id || !newItemData.name.trim()) return
+
+    const endTime = calculateEndTime(newItemData.start_time, newItemData.duration)
+    
+    // Calculate order - get highest order for the selected day and add 1
+    const dayPlaces = places.filter(p => p.day === newItemData.day)
+    const maxOrder = dayPlaces.length > 0 ? Math.max(...dayPlaces.map(p => p.order)) : -1
+    
+    const newPlace = {
+      trip_id: id,
+      name: newItemData.name.trim(),
+      address: newItemData.address.trim(),
+      category: newItemData.category,
+      day: newItemData.day,
+      order: maxOrder + 1,
+      start_time: newItemData.start_time,
+      end_time: endTime,
+      duration: newItemData.duration,
+      notes: newItemData.notes.trim(),
+      is_locked: false,
+      is_reservation: false
+    }
+
+    createPlace(newPlace)
+    
+    // Reset form
+    setNewItemData({
+      name: '',
+      address: '',
+      category: 'attraction',
+      day: 1,
+      start_time: '09:00',
+      duration: 90,
+      notes: ''
+    })
+    setShowAddForm(false)
   }
 
 
@@ -518,15 +575,26 @@ export function TripDetail() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8">
+      <div className="max-w-4xl mx-auto">
         {/* Main Content - Timeline/Map */}
-        <div className="lg:col-span-2">
+        <div>
           <div className="card animate-slide-up">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
               
-              {/* View Toggle */}
-              <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
+              <div className="flex items-center gap-4">
+                {/* Add Item Button */}
+                <Button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  size="sm"
+                  className="flex items-center gap-2"
+                >
+                  <Plus className="w-4 h-4" />
+                  Add Item
+                </Button>
+                
+                {/* View Toggle */}
+                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
                 <button
                   onClick={() => setViewMode('list')}
                   className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
@@ -549,6 +617,7 @@ export function TripDetail() {
                   <Map className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
                 </button>
+              </div>
               </div>
             </div>
 
@@ -579,6 +648,146 @@ export function TripDetail() {
                       Day {day}
                     </button>
                   ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add New Item Form */}
+            {showAddForm && (
+              <div className="mb-6 bg-gray-50 rounded-xl p-4 animate-scale-in">
+                <h3 className="text-lg font-semibold mb-4">Add New Itinerary Item</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-gray-700 block mb-1">Place Name *</label>
+                      <PlaceAutocomplete
+                        value={newItemData.name}
+                        onChange={(name) => setNewItemData(prev => ({ ...prev, name }))}
+                        onPlaceSelect={(placeDetails) => {
+                          setNewItemData(prev => ({
+                            ...prev,
+                            name: placeDetails.name,
+                            address: placeDetails.formatted_address,
+                            category: placeDetails.types.some(type => ['restaurant', 'food', 'meal_takeaway', 'cafe', 'bar'].includes(type)) 
+                              ? 'restaurant' as const
+                              : placeDetails.types.some(type => ['lodging', 'hotel'].includes(type))
+                              ? 'hotel' as const  
+                              : 'attraction' as const
+                          }))
+                        }}
+                        destination={trip?.destination}
+                        destinationCoords={trip?.latitude && trip?.longitude ? { 
+                          lat: trip.latitude, 
+                          lng: trip.longitude 
+                        } : undefined}
+                        placeholder="Search for places..."
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="text-sm text-gray-700 block mb-1">Address</label>
+                      <input
+                        type="text"
+                        value={newItemData.address}
+                        onChange={(e) => setNewItemData(prev => ({ ...prev, address: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        placeholder="Enter address"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-700 block mb-1">Category</label>
+                      <select
+                        value={newItemData.category}
+                        onChange={(e) => setNewItemData(prev => ({ ...prev, category: e.target.value as any }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        <option value="attraction">Attraction</option>
+                        <option value="restaurant">Restaurant</option>
+                        <option value="hotel">Hotel</option>
+                        <option value="activity">Activity</option>
+                        <option value="shop">Shop</option>
+                        <option value="transport">Transport</option>
+                        <option value="cafe">Cafe</option>
+                        <option value="bar">Bar</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm text-gray-700 block mb-1">Day</label>
+                      <select
+                        value={newItemData.day}
+                        onChange={(e) => setNewItemData(prev => ({ ...prev, day: parseInt(e.target.value) }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                      >
+                        {days.length > 0 ? days.map(day => (
+                          <option key={day} value={day}>Day {day}</option>
+                        )) : (
+                          <option value={1}>Day 1</option>
+                        )}
+                      </select>
+                    </div>
+
+                    <div className="flex gap-4">
+                      <div className="flex-1">
+                        <label className="text-sm text-gray-700 block mb-1">Start Time</label>
+                        <input
+                          type="time"
+                          value={newItemData.start_time}
+                          onChange={(e) => setNewItemData(prev => ({ ...prev, start_time: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        />
+                      </div>
+                      
+                      <div className="flex-1">
+                        <label className="text-sm text-gray-700 block mb-1">Duration (min)</label>
+                        <input
+                          type="number"
+                          value={newItemData.duration}
+                          onChange={(e) => setNewItemData(prev => ({ ...prev, duration: parseInt(e.target.value) || 90 }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          min="15"
+                          step="15"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="text-sm text-gray-700 block mb-1">Notes</label>
+                      <textarea
+                        value={newItemData.notes}
+                        onChange={(e) => setNewItemData(prev => ({ ...prev, notes: e.target.value }))}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 resize-none"
+                        placeholder="Add personal notes about this place..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
+                  <Button onClick={handleCreateNewItem} disabled={!newItemData.name.trim()}>
+                    Add Item
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    onClick={() => {
+                      setShowAddForm(false)
+                      setNewItemData({
+                        name: '',
+                        address: '',
+                        category: 'attraction',
+                        day: 1,
+                        start_time: '09:00',
+                        duration: 90,
+                        notes: ''
+                      })
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </div>
               </div>
             )}
@@ -634,62 +843,6 @@ export function TripDetail() {
                 </div>
               )
             )}
-          </div>
-        </div>
-
-        {/* Sidebar - Trip Details */}
-        <div className="space-y-4 sm:space-y-6">
-          <div className="card animate-slide-up" style={{animationDelay: '0.2s'}}>
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Trip Details</h3>
-            <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
-              <div>
-                <span className="font-medium text-gray-700">Type:</span>
-                <span className="ml-2 capitalize">{trip.trip_type}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Pace:</span>
-                <span className="ml-2 capitalize">{trip.pace}</span>
-              </div>
-              <div>
-                <span className="font-medium text-gray-700">Public:</span>
-                <span className="ml-2">{trip.is_public ? 'Yes' : 'No'}</span>
-              </div>
-            </div>
-            
-            {trip.preferences.length > 0 && (
-              <div className="mt-3 sm:mt-4">
-                <span className="font-medium text-gray-700 text-xs sm:text-sm">Interests:</span>
-                <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
-                  {trip.preferences.map(pref => (
-                    <span key={pref} className="text-xs bg-primary-100 text-primary-800 px-2 py-1 rounded-full">
-                      {pref}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="card animate-slide-up" style={{animationDelay: '0.3s'}}>
-            <h3 className="text-base sm:text-lg font-semibold mb-3 sm:mb-4">Quick Stats</h3>
-            <div className="space-y-2 sm:space-y-3 text-xs sm:text-sm">
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Days:</span>
-                <span className="font-medium">{days.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Total Places:</span>
-                <span className="font-medium">{places.length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Restaurants:</span>
-                <span className="font-medium">{places.filter(p => p.category === 'restaurant').length}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-600">Attractions:</span>
-                <span className="font-medium">{places.filter(p => p.category === 'attraction').length}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
