@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Mail, Lock, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, Eye, EyeOff, Chrome } from 'lucide-react'
 import { useUser } from '../contexts/UserContext'
 import { Button } from '../components/ui/Button'
+import { isGoogleOAuthConfigured } from '../config/api'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -11,7 +12,7 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login, register } = useUser()
+  const { login, register, loginWithGoogle } = useUser()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -28,6 +29,24 @@ export function Login() {
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    setError('')
+    setIsLoading(true)
+
+    try {
+      const result = await loginWithGoogle()
+      if (result.success) {
+        navigate('/')
+      } else {
+        setError(result.error || 'Google sign-in failed')
+      }
+    } catch (err) {
+      setError('Google sign-in failed. Please try again.')
     } finally {
       setIsLoading(false)
     }
@@ -118,6 +137,42 @@ export function Login() {
               {isLoading ? 'Signing in...' : 'Sign in'}
             </Button>
           </div>
+
+          <div className="text-center">
+            <Link
+              to="/forgot-password"
+              className="text-sm font-medium text-primary-600 hover:text-primary-500"
+            >
+              Forgot your password?
+            </Link>
+          </div>
+
+          {/* Google Sign In */}
+          {isGoogleOAuthConfigured() && (
+            <div>
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-300" />
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                </div>
+              </div>
+
+              <div className="mt-6">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleGoogleLogin}
+                  disabled={isLoading}
+                  className="group relative w-full flex justify-center py-3 px-4 border border-gray-300 text-sm font-medium rounded-lg text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50"
+                >
+                  <Chrome className="w-5 h-5 mr-2 text-gray-600" />
+                  Sign in with Google
+                </Button>
+              </div>
+            </div>
+          )}
 
           <div className="text-center">
             <p className="text-sm text-gray-600">

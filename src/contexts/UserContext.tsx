@@ -2,6 +2,8 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import type { ReactNode } from 'react'
 import type { User } from '../types'
 import { storage, STORAGE_KEYS } from '../utils/storage'
+import { emailService } from '../services/emailService'
+import { googleAuthService } from '../services/googleAuthService'
 
 interface UserContextType {
   user: User | null
@@ -9,6 +11,9 @@ interface UserContextType {
   isAuthenticated: boolean
   login: (email: string, password: string) => Promise<boolean>
   register: (email: string, password: string, fullName: string) => Promise<boolean>
+  loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
+  requestPasswordReset: (email: string) => Promise<{ success: boolean; error?: string }>
+  resetPassword: (token: string, email: string, newPassword: string) => Promise<{ success: boolean; error?: string }>
   logout: () => void
   updateProfile: (updates: Partial<User>) => void
   getAllUsers: () => User[]
@@ -138,6 +143,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       email,
       full_name: fullName,
       role: 'user',
+      auth_provider: 'local',
+      email_verified: false,
       created_date: new Date().toISOString(),
       updated_date: new Date().toISOString()
     }
@@ -159,8 +166,170 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return true
   }
 
-  const logout = () => {
+  const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('🔐 UserContext: Starting Google login...')
+      
+      const result = await googleAuthService.signInWithPopup()
+      if (!result.success || !result.user) {
+        return {
+          success: false,
+          error: result.error || 'Google sign-in failed'
+        }
+      }
+
+      const googleUser = result.user
+      const users = storage.get<User[]>('wanderplan_users') || []
+      
+      // Check if user exists by Google ID or email
+      let existingUser = users.find(u => u.google_id === googleUser.id || u.email === googleUser.email)
+      
+      if (existingUser) {
+        // Update existing user with Google data
+        existingUser = {
+          ...existingUser,
+          google_id: googleUser.id,
+          profile_picture: googleUser.picture,
+          auth_provider: 'google',
+          email_verified: true,
+          updated_date: new Date().toISOString()
+        }
+        
+        const updatedUsers = users.map(u => 
+          (u.google_id === googleUser.id || u.email === googleUser.email) ? existingUser! : u
+        )
+        storage.set('wanderplan_users', updatedUsers)
+      } else {
+        // Create new user from Google data
+        const newUser = {
+          ...googleAuthService.convertGoogleUserToAppUser(googleUser),
+          auth_provider: 'google' as const,
+          email_verified: true,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString()
+        }
+        
+        const updatedUsers = [...users, newUser]
+        storage.set('wanderplan_users', updatedUsers)
+        existingUser = newUser
+      }
+
+      // Log them in
+      setUser(existingUser)
+      storage.set(STORAGE_KEYS.USER, existingUser)
+      storage.set('wanderplan_session', existingUser.id)
+      
+      const sessionExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
+      storage.set('wanderplan_session_expiry', sessionExpiry.toString())
+
+      console.log('✅ UserContext: Google login successful:', existingUser.email)
+      return { success: true }
+    } catch (error) {
+      console.error('❌ UserContext: Google login failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Google login failed'
+      }
+    }
+  }
+
+  const requestPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('🔐 UserContext: Requesting password reset for:', email)
+      
+      const users = storage.get<User[]>('wanderplan_users') || []
+      const user = users.find(u => u.email === email)
+      
+      if (!user) {
+        // Don't reveal if email exists for security
+        return { success: true }
+      }
+
+      // Don't allow password reset for Google users
+      if (user.auth_provider === 'google') {
+        return {
+          success: false,
+          error: 'This account uses Google sign-in. Please use Google to sign in.'
+        }
+      }
+
+      const result = await emailService.sendPasswordResetEmail(email, user.full_name)
+      return result
+    } catch (error) {
+      console.error('❌ UserContext: Password reset request failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to send password reset email'
+      }
+    }
+  }
+
+  const resetPassword = async (token: string, email: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
+    try {
+      console.log('🔐 UserContext: Resetting password for:', email)
+      
+      // Validate reset token
+      const tokenValidation = emailService.validateResetToken(token, email)
+      if (!tokenValidation.valid) {
+        return {
+          success: false,
+          error: tokenValidation.error
+        }
+      }
+
+      const users = storage.get<User[]>('wanderplan_users') || []
+      const userIndex = users.findIndex(u => u.email === email)
+      
+      if (userIndex === -1) {
+        return {
+          success: false,
+          error: 'User not found'
+        }
+      }
+
+      const user = users[userIndex]
+      
+      // Don't allow password reset for Google users
+      if (user.auth_provider === 'google') {
+        return {
+          success: false,
+          error: 'This account uses Google sign-in. Password reset is not available.'
+        }
+      }
+
+      // Update password
+      const hashedPassword = hashPassword(newPassword)
+      storage.set(`wanderplan_password_${user.id}`, hashedPassword)
+      
+      // Update user record
+      users[userIndex] = {
+        ...user,
+        updated_date: new Date().toISOString()
+      }
+      storage.set('wanderplan_users', users)
+      
+      // Mark token as used
+      emailService.markResetTokenAsUsed(token, email)
+      
+      console.log('✅ UserContext: Password reset successful')
+      return { success: true }
+    } catch (error) {
+      console.error('❌ UserContext: Password reset failed:', error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Password reset failed'
+      }
+    }
+  }
+
+  const logout = async () => {
     console.log('🔐 UserContext: Logging out user')
+    
+    // Sign out from Google if applicable
+    if (user?.auth_provider === 'google') {
+      await googleAuthService.signOut()
+    }
+    
     setUser(null)
     storage.remove(STORAGE_KEYS.USER)
     storage.remove('wanderplan_session')
@@ -275,6 +444,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     isAuthenticated: !!user,
     login,
     register,
+    loginWithGoogle,
+    requestPasswordReset,
+    resetPassword,
     logout,
     updateProfile,
     getAllUsers,

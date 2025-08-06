@@ -9,6 +9,8 @@ import { Profile } from './pages/Profile'
 import { ApiStatus } from './pages/ApiStatus'
 import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { ResetPassword } from './pages/ResetPassword'
 import { UserProvider } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 
@@ -21,6 +23,8 @@ function App() {
             {/* Public routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
             
             {/* Protected routes */}
             <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />

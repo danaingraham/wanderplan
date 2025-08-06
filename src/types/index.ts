@@ -4,6 +4,10 @@ export interface User {
   full_name: string
   role: 'admin' | 'user'
   profile_picture_url?: string
+  profile_picture?: string // Alias for Google auth compatibility
+  google_id?: string // Google OAuth ID
+  auth_provider?: 'local' | 'google' // Track auth method
+  email_verified?: boolean // Email verification status
   created_date: string
   updated_date: string
 }

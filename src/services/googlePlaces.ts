@@ -1,13 +1,7 @@
 import { Loader } from '@googlemaps/js-api-loader'
 import { API_CONFIG, isGoogleMapsConfigured } from '../config/api'
 import type { Place } from '../types'
-
-// Extend the Window interface to include google
-declare global {
-  interface Window {
-    google: typeof google;
-  }
-}
+import '../types/google'
 
 export interface GooglePlace {
   place_id: string

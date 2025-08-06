@@ -39,7 +39,8 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
     name: place.name,
     address: place.address || '',
     start_time: place.start_time || '',
-    duration: place.duration || 90
+    duration: place.duration || 90,
+    notes: place.notes || ''
   })
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
@@ -49,9 +50,10 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
       name: place.name,
       address: place.address || '',
       start_time: place.start_time || '',
-      duration: place.duration || 90
+      duration: place.duration || 90,
+      notes: place.notes || ''
     })
-  }, [place.name, place.address, place.start_time, place.duration])
+  }, [place.name, place.address, place.start_time, place.duration, place.notes])
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -106,17 +108,13 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
       updates.category = 'attraction'
     }
     
-    // Add notes with rating and reviews if available
-    let notes = place.notes || ''
+    // Only add rating to notes, skip reviews
     if (placeDetails.rating) {
-      notes = `⭐ ${placeDetails.rating}/5 rating\n\n${notes}`.trim()
-    }
-    if (placeDetails.reviews && placeDetails.reviews.length > 0) {
-      const topReview = placeDetails.reviews[0]
-      notes = `${notes}\n\n💬 "${topReview.text}" - ${topReview.author_name}`.trim()
-    }
-    if (notes !== place.notes) {
-      updates.notes = notes
+      // Only add rating if notes don't already contain rating info
+      const currentNotes = place.notes || ''
+      if (!currentNotes.includes('⭐') && !currentNotes.includes('rating')) {
+        updates.notes = `⭐ ${placeDetails.rating}/5 rating\n\n${currentNotes}`.trim()
+      }
     }
     
     // Update photo if available
@@ -135,7 +133,8 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
       address: editData.address.trim(),
       start_time: editData.start_time,
       duration: editData.duration,
-      end_time: endTime
+      end_time: endTime,
+      notes: editData.notes.trim()
     })
     setIsEditing(false)
   }
@@ -252,6 +251,17 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
                   />
                   <span className="text-xs text-gray-500">min</span>
                 </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-xs text-gray-500 block">Notes:</label>
+                <textarea
+                  value={editData.notes}
+                  onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                  className="text-sm border border-gray-300 rounded px-3 py-2 w-full resize-none"
+                  placeholder="Add personal notes about this place..."
+                  rows={3}
+                />
               </div>
               
               <div className="flex gap-2 pt-2">
