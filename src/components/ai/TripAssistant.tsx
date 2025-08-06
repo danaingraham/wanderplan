@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, X, Sparkles, MapPin, Utensils, Camera } from 'lucide-react'
+import { MessageCircle, Send, X, Sparkles, MapPin, Utensils, Camera, Plus, Trash2, Edit3, Check, ArrowUpDown, RotateCcw } from 'lucide-react'
 import { openaiService } from '../../services/openai'
 import { isOpenAIConfigured } from '../../config/api'
 import type { Trip, Place } from '../../types'
@@ -9,42 +9,55 @@ interface Message {
   role: 'user' | 'assistant'
   content: string
   timestamp: Date
+  actions?: ItineraryAction[]
+}
+
+interface ItineraryAction {
+  type: 'add' | 'remove' | 'update' | 'reorder'
+  description: string
+  data: any
 }
 
 interface TripAssistantProps {
   trip: Trip
   places: Place[]
+  onCreatePlace: (place: Omit<Place, 'id' | 'created_date' | 'updated_date'>) => string
+  onUpdatePlace: (id: string, updates: Partial<Place>) => void
+  onDeletePlace: (id: string) => void
 }
 
 const suggestedQuestions = [
   {
-    icon: MapPin,
-    question: "What are the must-see attractions in this destination?",
-    category: "attractions"
+    icon: Plus,
+    question: "Add some must-see attractions to my itinerary",
+    category: "add-attractions"
   },
   {
     icon: Utensils,
-    question: "Can you recommend some local restaurants and cuisine?",
-    category: "food"
+    question: "Suggest and add local restaurants to my trip",
+    category: "add-food"
+  },
+  {
+    icon: Edit3,
+    question: "Optimize my itinerary timing and flow",
+    category: "optimization"
   },
   {
     icon: Camera,
-    question: "What are the best spots for photos and Instagram?",
-    category: "photos"
-  },
-  {
-    icon: MessageCircle,
-    question: "How can I optimize my itinerary for better flow?",
-    category: "optimization"
+    question: "Add Instagram-worthy photo spots to my itinerary",
+    category: "add-photos"
   },
 ]
 
-export function TripAssistant({ trip, places }: TripAssistantProps) {
+export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDeletePlace }: TripAssistantProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [inputValue, setInputValue] = useState('')
   const [isLoading, setIsLoading] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  
+  // Storage key for this specific trip's conversation
+  const conversationKey = `wanderplan_conversation_${trip.id}`
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -53,6 +66,29 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
   useEffect(() => {
     scrollToBottom()
   }, [messages])
+
+  // Load conversation when component mounts
+  useEffect(() => {
+    const loadConversation = () => {
+      try {
+        const savedConversation = localStorage.getItem(conversationKey)
+        if (savedConversation) {
+          const parsedMessages = JSON.parse(savedConversation)
+          // Convert timestamp strings back to Date objects
+          const messagesWithDates = parsedMessages.map((msg: any) => ({
+            ...msg,
+            timestamp: new Date(msg.timestamp)
+          }))
+          setMessages(messagesWithDates)
+          console.log('🔄 Loaded conversation for trip:', trip.id, messagesWithDates.length, 'messages')
+        }
+      } catch (error) {
+        console.error('Failed to load conversation:', error)
+      }
+    }
+    
+    loadConversation()
+  }, [conversationKey, trip.id])
 
   useEffect(() => {
     if (isOpen && messages.length === 0) {
@@ -65,7 +101,19 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
       }
       setMessages([welcomeMessage])
     }
-  }, [isOpen, trip.destination])
+  }, [isOpen, trip.destination, messages.length])
+
+  // Save conversation whenever messages change
+  useEffect(() => {
+    if (messages.length > 0) {
+      try {
+        localStorage.setItem(conversationKey, JSON.stringify(messages))
+        console.log('💾 Saved conversation for trip:', trip.id, messages.length, 'messages')
+      } catch (error) {
+        console.error('Failed to save conversation:', error)
+      }
+    }
+  }, [messages, conversationKey, trip.id])
 
   const handleSendMessage = async (content: string) => {
     if (!content.trim() || isLoading) return
@@ -93,13 +141,14 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
     setIsLoading(true)
 
     try {
-      const response = await openaiService.getTripAdvice(trip, places, content)
+      const { response, actions } = await openaiService.getTripAdviceWithActions(trip, places, content)
       
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response,
         timestamp: new Date(),
+        actions: actions || []
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -126,6 +175,79 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
     handleSendMessage(inputValue)
   }
 
+  const executeAction = (action: ItineraryAction) => {
+    console.log('🎬 Executing action:', action.type, action.description, action.data)
+    try {
+      switch (action.type) {
+        case 'add':
+          const newPlace = {
+            ...action.data,
+            trip_id: trip.id,
+            // Calculate proper order based on day and existing places
+            order: places.filter(p => p.day === action.data.day).length
+          }
+          onCreatePlace(newPlace)
+          break
+        
+        case 'update':
+          if (action.data.id && action.data.updates) {
+            onUpdatePlace(action.data.id, action.data.updates)
+          } else {
+            console.warn('Invalid update action data:', action.data)
+          }
+          break
+        
+        case 'remove':
+          onDeletePlace(action.data.id)
+          break
+        
+        case 'reorder':
+          // Handle bulk reordering of places
+          if (action.data.places && Array.isArray(action.data.places)) {
+            action.data.places.forEach((placeUpdate: any) => {
+              onUpdatePlace(placeUpdate.id, {
+                day: placeUpdate.day,
+                order: placeUpdate.order,
+                start_time: placeUpdate.start_time
+              })
+            })
+          }
+          break
+        
+        default:
+          console.warn('Unsupported action type:', action.type)
+      }
+
+      // Add confirmation message
+      const confirmMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `✅ Done! ${action.description}`,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, confirmMessage])
+    } catch (error) {
+      console.error('Failed to execute action:', error)
+      const errorMessage: Message = {
+        id: Date.now().toString(),
+        role: 'assistant',
+        content: `❌ Sorry, I couldn't execute that action. ${error}`,
+        timestamp: new Date(),
+      }
+      setMessages(prev => [...prev, errorMessage])
+    }
+  }
+
+  const clearConversation = () => {
+    try {
+      localStorage.removeItem(conversationKey)
+      setMessages([])
+      console.log('🗑️ Cleared conversation for trip:', trip.id)
+    } catch (error) {
+      console.error('Failed to clear conversation:', error)
+    }
+  }
+
   if (!isOpen) {
     return (
       <div className="fixed bottom-6 right-6 z-50">
@@ -148,12 +270,21 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
           <Sparkles className="w-5 h-5" />
           <h3 className="font-semibold">Trip Assistant</h3>
         </div>
-        <button
-          onClick={() => setIsOpen(false)}
-          className="text-white hover:text-gray-200 transition-colors"
-        >
-          <X className="w-5 h-5" />
-        </button>
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={clearConversation}
+            className="text-white hover:text-gray-200 transition-colors"
+            title="Clear conversation"
+          >
+            <RotateCcw className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => setIsOpen(false)}
+            className="text-white hover:text-gray-200 transition-colors"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
       </div>
 
       {/* Messages */}
@@ -171,6 +302,30 @@ export function TripAssistant({ trip, places }: TripAssistantProps) {
               }`}
             >
               <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+              
+              {/* Action buttons */}
+              {message.actions && message.actions.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {message.actions.map((action, index) => (
+                    <button
+                      key={index}
+                      onClick={() => executeAction(action)}
+                      className={`flex items-center space-x-2 w-full text-left p-2 rounded-lg transition-colors border ${
+                        message.role === 'user' 
+                          ? 'bg-white bg-opacity-20 hover:bg-opacity-30 border-white border-opacity-30 text-white'
+                          : 'bg-primary-50 hover:bg-primary-100 border-primary-200 text-primary-700'
+                      }`}
+                    >
+                      {action.type === 'add' && <Plus className="w-4 h-4" />}
+                      {action.type === 'update' && <Edit3 className="w-4 h-4" />}
+                      {action.type === 'remove' && <Trash2 className="w-4 h-4" />}
+                      {action.type === 'reorder' && <ArrowUpDown className="w-4 h-4" />}
+                      <span className="text-xs font-medium">{action.description}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              
               <p className="text-xs opacity-70 mt-1">
                 {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
               </p>

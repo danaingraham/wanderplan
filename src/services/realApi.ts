@@ -1,5 +1,6 @@
 import { googlePlacesService } from './googlePlaces'
 import { openaiService } from './openai'
+import { itineraryGenerator } from './itineraryGenerator'
 import { isGoogleMapsConfigured, isOpenAIConfigured } from '../config/api'
 import type { Trip, Place } from '../types'
 
@@ -44,42 +45,33 @@ class RealApiService {
         }
       }
 
-      // Generate AI itinerary suggestions
-      let aiSuggestions: Array<{
-        day: number
-        places: Array<{
-          name: string
-          address: string
-          category: 'restaurant' | 'attraction' | 'hotel'
-          description: string
-          estimatedDuration: number
-          suggestedTime: string
-          whyRecommended: string
-        }>
-      }> = []
-
-      if (isOpenAIConfigured()) {
-        try {
-          aiSuggestions = await openaiService.generateItinerary({
-            destination: request.destination,
-            startDate: request.start_date,
-            endDate: request.end_date,
-            tripType: request.trip_type,
-            groupSize: request.group_size,
-            hasKids: request.has_kids,
-            pace: request.pace,
-            preferences: request.preferences,
-          })
-        } catch (error) {
-          console.warn('Failed to get AI suggestions, using fallback:', error)
-        }
-      }
+      // Generate itinerary suggestions using the new generator
+      let aiSuggestions = await itineraryGenerator.generate({
+        destination: request.destination,
+        startDate: request.start_date,
+        endDate: request.end_date,
+        tripType: request.trip_type,
+        groupSize: request.group_size,
+        hasKids: request.has_kids,
+        pace: request.pace,
+        preferences: request.preferences,
+        originalInput: request.original_input,
+      })
 
       // Enhance AI suggestions with real Google Places data
       const enhancedPlaces: Array<Omit<Place, 'id' | 'trip_id'>> = []
+      
+      console.log('🤖 Processing AI suggestions:', aiSuggestions.length, 'days')
+      console.log('🔍 FULL AI SUGGESTIONS:', JSON.stringify(aiSuggestions, null, 2))
+      
+      let globalOrder = 0; // Global order counter across all days
 
       for (const daySuggestion of aiSuggestions) {
-        for (const place of daySuggestion.places) {
+        console.log(`📅 Processing Day ${daySuggestion.day} with ${daySuggestion.places.length} places`)
+        console.log(`📅 Day ${daySuggestion.day} places:`, JSON.stringify(daySuggestion.places, null, 2))
+        
+        for (let placeIndex = 0; placeIndex < daySuggestion.places.length; placeIndex++) {
+          const place = daySuggestion.places[placeIndex]
           let enhancedPlace: Omit<Place, 'id' | 'trip_id'> = {
             name: place.name,
             address: place.address,
@@ -87,7 +79,7 @@ class RealApiService {
             longitude: destinationCoords?.lng || 0,
             category: place.category,
             day: daySuggestion.day,
-            order: 0,
+            order: globalOrder++, // Use global order counter
             start_time: place.suggestedTime,
             duration: place.estimatedDuration,
             notes: `${place.description}\n\n${place.whyRecommended}`,
@@ -120,9 +112,13 @@ class RealApiService {
             }
           }
 
+          console.log(`✅ Added place ${globalOrder - 1}: ${enhancedPlace.name} (Day ${enhancedPlace.day}, Order ${enhancedPlace.order})`)
           enhancedPlaces.push(enhancedPlace)
         }
       }
+
+      console.log(`🎯 FINAL ENHANCED PLACES: ${enhancedPlaces.length} total places`)
+      console.log('🔍 ENHANCED PLACES DETAILS:', JSON.stringify(enhancedPlaces, null, 2))
 
       // Create trip data
       const tripData: Omit<Trip, 'id' | 'created_by' | 'created_date' | 'updated_date'> = {
@@ -142,50 +138,14 @@ class RealApiService {
         longitude: destinationCoords?.lng,
       }
 
-      // If no AI suggestions or Google Places available, create fallback
+      // Log the final result
+      const totalDays = new Set(enhancedPlaces.map(p => p.day)).size
+      console.log(`📊 Final itinerary: ${enhancedPlaces.length} places across ${totalDays} days`)
+      
+      // Ensure we have at least some places
       if (enhancedPlaces.length === 0) {
-        console.log('Creating fallback itinerary...')
-        const days = Math.ceil(
-          (new Date(request.end_date).getTime() - new Date(request.start_date).getTime()) / (1000 * 60 * 60 * 24)
-        ) + 1
-
-        // Create basic fallback places
-        for (let day = 1; day <= Math.min(days, 3); day++) {
-          enhancedPlaces.push(
-            {
-              name: `Explore ${request.destination} - Day ${day}`,
-              address: request.destination,
-              latitude: destinationCoords?.lat || 0,
-              longitude: destinationCoords?.lng || 0,
-              category: 'attraction',
-              day,
-              order: 0,
-              start_time: '10:00',
-              duration: 180,
-              notes: 'Plan your exploration of the city. Add specific places you want to visit.',
-              is_locked: false,
-              is_reservation: false,
-              created_date: new Date().toISOString(),
-              updated_date: new Date().toISOString(),
-            },
-            {
-              name: `Local Restaurant - Day ${day}`,
-              address: request.destination,
-              latitude: destinationCoords?.lat || 0,
-              longitude: destinationCoords?.lng || 0,
-              category: 'restaurant',
-              day,
-              order: 1,
-              start_time: '19:00',
-              duration: 90,
-              notes: 'Discover local cuisine. Research and add specific restaurants you want to try.',
-              is_locked: false,
-              is_reservation: false,
-              created_date: new Date().toISOString(),
-              updated_date: new Date().toISOString(),
-            }
-          )
-        }
+        console.error('❌ No places were generated!')
+        throw new Error('Failed to generate any itinerary items')
       }
 
       return {
@@ -270,6 +230,94 @@ class RealApiService {
       console.error('❌ RealApiService: Destination suggestions failed:', error)
       return []
     }
+  }
+
+  private createFallbackItinerary(
+    request: GenerateItineraryRequest, 
+    days: number, 
+    coords?: { lat: number; lng: number }
+  ): Array<Omit<Place, 'id' | 'trip_id'>> {
+    const places: Array<Omit<Place, 'id' | 'trip_id'>> = []
+    const destination = request.destination
+    
+    for (let day = 1; day <= days; day++) {
+      const dayPlaces = [
+        // Morning activity
+        {
+          name: `${destination} Highlights Tour - Day ${day}`,
+          address: `Historic District, ${destination}`,
+          latitude: coords?.lat || 0,
+          longitude: coords?.lng || 0,
+          category: 'attraction' as const,
+          day,
+          order: 0,
+          start_time: '09:30',
+          duration: 150,
+          notes: `Start your day exploring the main attractions and historic sites of ${destination}. Visit iconic landmarks, museums, or cultural sites.`,
+          is_locked: false,
+          is_reservation: false,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        },
+        // Lunch
+        {
+          name: `Local Lunch Spot - Day ${day}`,
+          address: `Downtown ${destination}`,
+          latitude: coords?.lat || 0,
+          longitude: coords?.lng || 0,
+          category: 'restaurant' as const,
+          day,
+          order: 1,
+          start_time: '12:30',
+          duration: 75,
+          notes: `Try authentic local cuisine at a highly-rated restaurant. Research popular lunch spots and local specialties in ${destination}.`,
+          is_locked: false,
+          is_reservation: false,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        },
+        // Afternoon activity
+        {
+          name: request.has_kids ? `Family Activity - Day ${day}` : `Cultural Experience - Day ${day}`,
+          address: `${destination} City Center`,
+          latitude: coords?.lat || 0,
+          longitude: coords?.lng || 0,
+          category: 'attraction' as const,
+          day,
+          order: 2,
+          start_time: '14:30',
+          duration: 120,
+          notes: request.has_kids 
+            ? `Family-friendly activities like parks, interactive museums, or kid-friendly attractions in ${destination}.`
+            : `Immerse yourself in local culture - visit art galleries, local markets, or unique neighborhoods in ${destination}.`,
+          is_locked: false,
+          is_reservation: false,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        },
+        // Evening activity/dinner
+        {
+          name: `Dinner & Evening - Day ${day}`,
+          address: `${destination} Entertainment District`,
+          latitude: coords?.lat || 0,
+          longitude: coords?.lng || 0,
+          category: 'restaurant' as const,
+          day,
+          order: 3,
+          start_time: '19:00',
+          duration: 120,
+          notes: `End your day with dinner at a recommended restaurant. Explore the nightlife, take an evening stroll, or enjoy local entertainment.`,
+          is_locked: false,
+          is_reservation: false,
+          created_date: new Date().toISOString(),
+          updated_date: new Date().toISOString(),
+        }
+      ]
+      
+      places.push(...dayPlaces)
+    }
+    
+    return places
   }
 
   private categorizePlace(types: string[]): 'restaurant' | 'attraction' | 'hotel' {

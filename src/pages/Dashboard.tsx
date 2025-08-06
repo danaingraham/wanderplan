@@ -1,18 +1,33 @@
 import { Link } from 'react-router-dom'
-import { Plus, MapPin, Calendar, Users } from 'lucide-react'
+import { Plus, MapPin, Calendar, Users, AlertTriangle, RefreshCw } from 'lucide-react'
 import { useUser } from '../contexts/UserContext'
 import { useTrips } from '../contexts/TripContext'
-import { formatDate, isDateInFuture } from '../utils/date'
+import { formatDate, isDateInFuture, isDateInPast } from '../utils/date'
+import { storage, STORAGE_KEYS } from '../utils/storage'
 
 export function Dashboard() {
   const { user } = useUser()
-  const { trips, loading } = useTrips()
+  const { trips, loading, refreshData } = useTrips()
+
+  console.log('📊 Dashboard: Current user:', user?.id)
+  console.log('📊 Dashboard: Trips loaded:', trips.length)
+  console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
+
+  // Check for backups if no trips are shown
+  const backups = trips.length === 0 ? storage.getBackups(STORAGE_KEYS.TRIPS) : []
+  
+  const handleRecovery = () => {
+    if (storage.recoverFromBackup(STORAGE_KEYS.TRIPS)) {
+      refreshData()
+    }
+  }
 
   const upcomingTrips = trips.filter(trip => 
     trip.start_date && isDateInFuture(trip.start_date)
   ).slice(0, 3)
 
   const recentTrips = trips
+    .filter(trip => !trip.start_date || isDateInPast(trip.start_date))
     .sort((a, b) => new Date(b.updated_date).getTime() - new Date(a.updated_date).getTime())
     .slice(0, 6)
 
@@ -111,20 +126,49 @@ export function Dashboard() {
         {recentTrips.length === 0 ? (
           <div className="text-center py-12 animate-fade-in">
             <div className="max-w-md mx-auto">
-              <div className="bg-gray-100 rounded-full w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6 animate-float">
-                <MapPin className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
-              </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-                No trips yet
-              </h3>
-              <p className="text-gray-500 mb-6 text-sm sm:text-base px-4">
-                Start planning your first adventure! Create a trip and let our AI help you build the perfect itinerary.
-              </p>
-              <Link to="/create" className="btn-primary inline-flex items-center space-x-2">
-                <Plus className="h-5 w-5" />
-                <span className="hidden sm:inline">Create Your First Trip</span>
-                <span className="sm:hidden">Create Trip</span>
-              </Link>
+              {backups.length > 0 ? (
+                <>
+                  <div className="bg-orange-100 rounded-full w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6 animate-pulse">
+                    <AlertTriangle className="h-8 w-8 sm:h-12 sm:w-12 text-orange-500" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                    Missing trips detected!
+                  </h3>
+                  <p className="text-gray-500 mb-6 text-sm sm:text-base px-4">
+                    We found {backups.length} backup(s) of your trip data. Would you like to recover your trips?
+                  </p>
+                  <div className="flex flex-col sm:flex-row gap-3 justify-center">
+                    <button 
+                      onClick={handleRecovery}
+                      className="btn-primary inline-flex items-center space-x-2"
+                    >
+                      <RefreshCw className="h-5 w-5" />
+                      <span>Recover My Trips</span>
+                    </button>
+                    <Link to="/create" className="btn-secondary inline-flex items-center space-x-2">
+                      <Plus className="h-5 w-5" />
+                      <span>Create New Trip</span>
+                    </Link>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-gray-100 rounded-full w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6 animate-float">
+                    <MapPin className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
+                  </div>
+                  <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+                    Ready for your next adventure?
+                  </h3>
+                  <p className="text-gray-500 mb-6 text-sm sm:text-base px-4">
+                    Create a new trip and let our AI help you discover amazing places and build the perfect itinerary.
+                  </p>
+                  <Link to="/create" className="btn-primary inline-flex items-center space-x-2">
+                    <Plus className="h-5 w-5" />
+                    <span className="hidden sm:inline">Plan New Trip</span>
+                    <span className="sm:hidden">New Trip</span>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         ) : (

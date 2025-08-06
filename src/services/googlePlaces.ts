@@ -249,6 +249,13 @@ class GooglePlacesService {
     })
   }
 
+  // Get photo URL from photo reference
+  getPhotoUrl(photoReference: string, maxWidth: number = 400): string {
+    // Google Places photos are already returned as full URLs from getUrl()
+    // So photoReference is actually the full URL in our case
+    return photoReference
+  }
+
   // Convert Google Place to our internal Place format
   convertToPlace(googlePlace: GooglePlace, tripId: string, day: number): Omit<Place, 'id'> {
     const getCategory = (types: string[]): Place['category'] => {

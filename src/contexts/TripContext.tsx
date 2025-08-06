@@ -26,6 +26,10 @@ interface TripContextType {
   deleteDraftTrip: (id: string) => void
   getDraftTrip: (id: string) => DraftTrip | undefined
   
+  // Public trip functions
+  getPublicTrips: () => Trip[]
+  getPublicTripsByUser: (userId: string) => Trip[]
+  
   refreshData: () => void
 }
 
@@ -45,24 +49,59 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const refreshData = () => {
+    console.log('🔄 TripContext: Refreshing data from storage')
+    console.log('🔄 TripContext: Current user:', user?.id)
+    
+    // Don't load data if user isn't ready yet - this prevents data loss
+    if (!user) {
+      console.log('🔄 TripContext: No user yet, skipping data load to prevent data loss')
+      setTrips([])
+      setPlaces([])
+      setDraftTrips([])
+      setLoading(false)
+      return
+    }
+    
     setLoading(true)
     try {
       const savedTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
       const savedPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
       const savedDraftTrips = storage.get<DraftTrip[]>(STORAGE_KEYS.DRAFT_TRIPS) || []
       
-      setTrips(savedTrips)
-      setPlaces(savedPlaces)
-      setDraftTrips(savedDraftTrips)
+      console.log('🔄 TripContext: Loaded from storage:', {
+        trips: savedTrips.length,
+        places: savedPlaces.length,
+        drafts: savedDraftTrips.length
+      })
+      
+      // Filter trips by current user
+      const userTrips = savedTrips.filter(trip => trip.created_by === user.id)
+      const userDrafts = savedDraftTrips.filter(draft => draft.created_by === user.id)
+      
+      console.log('🔄 TripContext: Filtered for user:', {
+        userTrips: userTrips.length,
+        userDrafts: userDrafts.length
+      })
+      
+      setTrips(userTrips)
+      setPlaces(savedPlaces) // Places are filtered by trip_id when needed
+      setDraftTrips(userDrafts)
     } catch (error) {
       console.error('Error loading data:', error)
+      // Don't clear trips on error - keep existing state
     } finally {
       setLoading(false)
     }
   }
 
   const createTrip = (tripData: Omit<Trip, 'id' | 'created_by' | 'created_date' | 'updated_date'>): string => {
-    if (!user) throw new Error('User must be logged in to create trips')
+    if (!user) {
+      console.error('❌ TripContext: No user found when creating trip')
+      throw new Error('User must be logged in to create trips')
+    }
+    
+    console.log('🎯 TripContext: Creating trip for user:', user.id)
+    console.log('🎯 TripContext: Trip data:', tripData)
     
     const trip: Trip = {
       ...tripData,
@@ -72,31 +111,60 @@ export function TripProvider({ children }: { children: ReactNode }) {
       updated_date: new Date().toISOString()
     }
     
-    const updatedTrips = [...trips, trip]
-    setTrips(updatedTrips)
-    storage.set(STORAGE_KEYS.TRIPS, updatedTrips)
+    console.log('🎯 TripContext: Generated trip:', trip)
+    
+    // Get all trips from storage (not just user's current trips)
+    const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+    const updatedAllTrips = [...allTrips, trip]
+    
+    // Update state with user's trips only
+    const updatedUserTrips = [...trips, trip]
+    
+    console.log('🎯 TripContext: Saving to storage - total trips:', updatedAllTrips.length)
+    console.log('🎯 TripContext: Current user trips count:', updatedUserTrips.length)
+    
+    setTrips(updatedUserTrips)
+    storage.set(STORAGE_KEYS.TRIPS, updatedAllTrips)
     
     return trip.id
   }
 
   const updateTrip = (id: string, updates: Partial<Trip>) => {
-    const updatedTrips = trips.map(trip =>
+    // Update in global storage
+    const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+    const updatedAllTrips = allTrips.map(trip =>
       trip.id === id
         ? { ...trip, ...updates, updated_date: new Date().toISOString() }
         : trip
     )
-    setTrips(updatedTrips)
-    storage.set(STORAGE_KEYS.TRIPS, updatedTrips)
+    storage.set(STORAGE_KEYS.TRIPS, updatedAllTrips)
+    
+    // Update user trips in state
+    const updatedUserTrips = trips.map(trip =>
+      trip.id === id
+        ? { ...trip, ...updates, updated_date: new Date().toISOString() }
+        : trip
+    )
+    setTrips(updatedUserTrips)
   }
 
   const deleteTrip = (id: string) => {
-    const updatedTrips = trips.filter(trip => trip.id !== id)
+    // Update global storage
+    const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+    const allPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
+    
+    const updatedAllTrips = allTrips.filter(trip => trip.id !== id)
+    const updatedAllPlaces = allPlaces.filter(place => place.trip_id !== id)
+    
+    storage.set(STORAGE_KEYS.TRIPS, updatedAllTrips)
+    storage.set(STORAGE_KEYS.PLACES, updatedAllPlaces)
+    
+    // Update state
+    const updatedUserTrips = trips.filter(trip => trip.id !== id)
     const updatedPlaces = places.filter(place => place.trip_id !== id)
     
-    setTrips(updatedTrips)
+    setTrips(updatedUserTrips)
     setPlaces(updatedPlaces)
-    storage.set(STORAGE_KEYS.TRIPS, updatedTrips)
-    storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
   }
 
   const getTrip = (id: string): Trip | undefined => {
@@ -104,6 +172,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }
 
   const createPlace = (placeData: Omit<Place, 'id' | 'created_date' | 'updated_date'>): string => {
+    console.log('🏪 TripContext: Creating place:', placeData.name, `(Day ${placeData.day}, Order ${placeData.order})`)
+    console.log('🏪 TripContext: Current places array length BEFORE creation:', places.length)
+    
     const place: Place = {
       ...placeData,
       id: generateId(),
@@ -111,9 +182,21 @@ export function TripProvider({ children }: { children: ReactNode }) {
       updated_date: new Date().toISOString()
     }
     
-    const updatedPlaces = [...places, place]
-    setPlaces(updatedPlaces)
-    storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+    console.log('🏪 TripContext: Generated place ID:', place.id)
+    
+    // Use functional update to ensure we get the latest state
+    setPlaces(currentPlaces => {
+      console.log('🏪 TripContext: Current places in setter:', currentPlaces.length)
+      const updatedPlaces = [...currentPlaces, place]
+      console.log('🏪 TripContext: Updated places after adding:', updatedPlaces.length)
+      
+      // Save to storage with the updated array
+      storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+      
+      console.log('🏪 TripContext: Places for trip', placeData.trip_id, ':', updatedPlaces.filter(p => p.trip_id === placeData.trip_id).length)
+      
+      return updatedPlaces
+    })
     
     return place.id
   }
@@ -135,12 +218,19 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }
 
   const getPlacesByTrip = (tripId: string): Place[] => {
-    return places
+    const tripPlaces = places
       .filter(place => place.trip_id === tripId)
       .sort((a, b) => {
         if (a.day !== b.day) return a.day - b.day
         return a.order - b.order
       })
+    
+    console.log('🔍 TripContext: Getting places for trip', tripId)
+    console.log('🔍 TripContext: Total places in context:', places.length)
+    console.log('🔍 TripContext: Places matching trip ID:', tripPlaces.length)
+    console.log('🔍 TripContext: Matched places:', tripPlaces.map(p => `${p.name} (Day ${p.day}, Order ${p.order})`))
+    
+    return tripPlaces
   }
 
   const getPlacesByDay = (tripId: string, day: number): Place[] => {
@@ -186,6 +276,17 @@ export function TripProvider({ children }: { children: ReactNode }) {
     return draftTrips.find(draft => draft.id === id)
   }
 
+  const getPublicTrips = (): Trip[] => {
+    // Get all trips from all users that are marked as public
+    const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+    return allTrips.filter(trip => trip.is_public)
+  }
+
+  const getPublicTripsByUser = (userId: string): Trip[] => {
+    const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+    return allTrips.filter(trip => trip.is_public && trip.created_by === userId)
+  }
+
   const value: TripContextType = {
     trips,
     places,
@@ -204,6 +305,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
     updateDraftTrip,
     deleteDraftTrip,
     getDraftTrip,
+    getPublicTrips,
+    getPublicTripsByUser,
     refreshData
   }
 

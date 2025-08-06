@@ -34,6 +34,7 @@ interface DestinationAutocompleteProps {
   onChange: (destination: string, coordinates?: { lat: number; lng: number }) => void
   placeholder?: string
   error?: string
+  helperText?: string
 }
 
 export function DestinationAutocomplete({ 
@@ -41,7 +42,8 @@ export function DestinationAutocomplete({
   value, 
   onChange, 
   placeholder = "Where do you want to go?",
-  error 
+  error,
+  helperText
 }: DestinationAutocompleteProps) {
   const [query, setQuery] = useState(value || '')
   const [isOpen, setIsOpen] = useState(false)
@@ -201,6 +203,10 @@ export function DestinationAutocomplete({
       
       {error && (
         <p className="mt-1 text-sm text-red-600">{error}</p>
+      )}
+      
+      {helperText && !error && (
+        <p className="mt-1 text-sm text-gray-500">{helperText}</p>
       )}
       
       {isOpen && (
