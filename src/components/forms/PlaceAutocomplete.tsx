@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { MapPin, Search, Star, Clock, DollarSign, Phone, Globe } from 'lucide-react'
+import { Search, Star, Clock, DollarSign } from 'lucide-react'
 import { useDebounce } from '../../hooks/useDebounce'
 import { googlePlacesService, type GooglePlace, type PlaceDetailsResponse } from '../../services/googlePlaces'
 import { isGoogleMapsConfigured } from '../../config/api'

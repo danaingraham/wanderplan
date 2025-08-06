@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, GripVertical, Check, X } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
-import { formatDate, formatTimeOnly } from '../utils/date'
+import { formatDate } from '../utils/date'
 import { TripMap } from '../components/maps/TripMap'
 import { TripAssistant } from '../components/ai/TripAssistant'
 import { Button } from '../components/ui/Button'
@@ -20,45 +20,6 @@ function calculateEndTime(startTime: string, duration: number): string {
   return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`
 }
 
-// Helper function to auto-calculate times for a day's places
-function recalculateTimes(places: Place[]): Place[] {
-  if (places.length === 0) return places
-  
-  // Sort by order to ensure proper sequence
-  const sortedPlaces = [...places].sort((a, b) => a.order - b.order)
-  
-  let currentTime = '09:00' // Always start from 9:00 AM for consistency
-  
-  return sortedPlaces.map((place, index) => {
-    // For first item, use 9:00 AM. For others, calculate from previous item's end time
-    if (index > 0) {
-      const prevPlace = sortedPlaces[index - 1]
-      const prevEndTime = calculateEndTime(
-        prevPlace.start_time || '09:00', 
-        prevPlace.duration || 90
-      )
-      // Add 30 minutes travel time between places
-      const [hours, minutes] = prevEndTime.split(':').map(Number)
-      const travelTime = 30
-      const totalMinutes = hours * 60 + minutes + travelTime
-      
-      // Handle day overflow (if time goes past midnight, cap at 23:30)
-      const finalHours = Math.min(Math.floor(totalMinutes / 60), 23)
-      const finalMinutes = totalMinutes % 60
-      currentTime = `${finalHours.toString().padStart(2, '0')}:${finalMinutes.toString().padStart(2, '0')}`
-    }
-    
-    const endTime = calculateEndTime(currentTime, place.duration || 90)
-    
-    console.log(`⏰ Recalculated: ${place.name} → ${currentTime} - ${endTime} (${place.duration || 90}min)`)
-    
-    return {
-      ...place,
-      start_time: currentTime,
-      end_time: endTime
-    }
-  })
-}
 
 interface PlaceItemProps {
   place: Place
@@ -106,7 +67,7 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
         const details = await googlePlacesService.getPlaceDetails(place.place_id)
         if (details.photos && details.photos.length > 0) {
           const photoReference = details.photos[0].photo_reference
-          const url = googlePlacesService.getPhotoUrl(photoReference, 400)
+          const url = googlePlacesService.getPhotoUrl(photoReference)
           setPhotoUrl(url)
           // Update the place with the photo URL
           onUpdate(place.id, { photo_url: url })
@@ -640,7 +601,7 @@ export function TripDetail() {
                       </h3>
                       
                       <div className="space-y-3 sm:space-y-4">
-                        {placesByDay[day]?.sort((a, b) => a.order - b.order).map((place, placeIndex) => (
+                        {placesByDay[day]?.sort((a, b) => a.order - b.order).map((place) => (
                           <PlaceItem
                             key={place.id}
                             place={place}

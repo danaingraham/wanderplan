@@ -250,7 +250,7 @@ class GooglePlacesService {
   }
 
   // Get photo URL from photo reference
-  getPhotoUrl(photoReference: string, maxWidth: number = 400): string {
+  getPhotoUrl(photoReference: string): string {
     // Google Places photos are already returned as full URLs from getUrl()
     // So photoReference is actually the full URL in our case
     return photoReference

@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react'
-import { MessageCircle, Send, X, Sparkles, MapPin, Utensils, Camera, Plus, Trash2, Edit3, Check, ArrowUpDown, RotateCcw } from 'lucide-react'
+import { Send, X, Sparkles, Utensils, Camera, Plus, Trash2, Edit3, ArrowUpDown, RotateCcw } from 'lucide-react'
 import { openaiService } from '../../services/openai'
 import { isOpenAIConfigured } from '../../config/api'
 import type { Trip, Place } from '../../types'

@@ -1,5 +1,4 @@
 import { googlePlacesService } from './googlePlaces'
-import { openaiService } from './openai'
 import { itineraryGenerator } from './itineraryGenerator'
 import { isGoogleMapsConfigured, isOpenAIConfigured } from '../config/api'
 import type { Trip, Place } from '../types'
@@ -232,93 +231,6 @@ class RealApiService {
     }
   }
 
-  private createFallbackItinerary(
-    request: GenerateItineraryRequest, 
-    days: number, 
-    coords?: { lat: number; lng: number }
-  ): Array<Omit<Place, 'id' | 'trip_id'>> {
-    const places: Array<Omit<Place, 'id' | 'trip_id'>> = []
-    const destination = request.destination
-    
-    for (let day = 1; day <= days; day++) {
-      const dayPlaces = [
-        // Morning activity
-        {
-          name: `${destination} Highlights Tour - Day ${day}`,
-          address: `Historic District, ${destination}`,
-          latitude: coords?.lat || 0,
-          longitude: coords?.lng || 0,
-          category: 'attraction' as const,
-          day,
-          order: 0,
-          start_time: '09:30',
-          duration: 150,
-          notes: `Start your day exploring the main attractions and historic sites of ${destination}. Visit iconic landmarks, museums, or cultural sites.`,
-          is_locked: false,
-          is_reservation: false,
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-        },
-        // Lunch
-        {
-          name: `Local Lunch Spot - Day ${day}`,
-          address: `Downtown ${destination}`,
-          latitude: coords?.lat || 0,
-          longitude: coords?.lng || 0,
-          category: 'restaurant' as const,
-          day,
-          order: 1,
-          start_time: '12:30',
-          duration: 75,
-          notes: `Try authentic local cuisine at a highly-rated restaurant. Research popular lunch spots and local specialties in ${destination}.`,
-          is_locked: false,
-          is_reservation: false,
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-        },
-        // Afternoon activity
-        {
-          name: request.has_kids ? `Family Activity - Day ${day}` : `Cultural Experience - Day ${day}`,
-          address: `${destination} City Center`,
-          latitude: coords?.lat || 0,
-          longitude: coords?.lng || 0,
-          category: 'attraction' as const,
-          day,
-          order: 2,
-          start_time: '14:30',
-          duration: 120,
-          notes: request.has_kids 
-            ? `Family-friendly activities like parks, interactive museums, or kid-friendly attractions in ${destination}.`
-            : `Immerse yourself in local culture - visit art galleries, local markets, or unique neighborhoods in ${destination}.`,
-          is_locked: false,
-          is_reservation: false,
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-        },
-        // Evening activity/dinner
-        {
-          name: `Dinner & Evening - Day ${day}`,
-          address: `${destination} Entertainment District`,
-          latitude: coords?.lat || 0,
-          longitude: coords?.lng || 0,
-          category: 'restaurant' as const,
-          day,
-          order: 3,
-          start_time: '19:00',
-          duration: 120,
-          notes: `End your day with dinner at a recommended restaurant. Explore the nightlife, take an evening stroll, or enjoy local entertainment.`,
-          is_locked: false,
-          is_reservation: false,
-          created_date: new Date().toISOString(),
-          updated_date: new Date().toISOString(),
-        }
-      ]
-      
-      places.push(...dayPlaces)
-    }
-    
-    return places
-  }
 
   private categorizePlace(types: string[]): 'restaurant' | 'attraction' | 'hotel' {
     const typeSet = new Set(types)
