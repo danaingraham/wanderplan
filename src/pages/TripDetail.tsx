@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
+import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -227,7 +227,7 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
       
       <DraggablePlace 
         place={place}
-        className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-scale-in transition-all hover:shadow-md hover:border-gray-300 relative"
+        className="group bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-scale-in transition-all hover:shadow-md hover:border-gray-300 relative"
       >
         {/* Timeline number badge */}
         {sequenceNumber && (
@@ -252,20 +252,22 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
         <div className="flex-1">
           <div className="flex justify-between items-start mb-2">
             <h4 className="font-medium text-gray-900 text-sm sm:text-base pr-2">{place.name}</h4>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
               {!isEditing && (
                 <>
                   <button
                     onClick={() => setIsEditing(true)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors"
+                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-all"
+                    title="Edit"
                   >
-                    <Edit2 className="w-4 h-4" />
+                    <Edit2 className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => onDelete(place.id)}
-                    className="text-gray-400 hover:text-red-600 transition-colors"
+                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
+                    title="Delete"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Trash2 className="w-3.5 h-3.5" />
                   </button>
                 </>
               )}
@@ -339,22 +341,19 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
               </div>
             </div>
           ) : (
-            <div className="flex items-center text-xs sm:text-sm text-gray-600 mb-2 gap-3">
-              <div className="flex items-center">
-                <Clock className="w-3 h-3 sm:w-4 sm:h-4 mr-1" />
-                {place.start_time || '09:00'} - {endTime}
+            <div className="space-y-1 mb-2">
+              {/* Time display - single line without icon */}
+              <div className="text-xs sm:text-sm text-gray-600">
+                {place.start_time || '09:00'} – {endTime} · {place.duration || 90} min
               </div>
-              <span className="text-gray-400">
-                ({place.duration || 90} min)
-              </span>
+              
+              {/* Address - compact and truncated if needed */}
+              {place.address && (
+                <div className="text-xs sm:text-sm text-gray-600 truncate" title={place.address}>
+                  {place.address}
+                </div>
+              )}
             </div>
-          )}
-
-          {place.address && (
-            <p className="text-xs sm:text-sm text-gray-600 mb-2 flex items-start">
-              <MapPin className="w-3 h-3 sm:w-4 sm:h-4 mr-1 mt-0.5 flex-shrink-0" />
-              <span className="break-words">{place.address}</span>
-            </p>
           )}
 
           {place.notes && (
