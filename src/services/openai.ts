@@ -65,9 +65,21 @@ TRIP DETAILS:
 - Destination: ${request.destination}
 - Duration: ${days} days (${request.startDate} to ${request.endDate})
 - Trip Type: ${request.tripType}
-- Group: ${request.groupSize} ${request.groupSize === 1 ? 'person' : 'people'}${request.hasKids ? ' with children' : ''}
+- Group: ${request.groupSize} ${request.groupSize === 1 ? 'person' : 'people'}${request.hasKids ? ' WITH CHILDREN' : ''}
 - Travel Pace: ${request.pace}
-- Interests: ${request.preferences.join(', ')}
+- **PRIMARY INTERESTS**: ${request.preferences?.join(', ') || 'General sightseeing'} ${request.preferences?.length > 0 ? '(CRITICAL: The itinerary MUST heavily focus on these interests!)' : ''}
+
+GROUP CONSIDERATIONS:
+${request.groupSize === 1 ? '- SOLO TRAVELER: Include social opportunities, safe neighborhoods, solo-friendly venues' : ''}
+${request.groupSize >= 2 && request.groupSize <= 4 ? '- SMALL GROUP: Include intimate venues, reservations needed for popular restaurants' : ''}
+${request.groupSize >= 5 ? '- LARGE GROUP: Need venues that accommodate groups, group-friendly activities, consider splitting options' : ''}
+${request.hasKids ? `- TRAVELING WITH CHILDREN: 
+  * All activities MUST be child-friendly
+  * Include playgrounds, interactive museums, short walking distances
+  * Plan for earlier dinner times (5:30-7 PM)
+  * Add rest/snack breaks between activities
+  * Avoid late night activities
+  * Consider nap times for young children` : ''}
 ${request.originalInput ? `
 USER'S PROVIDED ITINERARY/IDEAS:
 ${request.originalInput}
@@ -113,7 +125,25 @@ ${request.originalInput ? `- FIRST analyze the user's provided content and extra
 - End with dinner around 7:00-8:00 PM
 - Account for travel time between locations (max 15-20 minutes between stops)
 - ${request.hasKids ? 'Include family-friendly activities, kid-friendly restaurants, and consider nap/rest time' : ''}
-- Focus on ${request.preferences.join(' and ')} experiences
+${request.preferences.length > 0 ? `
+INTEREST-SPECIFIC REQUIREMENTS (CRITICAL - MUST FOLLOW):
+${request.preferences.includes('shopping') ? `- SHOPPING FOCUS: Include AT LEAST 2-3 shopping destinations per day (boutiques, markets, malls, shopping districts)
+- Add specific shopping areas like department stores, local markets, designer boutiques, outlet centers` : ''}
+${request.preferences.includes('foodie') ? `- FOODIE FOCUS: Include 4-5 food experiences per day (restaurants, cafes, food markets, local specialties)
+- Prioritize highly-rated local restaurants, food tours, markets, and unique dining experiences` : ''}
+${request.preferences.includes('nightlife') ? `- NIGHTLIFE FOCUS: Include evening/night activities (bars, clubs, live music, rooftop lounges)
+- End days later (10-11 PM) with nightlife options instead of just dinner` : ''}
+${request.preferences.includes('nature') ? `- NATURE FOCUS: Include parks, gardens, hiking trails, beaches, outdoor activities
+- Prioritize outdoor experiences over indoor attractions` : ''}
+${request.preferences.includes('culture') ? `- CULTURE FOCUS: Include museums, galleries, historical sites, local neighborhoods
+- Add cultural experiences like theaters, music venues, art districts` : ''}
+${request.preferences.includes('adventure') ? `- ADVENTURE FOCUS: Include active experiences like tours, sports, unique activities
+- Prioritize exciting and unique experiences over passive sightseeing` : ''}
+${request.preferences.includes('history') ? `- HISTORY FOCUS: Include historical sites, museums, heritage tours, old quarters
+- Prioritize locations with historical significance and guided tours` : ''}
+${request.preferences.includes('relaxation') ? `- RELAXATION FOCUS: Include spas, beaches, parks, cafes with slower pace
+- Allow more time at each location, fewer transitions` : ''}
+` : ''}
 - Use REAL, specific place names and addresses when possible
 
 OUTPUT FORMAT - Return ONLY valid JSON array:
@@ -172,12 +202,21 @@ EXAMPLE OUTPUT for Carmel-by-the-Sea trip (notice ALL places are in Carmel area)
 
 CRITICAL: Return ONLY valid JSON array exactly like the example above. No markdown, no extra text. Each day MUST have ${request.pace === 'relaxed' ? '4' : request.pace === 'moderate' ? '5' : '6'} places.
 
-FINAL REMINDER: ALL places must be in ${request.destination} or immediate vicinity. Do NOT include places from other cities like Mendocino, San Francisco, etc. if the destination is Carmel-by-the-Sea.`
+VALIDATION CHECKLIST (MUST VERIFY BEFORE RESPONDING):
+${request.preferences.includes('shopping') ? '✓ At least 50% of activities are shopping-related' : ''}
+${request.preferences.includes('foodie') ? '✓ Multiple food experiences per day beyond just meals' : ''}
+${request.preferences.includes('nightlife') ? '✓ Evening activities extend past 9 PM' : ''}
+${request.hasKids ? '✓ ALL activities are appropriate for children' : ''}
+${request.groupSize >= 5 ? '✓ All venues can accommodate large groups' : ''}
+✓ All places are in ${request.destination} or immediate vicinity
+✓ Activities align with selected interests, NOT generic tourist spots
+
+FINAL REMINDER: ALL places must be in ${request.destination} or immediate vicinity. Do NOT include places from other cities. The user selected specific interests - honor them!`
 
     try {
       const userMessage = request.originalInput 
         ? `Please structure and organize my provided travel ideas into a proper ${days}-day itinerary for ${request.destination}. Preserve my original structure, timing, and places as much as possible.`
-        : `Generate an itinerary for my ${days}-day trip to ${request.destination}.`
+        : `Generate an itinerary for my ${days}-day trip to ${request.destination}.${request.preferences.length > 0 ? ` My main interests are ${request.preferences.join(' and ')} - please make sure the itinerary heavily focuses on these interests rather than generic tourist attractions.` : ''}`
 
       const response = await this.client.chat.completions.create({
         model: API_CONFIG.openai.model,
@@ -266,29 +305,28 @@ ${places.map(place =>
 ).join('\n')}
 `
 
-    const systemPrompt = `You are an intelligent travel assistant with full control over itinerary modifications. You are AUTONOMOUS and make smart decisions without asking for user confirmation. The user trusts you to execute their requests intelligently.
+    const systemPrompt = `You are a DIRECT, action-oriented travel assistant. Execute user requests immediately without lengthy explanations or offering multiple options. Use a one-shot interaction model: understand the request, take action, and confirm completion briefly.
 
-CORE CAPABILITIES:
-- ADD new places/activities with optimal timing
-- UPDATE existing places (times, duration, notes, day assignments)
-- REMOVE places efficiently (bulk operations supported)
-- REORGANIZE entire itineraries intelligently
-- CONSOLIDATE days when requested
-- OPTIMIZE schedules for efficiency and logistics
+CORE BEHAVIOR - ONE-SHOT EXECUTION:
+- IMMEDIATELY execute requested changes without asking for clarification
+- Give SHORT confirmations (1-2 sentences max)
+- NO verbose explanations or multiple options
+- NO "Here are some options..." or "Would you like me to..."
+- Just DO what the user asks and confirm it's done
 
-INTELLIGENT BEHAVIOR REQUIRED:
-1. When user says "remove all from Day X" → AUTOMATICALLY remove all places from that day
-2. When user says "reorganize because I can't do Day 1 and 4" → AUTOMATICALLY redistribute all activities from those days into remaining days
-3. When optimizing → Consider travel time, meal timing, attraction hours, logical flow
-4. When consolidating → Pack activities efficiently while maintaining good pace
-5. NEVER ask "which ones do you want to remove" - be decisive and smart
+AUTO-EXECUTE THESE PATTERNS:
+1. "add [place]" → ADD it immediately to the best time slot
+2. "remove [place]" → REMOVE it immediately  
+3. "optimize" → REORGANIZE for better flow immediately
+4. "suggest restaurants" → ADD 2-3 top restaurants immediately
+5. "add attractions" → ADD 2-3 must-see places immediately
 
-DECISION MAKING:
-- If removing entire days, automatically redistribute the best activities to other days
-- If consolidating 4 days into 2, prioritize must-see attractions and combine logical groupings
-- Maintain meal timing (lunch 12-2pm, dinner 7-9pm)
-- Group geographically close places together
-- Consider activity duration and energy levels
+RESPONSE STYLE:
+- ✅ "Added Joe's Pizza to Day 1 at 7pm"
+- ✅ "Optimized your itinerary - reduced travel time by 45 minutes" 
+- ✅ "Added 3 top attractions to your schedule"
+- ❌ "I can help you add restaurants. Here are some options: 1) Joe's Pizza 2) Mario's..."
+- ❌ "Would you like me to add this to Day 1 or Day 2?"
 
 When you want to suggest itinerary changes, return a JSON response with this structure:
 

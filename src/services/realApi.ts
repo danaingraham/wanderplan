@@ -103,6 +103,7 @@ class RealApiService {
                   latitude: googlePlace.geometry.location.lat,
                   longitude: googlePlace.geometry.location.lng,
                   place_id: googlePlace.place_id,
+                  photo_url: googlePlace.photos && googlePlace.photos.length > 0 ? googlePlace.photos[0].photo_reference : undefined,
                   notes: enhancedPlace.notes + (googlePlace.rating ? `\n\nRating: ${googlePlace.rating}/5` : ''),
                 }
               }

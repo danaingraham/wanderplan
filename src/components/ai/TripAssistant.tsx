@@ -29,22 +29,22 @@ interface TripAssistantProps {
 const suggestedQuestions = [
   {
     icon: Plus,
-    question: "Add some must-see attractions to my itinerary",
+    question: "Add top attractions",
     category: "add-attractions"
   },
   {
     icon: Utensils,
-    question: "Suggest and add local restaurants to my trip",
+    question: "Add best restaurants",
     category: "add-food"
   },
   {
     icon: Edit3,
-    question: "Optimize my itinerary timing and flow",
+    question: "Optimize my itinerary",
     category: "optimization"
   },
   {
     icon: Camera,
-    question: "Add Instagram-worthy photo spots to my itinerary",
+    question: "Add photo spots",
     category: "add-photos"
   },
 ]
@@ -96,7 +96,7 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
       const welcomeMessage: Message = {
         id: '1',
         role: 'assistant',
-        content: `Hi! I'm your travel assistant for your trip to ${trip.destination}. I can help you with recommendations, itinerary optimization, local tips, and answer any questions about your trip. What would you like to know?`,
+        content: `Hi! I'm your ${trip.destination} assistant. I can add places, optimize your itinerary, or answer questions. What can I do?`,
         timestamp: new Date(),
       }
       setMessages([welcomeMessage])
@@ -143,12 +143,35 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
     try {
       const { response, actions } = await openaiService.getTripAdviceWithActions(trip, places, content)
       
+      // Auto-execute simple actions immediately for one-shot behavior
+      let autoExecutedCount = 0
+      if (actions && actions.length > 0) {
+        const simpleActions = actions.filter(action => 
+          action.type === 'add' || 
+          action.type === 'remove' || 
+          (action.type === 'reorder' && actions.length <= 3)
+        )
+        
+        // Auto-execute if it's a simple request with 1-3 clear actions
+        if (simpleActions.length > 0 && simpleActions.length <= 3) {
+          for (const action of simpleActions) {
+            try {
+              executeAction(action)
+              autoExecutedCount++
+            } catch (error) {
+              console.error('Auto-execution failed:', error)
+            }
+          }
+        }
+      }
+      
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: 'assistant',
         content: response,
         timestamp: new Date(),
-        actions: actions || []
+        // Only show action buttons for complex actions that weren't auto-executed
+        actions: autoExecutedCount > 0 ? [] : (actions || [])
       }
 
       setMessages(prev => [...prev, assistantMessage])
@@ -218,14 +241,7 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
           console.warn('Unsupported action type:', action.type)
       }
 
-      // Add confirmation message
-      const confirmMessage: Message = {
-        id: Date.now().toString(),
-        role: 'assistant',
-        content: `✅ Done! ${action.description}`,
-        timestamp: new Date(),
-      }
-      setMessages(prev => [...prev, confirmMessage])
+      // No confirmation message needed - AI response already confirms the action
     } catch (error) {
       console.error('Failed to execute action:', error)
       const errorMessage: Message = {

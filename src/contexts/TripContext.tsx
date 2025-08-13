@@ -4,6 +4,13 @@ import type { Trip, Place, DraftTrip } from '../types'
 import { storage, STORAGE_KEYS } from '../utils/storage'
 import { useUser } from './UserContext'
 
+// Create environment-aware logging
+const log = (...args: any[]) => {
+  if (process.env.NODE_ENV === 'development') {
+    console.log(...args)
+  }
+}
+
 interface TripContextType {
   trips: Trip[]
   places: Place[]
@@ -17,6 +24,7 @@ interface TripContextType {
   
   createPlace: (place: Omit<Place, 'id' | 'created_date' | 'updated_date'>) => string
   updatePlace: (id: string, updates: Partial<Place>) => void
+  bulkUpdatePlaces: (updates: Array<{ id: string, updates: Partial<Place> }>) => void
   deletePlace: (id: string) => void
   getPlacesByTrip: (tripId: string) => Place[]
   getPlacesByDay: (tripId: string, day: number) => Place[]
@@ -49,12 +57,12 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const refreshData = () => {
-    console.log('🔄 TripContext: Refreshing data from storage')
-    console.log('🔄 TripContext: Current user:', user?.id)
+    log('🔄 TripContext: Refreshing data from storage')
+    log('🔄 TripContext: Current user:', user?.id)
     
     // Don't load data if user isn't ready yet - this prevents data loss
     if (!user) {
-      console.log('🔄 TripContext: No user yet, skipping data load to prevent data loss')
+      log('🔄 TripContext: No user yet, skipping data load to prevent data loss')
       setTrips([])
       setPlaces([])
       setDraftTrips([])
@@ -68,7 +76,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       const savedPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
       const savedDraftTrips = storage.get<DraftTrip[]>(STORAGE_KEYS.DRAFT_TRIPS) || []
       
-      console.log('🔄 TripContext: Loaded from storage:', {
+      log('🔄 TripContext: Loaded from storage:', {
         trips: savedTrips.length,
         places: savedPlaces.length,
         drafts: savedDraftTrips.length
@@ -78,7 +86,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       const userTrips = savedTrips.filter(trip => trip.created_by === user.id)
       const userDrafts = savedDraftTrips.filter(draft => draft.created_by === user.id)
       
-      console.log('🔄 TripContext: Filtered for user:', {
+      log('🔄 TripContext: Filtered for user:', {
         userTrips: userTrips.length,
         userDrafts: userDrafts.length
       })
@@ -87,7 +95,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       setPlaces(savedPlaces) // Places are filtered by trip_id when needed
       setDraftTrips(userDrafts)
     } catch (error) {
-      console.error('Error loading data:', error)
+      log('Error loading data:', error)
       // Don't clear trips on error - keep existing state
     } finally {
       setLoading(false)
@@ -96,12 +104,12 @@ export function TripProvider({ children }: { children: ReactNode }) {
 
   const createTrip = (tripData: Omit<Trip, 'id' | 'created_by' | 'created_date' | 'updated_date'>): string => {
     if (!user) {
-      console.error('❌ TripContext: No user found when creating trip')
+      log('❌ TripContext: No user found when creating trip')
       throw new Error('User must be logged in to create trips')
     }
     
-    console.log('🎯 TripContext: Creating trip for user:', user.id)
-    console.log('🎯 TripContext: Trip data:', tripData)
+    log('🎯 TripContext: Creating trip for user:', user.id)
+    log('🎯 TripContext: Trip data:', tripData)
     
     const trip: Trip = {
       ...tripData,
@@ -111,7 +119,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       updated_date: new Date().toISOString()
     }
     
-    console.log('🎯 TripContext: Generated trip:', trip)
+    log('🎯 TripContext: Generated trip:', trip)
     
     // Get all trips from storage (not just user's current trips)
     const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
@@ -120,8 +128,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
     // Update state with user's trips only
     const updatedUserTrips = [...trips, trip]
     
-    console.log('🎯 TripContext: Saving to storage - total trips:', updatedAllTrips.length)
-    console.log('🎯 TripContext: Current user trips count:', updatedUserTrips.length)
+    log('🎯 TripContext: Saving to storage - total trips:', updatedAllTrips.length)
+    log('🎯 TripContext: Current user trips count:', updatedUserTrips.length)
     
     setTrips(updatedUserTrips)
     storage.set(STORAGE_KEYS.TRIPS, updatedAllTrips)
@@ -172,8 +180,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }
 
   const createPlace = (placeData: Omit<Place, 'id' | 'created_date' | 'updated_date'>): string => {
-    console.log('🏪 TripContext: Creating place:', placeData.name, `(Day ${placeData.day}, Order ${placeData.order})`)
-    console.log('🏪 TripContext: Current places array length BEFORE creation:', places.length)
+    log('🏪 TripContext: Creating place:', placeData.name, `(Day ${placeData.day}, Order ${placeData.order})`)
+    log('🏪 TripContext: Current places array length BEFORE creation:', places.length)
     
     const place: Place = {
       ...placeData,
@@ -182,18 +190,18 @@ export function TripProvider({ children }: { children: ReactNode }) {
       updated_date: new Date().toISOString()
     }
     
-    console.log('🏪 TripContext: Generated place ID:', place.id)
+    log('🏪 TripContext: Generated place ID:', place.id)
     
     // Use functional update to ensure we get the latest state
     setPlaces(currentPlaces => {
-      console.log('🏪 TripContext: Current places in setter:', currentPlaces.length)
+      log('🏪 TripContext: Current places in setter:', currentPlaces.length)
       const updatedPlaces = [...currentPlaces, place]
-      console.log('🏪 TripContext: Updated places after adding:', updatedPlaces.length)
+      log('🏪 TripContext: Updated places after adding:', updatedPlaces.length)
       
       // Save to storage with the updated array
       storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
       
-      console.log('🏪 TripContext: Places for trip', placeData.trip_id, ':', updatedPlaces.filter(p => p.trip_id === placeData.trip_id).length)
+      log('🏪 TripContext: Places for trip', placeData.trip_id, ':', updatedPlaces.filter(p => p.trip_id === placeData.trip_id).length)
       
       return updatedPlaces
     })
@@ -211,13 +219,33 @@ export function TripProvider({ children }: { children: ReactNode }) {
     storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
   }
 
+  const bulkUpdatePlaces = (updates: Array<{ id: string, updates: Partial<Place> }>) => {
+    if (updates.length === 0) return
+    
+    log('🔄 TripContext: Bulk updating', updates.length, 'places')
+    
+    const updateMap = new Map(updates.map(u => [u.id, u.updates]))
+    
+    const updatedPlaces = places.map(place => {
+      const placeUpdates = updateMap.get(place.id)
+      return placeUpdates 
+        ? { ...place, ...placeUpdates, updated_date: new Date().toISOString() }
+        : place
+    })
+    
+    setPlaces(updatedPlaces)
+    storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+    
+    log('✅ TripContext: Bulk update completed')
+  }
+
   const deletePlace = (id: string) => {
     const updatedPlaces = places.filter(place => place.id !== id)
     setPlaces(updatedPlaces)
     storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
   }
 
-  const getPlacesByTrip = (tripId: string): Place[] => {
+  const getPlacesByTrip = useCallback((tripId: string): Place[] => {
     const tripPlaces = places
       .filter(place => place.trip_id === tripId)
       .sort((a, b) => {
@@ -225,19 +253,19 @@ export function TripProvider({ children }: { children: ReactNode }) {
         return a.order - b.order
       })
     
-    console.log('🔍 TripContext: Getting places for trip', tripId)
-    console.log('🔍 TripContext: Total places in context:', places.length)
-    console.log('🔍 TripContext: Places matching trip ID:', tripPlaces.length)
-    console.log('🔍 TripContext: Matched places:', tripPlaces.map(p => `${p.name} (Day ${p.day}, Order ${p.order})`))
+    log('🔍 TripContext: Getting places for trip', tripId)
+    log('🔍 TripContext: Total places in context:', places.length)
+    log('🔍 TripContext: Places matching trip ID:', tripPlaces.length)
+    log('🔍 TripContext: Matched places:', tripPlaces.map(p => `${p.name} (Day ${p.day}, Order ${p.order})`))
     
     return tripPlaces
-  }
+  }, [places])
 
-  const getPlacesByDay = (tripId: string, day: number): Place[] => {
+  const getPlacesByDay = useCallback((tripId: string, day: number): Place[] => {
     return places
       .filter(place => place.trip_id === tripId && place.day === day)
       .sort((a, b) => a.order - b.order)
-  }
+  }, [places])
 
   const saveDraftTrip = useCallback((draftData: Omit<DraftTrip, 'id' | 'last_updated' | 'created_by'>): string => {
     if (!user) throw new Error('User must be logged in to save drafts')
@@ -298,6 +326,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
     getTrip,
     createPlace,
     updatePlace,
+    bulkUpdatePlaces,
     deletePlace,
     getPlacesByTrip,
     getPlacesByDay,

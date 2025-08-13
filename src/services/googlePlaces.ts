@@ -52,6 +52,29 @@ class GooglePlacesService {
         version: 'weekly',
         libraries: ['places'],
       })
+      
+      // Initialize immediately when service is created
+      this.initializeEarly().catch(error => {
+        console.warn('⚠️ Early Google Places initialization failed:', error)
+      })
+    }
+  }
+
+  // Early initialization to make Google API available globally
+  private async initializeEarly(): Promise<void> {
+    if (!this.loader) return
+    
+    try {
+      console.log('🚀 Early loading Google Maps API...')
+      await this.loader.load()
+      console.log('✅ Google Maps API loaded globally')
+      
+      // Make it available on window for debugging tools
+      if (window.google && window.google.maps && window.google.maps.places) {
+        console.log('✅ Google Places API is now available globally')
+      }
+    } catch (error) {
+      console.error('❌ Early Google Maps initialization failed:', error)
     }
   }
 
@@ -116,11 +139,22 @@ class GooglePlacesService {
             types: place.types || [],
             rating: place.rating,
             price_level: place.price_level,
-            photos: place.photos?.map(photo => ({
-              photo_reference: photo.getUrl({ maxWidth: 400, maxHeight: 300 }),
-              height: photo.height,
-              width: photo.width,
-            })),
+            photos: place.photos?.map(photo => {
+              try {
+                // Generate a proper Google Places photo URL with larger size
+                const url = photo.getUrl({ maxWidth: 600, maxHeight: 400 })
+                console.log('🌐 Google Places Photo URL generated:', url)
+                console.log('📐 Photo dimensions:', { width: photo.width, height: photo.height })
+                return {
+                  photo_reference: url,
+                  height: photo.height,
+                  width: photo.width,
+                }
+              } catch (error) {
+                console.error('❌ Failed to generate photo URL:', error)
+                return null
+              }
+            }).filter(Boolean),
             opening_hours: place.opening_hours ? {
               open_now: place.opening_hours.open_now || false,
               weekday_text: place.opening_hours.weekday_text || [],
@@ -170,11 +204,22 @@ class GooglePlacesService {
             types: place.types || [],
             rating: place.rating,
             price_level: place.price_level,
-            photos: place.photos?.map(photo => ({
-              photo_reference: photo.getUrl({ maxWidth: 400, maxHeight: 300 }),
-              height: photo.height,
-              width: photo.width,
-            })),
+            photos: place.photos?.map(photo => {
+              try {
+                // Generate a proper Google Places photo URL with larger size
+                const url = photo.getUrl({ maxWidth: 600, maxHeight: 400 })
+                console.log('🌐 Google Places Photo URL generated:', url)
+                console.log('📐 Photo dimensions:', { width: photo.width, height: photo.height })
+                return {
+                  photo_reference: url,
+                  height: photo.height,
+                  width: photo.width,
+                }
+              } catch (error) {
+                console.error('❌ Failed to generate photo URL:', error)
+                return null
+              }
+            }).filter(Boolean),
             opening_hours: place.opening_hours ? {
               open_now: place.opening_hours.open_now || false,
               weekday_text: place.opening_hours.weekday_text || [],

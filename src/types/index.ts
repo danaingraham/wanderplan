@@ -112,6 +112,26 @@ export interface ChatMessage {
   trip_id?: string
 }
 
+export interface LogisticsItem {
+  id: string
+  trip_id: string
+  type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
+  title: string
+  description?: string
+  startDate: string
+  endDate?: string
+  startTime?: string
+  endTime?: string
+  location?: string
+  confirmationNumber?: string
+  email?: string
+  notes?: string
+  cost?: number
+  currency?: string
+  created_date: string
+  updated_date: string
+}
+
 export interface AppSettings {
   theme: 'light' | 'dark' | 'auto'
   notifications: boolean

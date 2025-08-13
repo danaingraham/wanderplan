@@ -35,6 +35,7 @@ export function DateRangePicker({
   
   // Create dates in local timezone to avoid UTC offset issues
   const createLocalDate = (dateString: string) => {
+    if (!dateString) return null
     const [year, month, day] = dateString.split('-').map(Number)
     return new Date(year, month - 1, day) // month is 0-indexed
   }

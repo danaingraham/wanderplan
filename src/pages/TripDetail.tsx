@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, GripVertical, Check, X, Plus } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, Check, X, Plus, RefreshCw, Zap, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
+import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
 import { TripMap } from '../components/maps/TripMap'
 import { TripAssistant } from '../components/ai/TripAssistant'
@@ -9,7 +10,12 @@ import { Button } from '../components/ui/Button'
 import { PlaceAutocomplete } from '../components/forms/PlaceAutocomplete'
 import { googlePlacesService, type PlaceDetailsResponse } from '../services/googlePlaces'
 import { isGoogleMapsConfigured } from '../config/api'
-import type { Place } from '../types'
+import { DragDropProvider } from '../components/dnd/DragDropProvider'
+import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
+import { DragOverlay } from '../components/dnd/DragOverlay'
+import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
+import { LogisticsContainer } from '../components/logistics/LogisticsContainer'
+import type { Place, LogisticsItem } from '../types'
 
 // Helper function to calculate end time from start time and duration
 function calculateEndTime(startTime: string, duration: number): string {
@@ -20,20 +26,67 @@ function calculateEndTime(startTime: string, duration: number): string {
   return `${endHours.toString().padStart(2, '0')}:${endMinutes.toString().padStart(2, '0')}`
 }
 
+// Helper function to convert time string to minutes since midnight
+function timeToMinutes(timeString: string): number {
+  const [hours, minutes] = timeString.split(':').map(Number)
+  return hours * 60 + minutes
+}
+
+// Helper function to convert minutes since midnight to time string
+function minutesToTime(totalMinutes: number): string {
+  const hours = Math.floor(totalMinutes / 60) % 24
+  const minutes = totalMinutes % 60
+  return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
+}
+
+// Helper function to get category icon
+function getCategoryIcon(category: Place['category']) {
+  const iconMap = {
+    restaurant: UtensilsCrossed,
+    cafe: Coffee,
+    attraction: Camera,
+    shop: ShoppingBag,
+    hotel: Hotel,
+    accommodation: Hotel,
+    activity: Activity,
+    transport: Plane,
+    flight: Plane,
+    bar: Coffee,
+    tip: MapPinIcon
+  }
+  return iconMap[category] || MapPinIcon
+}
+
+// Helper function to calculate date for a given day
+function getDayDate(startDate: string, dayNumber: number): Date {
+  const start = new Date(startDate)
+  const dayDate = new Date(start)
+  dayDate.setDate(start.getDate() + dayNumber - 1)
+  return dayDate
+}
+
+// Helper function to check if two time ranges overlap
+function timesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
+  const start1Min = timeToMinutes(start1)
+  const end1Min = timeToMinutes(end1)
+  const start2Min = timeToMinutes(start2)
+  const end2Min = timeToMinutes(end2)
+  
+  return start1Min < end2Min && start2Min < end1Min
+}
+
 
 interface PlaceItemProps {
   place: Place
   onUpdate: (id: string, updates: Partial<Place>) => void
   onDelete: (id: string) => void
-  onDragStart: (placeId: string) => void
-  onDragEnd: () => void
-  onDrop: (targetId: string) => void
-  isDragging: boolean
   tripDestination?: string
   tripDestinationCoords?: { lat: number; lng: number }
+  sequenceNumber?: number
+  isLast?: boolean
 }
 
-function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, isDragging, tripDestination, tripDestinationCoords }: PlaceItemProps) {
+function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestinationCoords, sequenceNumber, isLast }: PlaceItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({
     name: place.name,
@@ -59,20 +112,41 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
   useEffect(() => {
     const fetchPhoto = async () => {
       if (place.photo_url) {
+        console.log('🖼️ Using existing photo URL:', place.photo_url)
         setPhotoUrl(place.photo_url)
         return
       }
 
-      if (!isGoogleMapsConfigured() || !place.place_id) return
+      if (!isGoogleMapsConfigured() || !place.place_id) {
+        console.log('⚠️ Skipping photo fetch - API not configured or no place_id', {
+          apiConfigured: isGoogleMapsConfigured(),
+          hasPlaceId: !!place.place_id,
+          placeName: place.name
+        })
+        return
+      }
+
+      // Check if Google Maps API is actually loaded
+      if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
+        console.log('⚠️ Google Maps API not loaded yet, skipping photo fetch')
+        return
+      }
 
       try {
+        console.log('🔍 Fetching photo for place:', place.name, 'with place_id:', place.place_id)
         const details = await googlePlacesService.getPlaceDetails(place.place_id)
+        console.log('📸 Place details photos:', details.photos)
+        
         if (details.photos && details.photos.length > 0) {
           const photoReference = details.photos[0].photo_reference
+          console.log('📷 Photo reference (URL):', photoReference)
           const url = googlePlacesService.getPhotoUrl(photoReference)
+          console.log('🔗 Final photo URL:', url)
           setPhotoUrl(url)
           // Update the place with the photo URL
           onUpdate(place.id, { photo_url: url })
+        } else {
+          console.log('❌ No photos available for this place')
         }
       } catch (error) {
         console.error('Failed to fetch place photo:', error)
@@ -119,7 +193,9 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
     
     // Update photo if available
     if (placeDetails.photos && placeDetails.photos.length > 0) {
+      console.log('🎯 Place selection - photos available:', placeDetails.photos)
       updates.photo_url = placeDetails.photos[0].photo_reference
+      console.log('🎯 Setting photo_url to:', updates.photo_url)
     }
     
     // Apply updates immediately (not just to edit form)
@@ -142,26 +218,24 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
   const endTime = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
 
   return (
-    <div
-      className={`bg-gray-50 rounded-xl p-3 sm:p-4 animate-scale-in transition-all hover:bg-gray-100 ${
-        isDragging ? 'opacity-50' : ''
-      }`}
-      onDragOver={(e) => e.preventDefault()}
-      onDrop={(e) => {
-        e.preventDefault()
-        onDrop(place.id)
-      }}
-    >
-      <div className="flex gap-3">
-        {/* Drag Handle */}
-        <div 
-          className="flex items-center cursor-move text-gray-400 hover:text-gray-600"
-          draggable
-          onDragStart={() => onDragStart(place.id)}
-          onDragEnd={onDragEnd}
-        >
-          <GripVertical className="w-5 h-5" />
-        </div>
+    <div className="relative">
+      {/* Timeline Connection */}
+      {!isLast && (
+        <div className="absolute left-5 sm:left-6 top-16 bottom-0 w-0.5 bg-gradient-to-b from-teal-300 to-teal-200 transform translate-x-0.5"></div>
+      )}
+      
+      <DraggablePlace 
+        place={place}
+        className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-scale-in transition-all hover:shadow-md hover:border-gray-300 relative"
+      >
+        {/* Timeline number badge */}
+        {sequenceNumber && (
+          <div className="absolute -left-2 sm:-left-3 top-4 w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10">
+            <span className="text-white text-xs font-bold">{sequenceNumber}</span>
+          </div>
+        )}
+        
+        <div className="flex gap-3 pl-4">
 
         {/* Photo */}
         {photoUrl && (
@@ -170,6 +244,27 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
               src={photoUrl}
               alt={place.name}
               className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
+              loading="lazy"
+              onError={(e) => {
+                console.error('❌ Image failed to load:', photoUrl)
+                const target = e.target as HTMLImageElement
+                console.error('Error details:', {
+                  src: target.src,
+                  naturalWidth: target.naturalWidth,
+                  naturalHeight: target.naturalHeight,
+                  complete: target.complete
+                })
+                // Try to retry with a simpler approach or hide broken image
+                setPhotoUrl(null)
+              }}
+              onLoad={(e) => {
+                const target = e.target as HTMLImageElement
+                console.log('✅ Image loaded successfully:', {
+                  src: target.src,
+                  naturalWidth: target.naturalWidth,
+                  naturalHeight: target.naturalHeight
+                })
+              }}
             />
           </div>
         )}
@@ -304,6 +399,7 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
           </div>
         </div>
       </div>
+      </DraggablePlace>
     </div>
   )
 }
@@ -311,14 +407,19 @@ function PlaceItem({ place, onUpdate, onDelete, onDragStart, onDragEnd, onDrop, 
 export function TripDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, deletePlace, deleteTrip, updateTrip } = useTrips()
+  const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, bulkUpdatePlaces, deletePlace, deleteTrip, updateTrip } = useTrips()
   const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined)
-  const [viewMode, setViewMode] = useState<'list' | 'map'>('list')
+  const [viewMode, setViewMode] = useState<'list' | 'map' | 'split' | 'logistics'>('split')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
-  const [draggedItem, setDraggedItem] = useState<string | null>(null)
+  const [showConflictModal, setShowConflictModal] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
+  const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
+  const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
+  const [logistics, setLogistics] = useState<LogisticsItem[]>([])
+  const [logisticsLoading, setLogisticsLoading] = useState(false)
   const [newItemData, setNewItemData] = useState<{
     name: string
     address: string
@@ -327,6 +428,10 @@ export function TripDetail() {
     start_time: string
     duration: number
     notes: string
+    place_id?: string
+    latitude?: number
+    longitude?: number
+    photo_url?: string
   }>({
     name: '',
     address: '',
@@ -343,6 +448,210 @@ export function TripDetail() {
   console.log('🔍 TripDetail: Component rendered with trip ID:', id)
   console.log('🔍 TripDetail: Trip found:', !!trip)
   console.log('🔍 TripDetail: Places found:', places.length)
+
+  // Helper function to determine current day based on trip dates
+  const getCurrentDay = () => {
+    if (!trip?.start_date) return 1
+    
+    const startDate = new Date(trip.start_date)
+    const today = new Date()
+    const diffTime = today.getTime() - startDate.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    // Return day 1 if trip hasn't started, or the appropriate day if in progress
+    return Math.max(1, Math.min(diffDays, places.length > 0 ? Math.max(...places.map(p => p.day)) : 1))
+  }
+
+  // Initialize collapsed days (collapse all except current day)
+  useEffect(() => {
+    if (places.length > 0) {
+      const allDays = [...new Set(places.map(p => p.day))]
+      const currentDay = getCurrentDay()
+      const toCollapse = new Set(allDays.filter(day => day !== currentDay))
+      setCollapsedDays(toCollapse)
+    }
+  }, [places.length, trip?.start_date])
+
+  const toggleDayCollapse = (day: number) => {
+    setCollapsedDays(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(day)) {
+        newSet.delete(day)
+      } else {
+        newSet.add(day)
+      }
+      return newSet
+    })
+  }
+
+  const expandAllDays = () => {
+    setCollapsedDays(new Set())
+  }
+
+  const collapseAllDays = () => {
+    const allDays = [...new Set(places.map(p => p.day))]
+    setCollapsedDays(new Set(allDays))
+  }
+
+  // Logistics functions
+  const generateLogisticsId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+
+  const createLogisticsItem = (item: Omit<LogisticsItem, 'id' | 'trip_id' | 'created_date' | 'updated_date'>) => {
+    if (!trip) return
+    
+    const newItem: LogisticsItem = {
+      ...item,
+      id: generateLogisticsId(),
+      trip_id: trip.id,
+      created_date: new Date().toISOString(),
+      updated_date: new Date().toISOString(),
+    }
+
+    setLogistics(prev => [...prev, newItem])
+  }
+
+  const updateLogisticsItem = (id: string, updates: Partial<LogisticsItem>) => {
+    setLogistics(prev => prev.map(item => 
+      item.id === id 
+        ? { ...item, ...updates, updated_date: new Date().toISOString() }
+        : item
+    ))
+  }
+
+  const deleteLogisticsItem = (id: string) => {
+    setLogistics(prev => prev.filter(item => item.id !== id))
+  }
+
+  const handleRefreshPhotos = async () => {
+    if (!trip || !isGoogleMapsConfigured()) {
+      console.log('Cannot refresh photos: Google Maps not configured or no trip', {
+        hasTrip: !!trip,
+        apiConfigured: isGoogleMapsConfigured()
+      })
+      return
+    }
+
+    // Check if Google Maps API is actually loaded
+    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
+      console.error('❌ Google Maps API not loaded! Cannot refresh photos.')
+      alert('Google Maps API is not loaded. Please refresh the page and try again.')
+      return
+    }
+
+    console.log('🚀 Starting photo refresh for', places.length, 'places')
+
+    setIsRefreshingPhotos(true)
+    setRefreshProgress({ current: 0, total: places.length })
+
+    let updatedCount = 0
+    
+    for (let i = 0; i < places.length; i++) {
+      const place = places[i]
+      setRefreshProgress({ current: i + 1, total: places.length })
+      
+      // Skip if place already has a photo
+      if (place.photo_url) {
+        console.log(`⏭️ Skipping ${place.name} - already has photo`)
+        continue
+      }
+
+      try {
+        // Search for the place using Google Places
+        const searchQuery = `${place.name} ${trip.destination}`
+        console.log(`🔍 Searching for: ${searchQuery}`)
+        
+        const searchResults = await googlePlacesService.searchPlaces(searchQuery, {
+          lat: trip.latitude || 0,
+          lng: trip.longitude || 0
+        })
+        
+        if (searchResults.length > 0) {
+          const googlePlace = searchResults[0]
+          console.log(`✅ Found match for ${place.name}:`, googlePlace.name)
+          
+          // Update the place with Google data
+          const updates: Partial<Place> = {
+            place_id: googlePlace.place_id,
+            latitude: googlePlace.geometry.location.lat,
+            longitude: googlePlace.geometry.location.lng,
+          }
+          
+          // Add photo if available
+          if (googlePlace.photos && googlePlace.photos.length > 0) {
+            updates.photo_url = googlePlace.photos[0].photo_reference
+            console.log(`📸 Adding photo for ${place.name}`)
+            updatedCount++
+          }
+          
+          updatePlace(place.id, updates)
+        } else {
+          console.log(`❌ No match found for ${place.name}`)
+        }
+      } catch (error) {
+        console.error(`Error refreshing photo for ${place.name}:`, error)
+      }
+      
+      // Small delay to avoid hitting API rate limits
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+    
+    setIsRefreshingPhotos(false)
+    setRefreshProgress(null)
+    console.log(`🎉 Photo refresh complete! Updated ${updatedCount} places`)
+  }
+
+  // Smart initial planning - automatically optimize when places are added
+  const applySmartPlanning = (placesToOptimize: Place[], dayNumber?: number) => {
+    if (placesToOptimize.length < 2) return placesToOptimize
+    
+    try {
+      console.log('🧠 Applying smart planning...')
+      
+      // If optimizing a specific day, only optimize that day
+      if (dayNumber) {
+        const dayPlaces = placesToOptimize.filter(p => p.day === dayNumber)
+        const otherPlaces = placesToOptimize.filter(p => p.day !== dayNumber)
+        
+        if (dayPlaces.length >= 2) {
+          const optimizedDayPlaces = itineraryOptimizer.optimizeDayOrder(dayPlaces)
+          return [...otherPlaces, ...optimizedDayPlaces]
+        }
+        return placesToOptimize
+      }
+      
+      // Optimize entire itinerary
+      return itineraryOptimizer.optimizeTripItinerary(placesToOptimize)
+    } catch (error) {
+      console.error('❌ Error in smart planning:', error)
+      return placesToOptimize
+    }
+  }
+
+  // Smart place creation with automatic optimization
+  const createPlaceWithSmartPlanning = (place: Omit<Place, 'id' | 'created_date' | 'updated_date'>) => {
+    // Create the place first
+    const placeId = createPlace(place)
+    
+    // After creation, get the updated places and apply smart planning to that day
+    setTimeout(() => {
+      const currentPlaces = getPlacesByTrip(id || '')
+      const dayPlaces = currentPlaces.filter(p => p.day === place.day)
+      
+      if (dayPlaces.length >= 2) {
+        console.log(`🎯 Auto-optimizing day ${place.day} with ${dayPlaces.length} places`)
+        const optimizedPlaces = applySmartPlanning(currentPlaces, place.day)
+        
+        // Apply the optimizations
+        optimizedPlaces
+          .filter(p => p.day === place.day)
+          .forEach(optimizedPlace => {
+            updatePlace(optimizedPlace.id, { order: optimizedPlace.order })
+          })
+      }
+    }, 100) // Small delay to ensure the place is created
+    
+    return placeId
+  }
 
   const handleDeleteTrip = () => {
     if (id) {
@@ -378,54 +687,158 @@ export function TripDetail() {
     }
   }
 
-  const handleDragStart = (placeId: string) => {
-    setDraggedItem(placeId)
+  const handleBulkUpdatePlaces = (updates: Array<{ id: string; updates: Partial<Place> }>) => {
+    // Use the bulk update function for true batching
+    bulkUpdatePlaces(updates)
   }
 
-  const handleDragEnd = () => {
-    setDraggedItem(null)
-  }
-
-  const handleDrop = (targetId: string) => {
-    if (!draggedItem || draggedItem === targetId) return
-    
-    const draggedPlace = places.find(p => p.id === draggedItem)
-    const targetPlace = places.find(p => p.id === targetId)
-    
-    if (draggedPlace && targetPlace) {
-      // Simple swap
-      updatePlace(draggedItem, { order: targetPlace.order })
-      updatePlace(targetId, { order: draggedPlace.order })
-    }
-    
-    setDraggedItem(null)
+  const handleConflictResolution = (_resolution: 'auto_adjust' | 'manual_review' | 'accept_as_is') => {
+    // For now, just close the modal. Later we can implement specific resolution logic
+    setShowConflictModal(false)
   }
 
   const handleCreateNewItem = () => {
     if (!id || !newItemData.name.trim()) return
 
-    const endTime = calculateEndTime(newItemData.start_time, newItemData.duration)
+    const dayPlaces = places.filter(p => p.day === newItemData.day).sort((a, b) => a.order - b.order)
     
-    // Calculate order - get highest order for the selected day and add 1
-    const dayPlaces = places.filter(p => p.day === newItemData.day)
-    const maxOrder = dayPlaces.length > 0 ? Math.max(...dayPlaces.map(p => p.order)) : -1
+    // Find the correct chronological position
+    let insertPosition = dayPlaces.length // Default to end
+    const newStartTime = newItemData.start_time
+    const adjustedPlaces: Array<{ id: string; start_time: string; end_time: string; order: number }> = []
     
+    for (let i = 0; i < dayPlaces.length; i++) {
+      const currentPlace = dayPlaces[i]
+      const currentStart = currentPlace.start_time || '09:00'
+      
+      // If new item's start time is before this place's start time
+      if (timeToMinutes(newStartTime) < timeToMinutes(currentStart)) {
+        insertPosition = i
+        break
+      }
+    }
+    
+    // Check for overlaps and adjust times if necessary
+    let finalStartTime = newStartTime
+    let finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
+    
+    // Check if we need to adjust times due to overlaps
+    if (insertPosition < dayPlaces.length) {
+      const nextPlace = dayPlaces[insertPosition]
+      const nextStart = nextPlace.start_time || '09:00'
+      
+      // If new item would overlap with the next item
+      if (timesOverlap(finalStartTime, finalEndTime, nextStart, nextPlace.end_time || calculateEndTime(nextStart, nextPlace.duration || 90))) {
+        // Option 1: Try to fit the new item before the next item
+        const nextStartMinutes = timeToMinutes(nextStart)
+        const newEndMinutes = nextStartMinutes - 15 // 15-minute buffer
+        const newStartMinutes = newEndMinutes - newItemData.duration
+        
+        if (newStartMinutes >= 0) {
+          // Check if this new time conflicts with previous item
+          let canFitBefore = true
+          if (insertPosition > 0) {
+            const prevPlace = dayPlaces[insertPosition - 1]
+            const prevEnd = prevPlace.end_time || calculateEndTime(prevPlace.start_time || '09:00', prevPlace.duration || 90)
+            if (timeToMinutes(prevEnd) + 15 > newStartMinutes) { // 15-minute buffer
+              canFitBefore = false
+            }
+          }
+          
+          if (canFitBefore) {
+            finalStartTime = minutesToTime(newStartMinutes)
+            finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
+          } else {
+            // Option 2: Push subsequent items later
+            finalStartTime = newStartTime
+            finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
+            
+            // Calculate how much to push subsequent items
+            const pushAmount = timeToMinutes(finalEndTime) + 15 - timeToMinutes(nextStart) // 15-minute buffer
+            
+            if (pushAmount > 0) {
+              // Adjust all subsequent items
+              for (let j = insertPosition; j < dayPlaces.length; j++) {
+                const placeToAdjust = dayPlaces[j]
+                const currentStartMinutes = timeToMinutes(placeToAdjust.start_time || '09:00')
+                const newAdjustedStart = minutesToTime(currentStartMinutes + pushAmount)
+                const newAdjustedEnd = calculateEndTime(newAdjustedStart, placeToAdjust.duration || 90)
+                
+                adjustedPlaces.push({
+                  id: placeToAdjust.id,
+                  start_time: newAdjustedStart,
+                  end_time: newAdjustedEnd,
+                  order: placeToAdjust.order
+                })
+              }
+            }
+          }
+        } else {
+          // Can't fit before, so push everything after
+          finalStartTime = newStartTime
+          finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
+          
+          const pushAmount = timeToMinutes(finalEndTime) + 15 - timeToMinutes(nextStart)
+          if (pushAmount > 0) {
+            for (let j = insertPosition; j < dayPlaces.length; j++) {
+              const placeToAdjust = dayPlaces[j]
+              const currentStartMinutes = timeToMinutes(placeToAdjust.start_time || '09:00')
+              const newAdjustedStart = minutesToTime(currentStartMinutes + pushAmount)
+              const newAdjustedEnd = calculateEndTime(newAdjustedStart, placeToAdjust.duration || 90)
+              
+              adjustedPlaces.push({
+                id: placeToAdjust.id,
+                start_time: newAdjustedStart,
+                end_time: newAdjustedEnd,
+                order: placeToAdjust.order
+              })
+            }
+          }
+        }
+      }
+    }
+    
+    // Create the new place
     const newPlace = {
       trip_id: id,
       name: newItemData.name.trim(),
       address: newItemData.address.trim(),
       category: newItemData.category,
       day: newItemData.day,
-      order: maxOrder + 1,
-      start_time: newItemData.start_time,
-      end_time: endTime,
+      order: insertPosition, // This will be the correct position
+      start_time: finalStartTime,
+      end_time: finalEndTime,
       duration: newItemData.duration,
       notes: newItemData.notes.trim(),
       is_locked: false,
-      is_reservation: false
+      is_reservation: false,
+      ...(newItemData.place_id && { place_id: newItemData.place_id }),
+      ...(newItemData.latitude && { latitude: newItemData.latitude }),
+      ...(newItemData.longitude && { longitude: newItemData.longitude }),
+      ...(newItemData.photo_url && { photo_url: newItemData.photo_url })
     }
 
-    createPlace(newPlace)
+    // Adjust orders of existing places to make room
+    const placesToUpdate: Array<{ id: string; order: number }> = []
+    for (let i = insertPosition; i < dayPlaces.length; i++) {
+      placesToUpdate.push({
+        id: dayPlaces[i].id,
+        order: dayPlaces[i].order + 1
+      })
+    }
+
+    // Apply all updates
+    createPlaceWithSmartPlanning(newPlace)
+    
+    // Update orders of displaced places
+    placesToUpdate.forEach(({ id, order }) => {
+      updatePlace(id, { order })
+    })
+    
+    // Update times of places that were pushed
+    adjustedPlaces.forEach(({ id, start_time, end_time }) => {
+      updatePlace(id, { start_time, end_time })
+    })
     
     // Reset form
     setNewItemData({
@@ -435,7 +848,11 @@ export function TripDetail() {
       day: 1,
       start_time: '09:00',
       duration: 90,
-      notes: ''
+      notes: '',
+      place_id: undefined,
+      latitude: undefined,
+      longitude: undefined,
+      photo_url: undefined
     })
     setShowAddForm(false)
   }
@@ -460,19 +877,28 @@ export function TripDetail() {
     )
   }
 
-  // Group places by day
-  const placesByDay = places.reduce((acc, place) => {
-    if (!acc[place.day]) {
-      acc[place.day] = []
-    }
-    acc[place.day].push(place)
-    return acc
-  }, {} as Record<number, typeof places>)
+  // Group places by day - memoized to prevent unnecessary recalculations
+  const placesByDay = useMemo(() => {
+    return places.reduce((acc, place) => {
+      if (!acc[place.day]) {
+        acc[place.day] = []
+      }
+      acc[place.day].push(place)
+      return acc
+    }, {} as Record<number, typeof places>)
+  }, [places])
 
-  const days = Object.keys(placesByDay).map(Number).sort((a, b) => a - b)
+  const days = useMemo(() => {
+    return Object.keys(placesByDay).map(Number).sort((a, b) => a - b)
+  }, [placesByDay])
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <DragDropProvider 
+      places={places} 
+      onUpdatePlace={updatePlace}
+      onBulkUpdatePlaces={handleBulkUpdatePlaces}
+    >
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8 animate-fade-in">
         <div className="flex justify-between items-start">
@@ -582,7 +1008,27 @@ export function TripDetail() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
               <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
               
-              <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                {/* Refresh Photos Button - Only show if some places don't have photos */}
+                {isGoogleMapsConfigured() && places.some(p => !p.photo_url) && (
+                  <Button
+                    onClick={handleRefreshPhotos}
+                    size="sm"
+                    variant="ghost"
+                    disabled={isRefreshingPhotos}
+                    className="flex items-center gap-2"
+                  >
+                    <RefreshCw className={`w-4 h-4 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
+                    {isRefreshingPhotos 
+                      ? refreshProgress 
+                        ? `${refreshProgress.current}/${refreshProgress.total}`
+                        : 'Refreshing...'
+                      : 'Add Photos'
+                    }
+                  </Button>
+                )}
+                
+                
                 {/* Add Item Button */}
                 <Button
                   onClick={() => setShowAddForm(!showAddForm)}
@@ -594,7 +1040,7 @@ export function TripDetail() {
                 </Button>
                 
                 {/* View Toggle */}
-                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
+                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto overflow-x-auto">
                 <button
                   onClick={() => setViewMode('list')}
                   className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
@@ -607,6 +1053,22 @@ export function TripDetail() {
                   <span className="hidden sm:inline">List</span>
                 </button>
                 <button
+                  onClick={() => setViewMode('split')}
+                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    viewMode === 'split'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <div className="w-4 h-4 flex items-center justify-center">
+                    <div className="grid grid-cols-2 gap-0.5 w-3 h-3">
+                      <div className="bg-current rounded-[1px]"></div>
+                      <div className="bg-current rounded-[1px]"></div>
+                    </div>
+                  </div>
+                  <span className="hidden sm:inline">Split</span>
+                </button>
+                <button
                   onClick={() => setViewMode('map')}
                   className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                     viewMode === 'map'
@@ -616,6 +1078,17 @@ export function TripDetail() {
                 >
                   <Map className="w-4 h-4" />
                   <span className="hidden sm:inline">Map</span>
+                </button>
+                <button
+                  onClick={() => setViewMode('logistics')}
+                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
+                    viewMode === 'logistics'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <Briefcase className="w-4 h-4" />
+                  <span className="hidden sm:inline">Logistics</span>
                 </button>
               </div>
               </div>
@@ -664,10 +1137,20 @@ export function TripDetail() {
                         value={newItemData.name}
                         onChange={(name) => setNewItemData(prev => ({ ...prev, name }))}
                         onPlaceSelect={(placeDetails) => {
+                          console.log('🎯 New place selected:', placeDetails)
+                          const photoUrl = placeDetails.photos && placeDetails.photos.length > 0 
+                            ? placeDetails.photos[0].photo_reference 
+                            : undefined
+                          console.log('📸 New place photo URL:', photoUrl)
+                          
                           setNewItemData(prev => ({
                             ...prev,
                             name: placeDetails.name,
                             address: placeDetails.formatted_address,
+                            place_id: placeDetails.place_id,
+                            latitude: placeDetails.geometry.location.lat,
+                            longitude: placeDetails.geometry.location.lng,
+                            photo_url: photoUrl,
                             category: placeDetails.types.some(type => ['restaurant', 'food', 'meal_takeaway', 'cafe', 'bar'].includes(type)) 
                               ? 'restaurant' as const
                               : placeDetails.types.some(type => ['lodging', 'hotel'].includes(type))
@@ -782,7 +1265,11 @@ export function TripDetail() {
                         day: 1,
                         start_time: '09:00',
                         duration: 90,
-                        notes: ''
+                        notes: '',
+                        place_id: undefined,
+                        latitude: undefined,
+                        longitude: undefined,
+                        photo_url: undefined
                       })
                     }}
                   >
@@ -801,6 +1288,210 @@ export function TripDetail() {
                   className="h-full"
                 />
               </div>
+            ) : viewMode === 'split' ? (
+              /* Split View - Side by Side */
+              <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[600px] lg:h-[600px]">
+                {/* Mobile notification */}
+                <div className="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 lg:col-span-2">
+                  <p className="text-sm text-blue-800">
+                    💡 On mobile, the split view shows itinerary and map stacked vertically for better viewing
+                  </p>
+                </div>
+                {/* Itinerary Panel */}
+                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-96 lg:h-auto">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Itinerary</h3>
+                    {/* Collapse/Expand All Controls for split view */}
+                    {!selectedDay && days.length > 1 && (
+                      <div className="flex gap-2">
+                        <button
+                          onClick={expandAllDays}
+                          className="px-2 py-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors"
+                        >
+                          Expand All
+                        </button>
+                        <button
+                          onClick={collapseAllDays}
+                          className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md hover:bg-gray-300 transition-colors"
+                        >
+                          Collapse All
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {days.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
+                        const isCollapsed = collapsedDays.has(day)
+                        const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
+                        const currentDay = getCurrentDay()
+                        const isCurrentDay = day === currentDay
+                        
+                        return (
+                          <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
+                            
+                            {/* Enhanced Day Header Card */}
+                            <div 
+                              className="group cursor-pointer transition-all duration-300 hover:shadow-md"
+                              onClick={() => toggleDayCollapse(day)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  toggleDayCollapse(day)
+                                }
+                              }}
+                              tabIndex={0}
+                              role="button"
+                              aria-expanded={!isCollapsed}
+                              aria-controls={`day-${day}-content`}
+                            >
+                              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300 hover:border-orange-200">
+                                <div className="flex items-center justify-between">
+                                  {/* Left side - Day info and date */}
+                                  <div className="flex items-center gap-3">
+                                    {/* Day number badge */}
+                                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                      <span className="text-white font-bold text-sm">{day}</span>
+                                    </div>
+                                    
+                                    {/* Day info */}
+                                    <div className="flex flex-col">
+                                      <div className="flex items-center gap-2">
+                                        <h3 className="text-base font-bold text-gray-900">
+                                          Day {day}
+                                        </h3>
+                                        {isCurrentDay && (
+                                          <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full border border-green-200">
+                                            Today
+                                          </span>
+                                        )}
+                                      </div>
+                                      
+                                      {/* Date and weekday */}
+                                      {trip?.start_date && (
+                                        <p className="text-xs text-gray-600 font-medium">
+                                          {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM dd')}
+                                        </p>
+                                      )}
+                                      
+                                      {/* Item count */}
+                                      <p className="text-xs text-gray-500">
+                                        {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Right side - Category icons and toggle */}
+                                  <div className="flex items-center gap-2">
+                                    {/* Category icon summary */}
+                                    {dayPlaces.length > 0 && (
+                                      <div className="flex items-center gap-1">
+                                        {[...new Set(dayPlaces.map(p => p.category))].slice(0, 3).map((category, idx) => {
+                                          const IconComponent = getCategoryIcon(category)
+                                          return (
+                                            <div 
+                                              key={category}
+                                              className="w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50"
+                                              title={`${category} activities`}
+                                            >
+                                              <IconComponent className="w-3 h-3 text-teal-600" />
+                                            </div>
+                                          )
+                                        })}
+                                        {[...new Set(dayPlaces.map(p => p.category))].length > 3 && (
+                                          <div className="w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50">
+                                            <span className="text-xs font-medium text-gray-600">+{[...new Set(dayPlaces.map(p => p.category))].length - 3}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    )}
+                                    
+                                    {/* Toggle icon */}
+                                    <div className="flex-shrink-0 w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50 group-hover:bg-white transition-colors">
+                                      {isCollapsed ? (
+                                        <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                                      ) : (
+                                        <ChevronUp className="w-3 h-3 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Collapsible Day Content */}
+                            <div 
+                              className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                                isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+                              }`}
+                              id={`day-${day}-content`}
+                              aria-hidden={isCollapsed}
+                            >
+                              <div className="pt-3 space-y-2">
+                                <DroppableArea day={day} places={places}>
+                                  {dayPlaces.map((place, placeIndex) => {
+                                    // Calculate global sequence number across all days
+                                    const globalSequenceNumber = places
+                                      .filter(p => p.day < day)
+                                      .length + placeIndex + 1
+                                    
+                                    return (
+                                      <div 
+                                        key={place.id}
+                                        className="animate-fade-in"
+                                        style={{ animationDelay: `${placeIndex * 0.1}s` }}
+                                      >
+                                        <PlaceItem
+                                          place={place}
+                                          onUpdate={updatePlace}
+                                          onDelete={deletePlace}
+                                          tripDestination={trip?.destination}
+                                          tripDestinationCoords={trip?.latitude && trip?.longitude ? { 
+                                            lat: trip.latitude, 
+                                            lng: trip.longitude 
+                                          } : undefined}
+                                          sequenceNumber={globalSequenceNumber}
+                                          isLast={placeIndex === dayPlaces.length - 1}
+                                        />
+                                      </div>
+                                    )
+                                  })}
+                                </DroppableArea>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Map Panel */}
+                <div className="rounded-xl overflow-hidden border border-gray-200 h-96 lg:h-auto">
+                  <TripMap
+                    places={places}
+                    selectedDay={selectedDay}
+                    className="h-full"
+                  />
+                </div>
+              </div>
+            ) : viewMode === 'logistics' ? (
+              /* Logistics View */
+              <div className="max-w-4xl">
+                <LogisticsContainer
+                  logistics={logistics}
+                  onAdd={createLogisticsItem}
+                  onUpdate={updateLogisticsItem}
+                  onDelete={deleteLogisticsItem}
+                  tripStartDate={trip?.start_date}
+                  tripEndDate={trip?.end_date}
+                />
+              </div>
             ) : (
               /* List View */
               days.length === 0 ? (
@@ -809,37 +1500,175 @@ export function TripDetail() {
                 </div>
               ) : (
                 <div className="space-y-6 sm:space-y-8">
-                  {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => (
-                    <div key={day} className="border-l-4 border-primary-200 pl-4 sm:pl-6 relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
-                      <div className="absolute -left-2 sm:-left-3 top-0 w-4 h-4 sm:w-6 sm:h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                        <span className="text-white text-xs font-medium">{day}</span>
-                      </div>
-                      
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
-                        Day {day}
-                      </h3>
-                      
-                      <div className="space-y-3 sm:space-y-4">
-                        {placesByDay[day]?.sort((a, b) => a.order - b.order).map((place) => (
-                          <PlaceItem
-                            key={place.id}
-                            place={place}
-                            onUpdate={updatePlace}
-                            onDelete={deletePlace}
-                            onDragStart={handleDragStart}
-                            onDragEnd={handleDragEnd}
-                            onDrop={handleDrop}
-                            isDragging={draggedItem === place.id}
-                            tripDestination={trip?.destination}
-                            tripDestinationCoords={trip?.latitude && trip?.longitude ? { 
-                              lat: trip.latitude, 
-                              lng: trip.longitude 
-                            } : undefined}
-                          />
-                        ))}
-                      </div>
+                  {/* Collapse/Expand All Controls */}
+                  {!selectedDay && days.length > 1 && (
+                    <div className="flex justify-end gap-2 mb-4">
+                      <button
+                        onClick={expandAllDays}
+                        className="px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
+                      >
+                        Expand All
+                      </button>
+                      <button
+                        onClick={collapseAllDays}
+                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
+                      >
+                        Collapse All
+                      </button>
                     </div>
-                  ))}
+                  )}
+                  
+                  {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
+                    const isCollapsed = collapsedDays.has(day)
+                    const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
+                    const currentDay = getCurrentDay()
+                    const isCurrentDay = day === currentDay
+                    
+                    return (
+                      <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
+                        
+                        {/* Enhanced Day Header Card */}
+                        <div 
+                          className="group cursor-pointer transition-all duration-300 hover:shadow-md"
+                          onClick={() => toggleDayCollapse(day)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault()
+                              toggleDayCollapse(day)
+                            }
+                          }}
+                          tabIndex={0}
+                          role="button"
+                          aria-expanded={!isCollapsed}
+                          aria-controls={`day-${day}-content`}
+                        >
+                          <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:border-orange-200">
+                            <div className="flex items-center justify-between">
+                              {/* Left side - Day info and date */}
+                              <div className="flex items-center gap-4">
+                                {/* Day number badge */}
+                                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
+                                  <span className="text-white font-bold text-lg">{day}</span>
+                                </div>
+                                
+                                {/* Day info */}
+                                <div className="flex flex-col">
+                                  <div className="flex items-center gap-2">
+                                    <h3 className="text-lg font-bold text-gray-900">
+                                      Day {day}
+                                    </h3>
+                                    {isCurrentDay && (
+                                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full border border-green-200">
+                                        Today
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {/* Date and weekday */}
+                                  {trip?.start_date && (
+                                    <p className="text-sm text-gray-600 font-medium">
+                                      {formatDate(getDayDate(trip.start_date, day), 'EEEE, MMM dd')}
+                                    </p>
+                                  )}
+                                  
+                                  {/* Item count */}
+                                  <p className="text-xs text-gray-500">
+                                    {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              {/* Right side - Category icons and toggle */}
+                              <div className="flex items-center gap-3">
+                                {/* Category icon summary */}
+                                {dayPlaces.length > 0 && (
+                                  <div className="flex items-center gap-1">
+                                    {[...new Set(dayPlaces.map(p => p.category))].slice(0, 4).map((category, idx) => {
+                                      const IconComponent = getCategoryIcon(category)
+                                      return (
+                                        <div 
+                                          key={category}
+                                          className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50"
+                                          title={`${category} activities`}
+                                        >
+                                          <IconComponent className="w-4 h-4 text-teal-600" />
+                                        </div>
+                                      )
+                                    })}
+                                    {[...new Set(dayPlaces.map(p => p.category))].length > 4 && (
+                                      <div className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50">
+                                        <span className="text-xs font-medium text-gray-600">+{[...new Set(dayPlaces.map(p => p.category))].length - 4}</span>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                                
+                                {/* Quick preview when collapsed */}
+                                {isCollapsed && dayPlaces.length > 0 && (
+                                  <div className="hidden lg:block max-w-48">
+                                    <p className="text-xs text-gray-500 truncate">
+                                      {dayPlaces.slice(0, 2).map(p => p.name).join(', ')}
+                                      {dayPlaces.length > 2 && ` +${dayPlaces.length - 2} more`}
+                                    </p>
+                                  </div>
+                                )}
+                                
+                                {/* Toggle icon */}
+                                <div className="flex-shrink-0 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50 group-hover:bg-white transition-colors">
+                                  {isCollapsed ? (
+                                    <ChevronDown className="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                                  ) : (
+                                    <ChevronUp className="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Collapsible Day Content with smooth animation */}
+                        <div 
+                          className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                            isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
+                          }`}
+                          id={`day-${day}-content`}
+                          aria-hidden={isCollapsed}
+                        >
+                          <div className="pt-4 space-y-3">
+                            <DroppableArea day={day} places={places}>
+                              {dayPlaces.map((place, placeIndex) => {
+                                // Calculate global sequence number across all days
+                                const globalSequenceNumber = places
+                                  .filter(p => p.day < day)
+                                  .length + placeIndex + 1
+                                
+                                return (
+                                  <div 
+                                    key={place.id}
+                                    className="animate-fade-in"
+                                    style={{ animationDelay: `${placeIndex * 0.1}s` }}
+                                  >
+                                    <PlaceItem
+                                      place={place}
+                                      onUpdate={updatePlace}
+                                      onDelete={deletePlace}
+                                      tripDestination={trip?.destination}
+                                      tripDestinationCoords={trip?.latitude && trip?.longitude ? { 
+                                        lat: trip.latitude, 
+                                        lng: trip.longitude 
+                                      } : undefined}
+                                      sequenceNumber={globalSequenceNumber}
+                                      isLast={placeIndex === dayPlaces.length - 1}
+                                    />
+                                  </div>
+                                )
+                              })}
+                            </DroppableArea>
+                          </div>
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
               )
             )}
@@ -851,10 +1680,21 @@ export function TripDetail() {
       <TripAssistant 
         trip={trip} 
         places={places}
-        onCreatePlace={createPlace}
+        onCreatePlace={createPlaceWithSmartPlanning}
         onUpdatePlace={updatePlace}
         onDeletePlace={deletePlace}
       />
-    </div>
+      </div>
+      
+      {/* Drag Overlay */}
+      <DragOverlay />
+      
+      {/* Schedule Conflict Modal */}
+      <ScheduleConflictModal 
+        isOpen={showConflictModal}
+        onClose={() => setShowConflictModal(false)}
+        onResolve={handleConflictResolution}
+      />
+    </DragDropProvider>
   )
 }

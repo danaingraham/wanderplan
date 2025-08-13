@@ -5,10 +5,18 @@ import { storage, STORAGE_KEYS } from '../utils/storage'
 import { emailService } from '../services/emailService'
 import { googleAuthService } from '../services/googleAuthService'
 
+// Create environment-aware logging
+const log = (...args: any[]) => {
+  if (import.meta.env.DEV) {
+    console.log(...args)
+  }
+}
+
 interface UserContextType {
   user: User | null
   setUser: (user: User | null) => void
   isAuthenticated: boolean
+  isInitialized: boolean
   login: (email: string, password: string) => Promise<boolean>
   register: (email: string, password: string, fullName: string) => Promise<boolean>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
@@ -17,7 +25,6 @@ interface UserContextType {
   logout: () => void
   updateProfile: (updates: Partial<User>) => void
   getAllUsers: () => User[]
-  refreshSession: () => void
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -30,74 +37,97 @@ const hashPassword = (password: string) => btoa(password + 'wanderplan-salt')
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [sessionChecked, setSessionChecked] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
+  // Initialize auth state from persistent storage
   useEffect(() => {
-    // Prevent double-initialization in StrictMode
-    if (sessionChecked) return
+    log('🔐 UserContext: Initializing auth state...')
     
-    console.log('🔐 UserContext: Checking for existing session...')
-    
-    // Check for existing login session
+    const authToken = storage.get<string>('authToken')
     const savedUser = storage.get<User>(STORAGE_KEYS.USER)
-    const currentSession = storage.get<string>('wanderplan_session')
-    const sessionExpiry = storage.get<string>('wanderplan_session_expiry')
     
-    console.log('🔐 UserContext: Found saved user:', !!savedUser)
-    console.log('🔐 UserContext: Found session:', !!currentSession)
-    console.log('🔐 UserContext: Session expiry:', sessionExpiry ? new Date(parseInt(sessionExpiry)) : 'none')
+    log('🔐 UserContext: Auth token exists:', !!authToken)
+    log('🔐 UserContext: Saved user exists:', !!savedUser)
+    log('🔐 UserContext: Auth token value:', authToken ? `${authToken.substring(0, 20)}...` : 'null')
+    log('🔐 UserContext: User data:', savedUser ? `${savedUser.email} (${savedUser.id})` : 'null')
     
-    if (savedUser && currentSession) {
-      // Check if session has expired
-      if (sessionExpiry && parseInt(sessionExpiry) > Date.now()) {
-        console.log('🔐 UserContext: Restoring valid session for user:', savedUser.email)
+    // Check if we have a valid auth token
+    if (authToken && isTokenValid(authToken)) {
+      if (savedUser) {
+        // Both token and user data exist - restore session
+        log('🔐 UserContext: Restoring session for user:', savedUser.email)
         setUser(savedUser)
-      } else if (!sessionExpiry) {
-        // Old session without expiry - keep it valid (backward compatibility)
-        console.log('🔐 UserContext: Restoring legacy session for user:', savedUser.email)
-        setUser(savedUser)
-        
-        // Add expiry to legacy session
-        const newExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
-        storage.set('wanderplan_session_expiry', newExpiry.toString())
       } else {
-        console.log('🔐 UserContext: Session expired, clearing...')
-        storage.remove(STORAGE_KEYS.USER)
-        storage.remove('wanderplan_session')
-        storage.remove('wanderplan_session_expiry')
+        // Token exists but no user data - this is suspicious, clear token
+        log('🔐 UserContext: Auth token exists but no user data - clearing token')
+        storage.remove('authToken')
       }
+    } else if (authToken) {
+      // Invalid token format - clear it
+      log('🔐 UserContext: Invalid auth token format - clearing')
+      storage.remove('authToken')
+      storage.remove(STORAGE_KEYS.USER)
+    } else if (savedUser) {
+      // User data exists but no token - clear user data
+      log('🔐 UserContext: User data exists but no auth token - clearing user data')
+      storage.remove(STORAGE_KEYS.USER)
     } else {
-      console.log('🔐 UserContext: No valid session found')
+      log('🔐 UserContext: No auth data found - starting fresh')
     }
     
-    setSessionChecked(true)
+    // Clean up legacy session keys regardless
+    storage.remove('wanderplan_session')
+    storage.remove('wanderplan_session_expiry')
+    
+    setIsInitialized(true)
   }, [])
 
-  // Add debugging to track when user state changes and recover from storage
+  // Simple state logging (no session interference)
   useEffect(() => {
-    if (sessionChecked) {
-      console.log('🔐 UserContext: User state changed:', user ? user.email : 'null')
-      if (!user) {
-        console.log('🔐 UserContext: User was logged out! Checking storage...')
-        const storageUser = storage.get<User>(STORAGE_KEYS.USER)
-        const storageSession = storage.get<string>('wanderplan_session')
-        const sessionExpiry = storage.get<string>('wanderplan_session_expiry')
-        console.log('🔐 UserContext: Storage still has user:', !!storageUser)
-        console.log('🔐 UserContext: Storage still has session:', !!storageSession)
-        
-        // If storage has valid session but user state is null, restore it
-        if (storageUser && storageSession && sessionExpiry && parseInt(sessionExpiry) > Date.now()) {
-          console.log('🔧 UserContext: Restoring user from storage due to unexpected logout')
-          setUser(storageUser)
-        }
+    if (isInitialized) {
+      log('🔐 UserContext: User state:', user ? user.email : 'logged out')
+    }
+  }, [user, isInitialized])
+
+  // Periodic auth state validation to catch unexpected logouts
+  useEffect(() => {
+    if (!isInitialized) return
+
+    const validateAuthState = () => {
+      const authToken = storage.get<string>('authToken')
+      const savedUser = storage.get<User>(STORAGE_KEYS.USER)
+      
+      // If we think we're logged in but data is missing, that's a problem
+      if (user && (!authToken || !savedUser)) {
+        console.error('🚨 UserContext: Auth state corruption detected!')
+        console.error('🚨 UserContext: User in state but missing storage data')
+        console.error('🚨 UserContext: Token exists:', !!authToken)
+        console.error('🚨 UserContext: User data exists:', !!savedUser)
+        console.error('🚨 UserContext: Forcing logout to maintain consistency')
+        setUser(null)
+      }
+      
+      // If we think we're logged out but data exists, restore it
+      if (!user && authToken && savedUser && isTokenValid(authToken)) {
+        log('🔧 UserContext: Restoring lost session')
+        log('🔧 UserContext: Token valid, user data available, restoring:', savedUser.email)
+        setUser(savedUser)
       }
     }
-  }, [user, sessionChecked])
+
+    // Check immediately
+    validateAuthState()
+    
+    // Check every 30 seconds
+    const interval = setInterval(validateAuthState, 30000)
+    
+    return () => clearInterval(interval)
+  }, [isInitialized, user])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     await new Promise(resolve => setTimeout(resolve, 1000))
     
-    console.log('🔐 UserContext: Attempting login for:', email)
+    log('🔐 UserContext: Attempting login for:', email)
     
     // Get all registered users
     const users = storage.get<User[]>('wanderplan_users') || []
@@ -110,19 +140,97 @@ export function UserProvider({ children }: { children: ReactNode }) {
     )
     
     if (foundUser) {
-      console.log('🔐 UserContext: Login successful for:', foundUser.email)
-      setUser(foundUser)
-      storage.set(STORAGE_KEYS.USER, foundUser)
-      storage.set('wanderplan_session', foundUser.id)
+      log('🔐 UserContext: Login successful for:', foundUser.email)
       
-      // Set a long-lived session (30 days)
-      const sessionExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
-      storage.set('wanderplan_session_expiry', sessionExpiry.toString())
+      // Generate persistent auth token
+      const authToken = `wanderplan_${foundUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      
+      // Store token and user data
+      storage.set('authToken', authToken)
+      storage.set(STORAGE_KEYS.USER, foundUser)
+      
+      // Clean up old session keys
+      storage.remove('wanderplan_session')
+      storage.remove('wanderplan_session_expiry')
+      
+      setUser(foundUser)
+      log('🔐 UserContext: Auth token stored, user logged in')
       
       return true
     }
+
+    // DEVELOPMENT BYPASS: Auto-create account if it doesn't exist
+    if (import.meta.env.DEV && email === 'danabressler@gmail.com') {
+      log('🔧 UserContext: DEV BYPASS - Account not found, checking storage...')
+      
+      // First, let's see what's actually in storage
+      const allTrips = storage.get<any[]>('wanderplan_trips') || []
+      const allPlaces = storage.get<any[]>('wanderplan_places') || []
+      
+      log('📊 Storage contents:')
+      log('  - Trips found:', allTrips.length)
+      log('  - Places found:', allPlaces.length)
+      log('  - All trip creators:', allTrips.map(t => t.created_by))
+      
+      // Ask for the user's actual name
+      const userName = window.prompt(
+        'Your account was recreated. What name would you like to use?',
+        'Dana Ingraham'
+      ) || 'User'
+      
+      // Create the user account
+      const newUser: User = {
+        id: generateUserId(),
+        email,
+        full_name: userName,
+        role: 'admin',
+        auth_provider: 'local',
+        email_verified: true,
+        created_date: new Date().toISOString(),
+        updated_date: new Date().toISOString()
+      }
+      
+      // Save user to users list
+      const updatedUsers = [...users, newUser]
+      storage.set('wanderplan_users', updatedUsers)
+      
+      // Save password hash
+      storage.set(`wanderplan_password_${newUser.id}`, hashedPassword)
+      
+      // Generate auth token
+      const authToken = `wanderplan_${newUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      storage.set('authToken', authToken)
+      storage.set(STORAGE_KEYS.USER, newUser)
+      
+      log('✅ UserContext: DEV BYPASS - Account created for:', userName)
+      
+      // DEV BYPASS: Recover ALL trips regardless of creator - in dev mode assume they're all yours
+      if (allTrips.length > 0) {
+        log('🔧 UserContext: DEV BYPASS - Assigning ALL', allTrips.length, 'trips to new account')
+        
+        // Assign ALL trips to this user
+        const updatedTrips = allTrips.map(trip => ({ 
+          ...trip, 
+          created_by: newUser.id 
+        }))
+        
+        storage.set('wanderplan_trips', updatedTrips)
+        log('✅ UserContext: DEV BYPASS - All trips reassigned to:', userName)
+        
+        // Force a page refresh to reload trip data
+        setTimeout(() => {
+          log('🔄 UserContext: Refreshing page to load trips')
+          window.location.reload()
+        }, 1000)
+      } else {
+        log('⚠️  UserContext: No trips found in storage to recover')
+      }
+      
+      setUser(newUser)
+      return true
+    }
     
-    console.log('🔐 UserContext: Login failed - invalid credentials')
+    log('🔐 UserContext: Login failed - invalid credentials')
     return false
   }
 
@@ -154,21 +262,21 @@ export function UserProvider({ children }: { children: ReactNode }) {
     storage.set('wanderplan_users', updatedUsers)
     storage.set(`wanderplan_password_${newUser.id}`, hashPassword(password))
     
-    // Log them in
-    setUser(newUser)
-    storage.set(STORAGE_KEYS.USER, newUser)
-    storage.set('wanderplan_session', newUser.id)
+    // Generate persistent auth token and log them in
+    const authToken = `wanderplan_${newUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
     
-    // Set a long-lived session (30 days)
-    const sessionExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
-    storage.set('wanderplan_session_expiry', sessionExpiry.toString())
+    storage.set('authToken', authToken)
+    storage.set(STORAGE_KEYS.USER, newUser)
+    
+    setUser(newUser)
+    log('🔐 UserContext: New user registered and logged in:', newUser.email)
     
     return true
   }
 
   const loginWithGoogle = async (): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('🔐 UserContext: Starting Google login...')
+      log('🔐 UserContext: Starting Google login...')
       
       const result = await googleAuthService.signInWithPopup()
       if (!result.success || !result.user) {
@@ -214,15 +322,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
         existingUser = newUser
       }
 
-      // Log them in
-      setUser(existingUser)
-      storage.set(STORAGE_KEYS.USER, existingUser)
-      storage.set('wanderplan_session', existingUser.id)
+      // Generate persistent auth token and log them in
+      const authToken = `wanderplan_${existingUser.id}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
       
-      const sessionExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
-      storage.set('wanderplan_session_expiry', sessionExpiry.toString())
-
-      console.log('✅ UserContext: Google login successful:', existingUser.email)
+      storage.set('authToken', authToken)
+      storage.set(STORAGE_KEYS.USER, existingUser)
+      
+      setUser(existingUser)
+      log('✅ UserContext: Google login successful:', existingUser.email)
       return { success: true }
     } catch (error) {
       console.error('❌ UserContext: Google login failed:', error)
@@ -235,7 +342,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const requestPasswordReset = async (email: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('🔐 UserContext: Requesting password reset for:', email)
+      log('🔐 UserContext: Requesting password reset for:', email)
       
       const users = storage.get<User[]>('wanderplan_users') || []
       const user = users.find(u => u.email === email)
@@ -266,7 +373,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const resetPassword = async (token: string, email: string, newPassword: string): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log('🔐 UserContext: Resetting password for:', email)
+      log('🔐 UserContext: Resetting password for:', email)
       
       // Validate reset token
       const tokenValidation = emailService.validateResetToken(token, email)
@@ -311,7 +418,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
       // Mark token as used
       emailService.markResetTokenAsUsed(token, email)
       
-      console.log('✅ UserContext: Password reset successful')
+      log('✅ UserContext: Password reset successful')
       return { success: true }
     } catch (error) {
       console.error('❌ UserContext: Password reset failed:', error)
@@ -323,17 +430,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   const logout = async () => {
-    console.log('🔐 UserContext: Logging out user')
+    log('🔐 UserContext: Logging out user')
+    log('🔐 UserContext: Current user before logout:', user?.email)
     
     // Sign out from Google if applicable
     if (user?.auth_provider === 'google') {
-      await googleAuthService.signOut()
+      try {
+        await googleAuthService.signOut()
+        log('🔐 UserContext: Google sign out completed')
+      } catch (error) {
+        console.error('🔐 UserContext: Google sign out failed:', error)
+      }
     }
     
-    setUser(null)
+    // Clear all auth data
+    storage.remove('authToken')
     storage.remove(STORAGE_KEYS.USER)
+    
+    // Clean up legacy session keys
     storage.remove('wanderplan_session')
     storage.remove('wanderplan_session_expiry')
+    
+    setUser(null)
+    log('🔐 UserContext: User logged out, all auth data cleared')
   }
 
   const getAllUsers = (): User[] => {
@@ -352,96 +471,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const refreshSession = () => {
-    const isDevelopment = import.meta.env.DEV
-    if (isDevelopment) {
-      console.log('🔐 UserContext: Refreshing session...')
-    }
-    
-    const savedUser = storage.get<User>(STORAGE_KEYS.USER)
-    const currentSession = storage.get<string>('wanderplan_session')
-    const sessionExpiry = storage.get<string>('wanderplan_session_expiry')
-    
-    if (isDevelopment) {
-      console.log('🔐 UserContext: Session check - User:', !!savedUser, 'Session:', !!currentSession, 'Valid:', sessionExpiry ? parseInt(sessionExpiry) > Date.now() : false)
-    }
-    
-    if (savedUser && currentSession && sessionExpiry && parseInt(sessionExpiry) > Date.now()) {
-      // Extend session by another 30 days
-      const newExpiry = Date.now() + (30 * 24 * 60 * 60 * 1000)
-      storage.set('wanderplan_session_expiry', newExpiry.toString())
-      
-      if (!user) {
-        console.log('🔐 UserContext: Restoring user from valid session')
-        setUser(savedUser)
-      }
-    } else if (isDevelopment) {
-      console.warn('🔐 UserContext: Session refresh failed - clearing invalid session data')
-      if (savedUser && currentSession && (!sessionExpiry || parseInt(sessionExpiry) <= Date.now())) {
-        // Clean up expired session
-        storage.remove(STORAGE_KEYS.USER)
-        storage.remove('wanderplan_session')
-        storage.remove('wanderplan_session_expiry')
-        setUser(null)
-      }
-    }
+  // Token validation helper
+  const isTokenValid = (token: string): boolean => {
+    // In a real app, you'd validate the token format and possibly check with server
+    // For this demo, we just check if it exists and has the right format
+    return token.startsWith('wanderplan_') && token.split('_').length >= 4
   }
-
-  // Periodic session check and refresh - less aggressive in development
-  useEffect(() => {
-    if (!user) return
-
-    // Less frequent checks in development to avoid interference
-    const isDevelopment = import.meta.env.DEV
-    const checkInterval = isDevelopment ? 15 * 60 * 1000 : 5 * 60 * 1000 // 15 min dev, 5 min prod
-
-    const interval = setInterval(() => {
-      console.log('🔐 UserContext: Periodic session check...', isDevelopment ? '(dev mode)' : '(prod mode)')
-      refreshSession()
-    }, checkInterval)
-
-    return () => clearInterval(interval)
-  }, [user])
-
-  // Refresh session on user activity
-  useEffect(() => {
-    if (!user) return
-
-    let isActive = true // Prevent stale closures
-
-    const handleActivity = () => {
-      if (!isActive) return
-      
-      try {
-        // Throttle session refresh to once per minute
-        const lastRefresh = parseInt(localStorage.getItem('wanderplan_last_refresh') || '0')
-        if (Date.now() - lastRefresh > 60000) { // 1 minute
-          refreshSession()
-          localStorage.setItem('wanderplan_last_refresh', Date.now().toString())
-        }
-      } catch (error) {
-        console.error('🔐 UserContext: Error in activity handler:', error)
-      }
-    }
-
-    // Listen for user activity
-    const events = ['click', 'keypress', 'scroll', 'mousemove']
-    events.forEach(event => {
-      document.addEventListener(event, handleActivity, { passive: true })
-    })
-
-    return () => {
-      isActive = false
-      events.forEach(event => {
-        document.removeEventListener(event, handleActivity)
-      })
-    }
-  }, [user])
 
   const value: UserContextType = {
     user,
     setUser,
     isAuthenticated: !!user,
+    isInitialized,
     login,
     register,
     loginWithGoogle,
@@ -449,8 +490,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     resetPassword,
     logout,
     updateProfile,
-    getAllUsers,
-    refreshSession
+    getAllUsers
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>

@@ -19,6 +19,8 @@ interface TripMapProps {
   places: Place[]
   selectedDay?: number
   onPlaceSelect?: (place: Place) => void
+  onPlaceHover?: (place: Place | null) => void
+  hoveredPlaceId?: string | null
   className?: string
 }
 
@@ -50,7 +52,7 @@ const categoryIcons = {
   accommodation: '🏠',
 }
 
-export function TripMap({ places, selectedDay, onPlaceSelect, className = '' }: TripMapProps) {
+export function TripMap({ places, selectedDay, onPlaceSelect, onPlaceHover, hoveredPlaceId, className = '' }: TripMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])
