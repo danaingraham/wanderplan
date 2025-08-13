@@ -219,60 +219,76 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
   const endTime = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
 
   return (
-    <div className="relative">
-      {/* Timeline Connection */}
-      {!isLast && (
-        <div className="absolute left-5 sm:left-6 top-16 bottom-0 w-0.5 bg-gradient-to-b from-teal-300 to-teal-200 transform translate-x-0.5"></div>
-      )}
-      
-      <DraggablePlace 
-        place={place}
-        className="group bg-white rounded-xl shadow-sm border border-gray-200 p-4 animate-scale-in transition-all hover:shadow-md hover:border-gray-300 relative"
-      >
-        {/* Timeline number badge */}
+    <div className="relative group">
+      {/* Left Rail - 48px wide for dots and drag handle */}
+      <div className="absolute left-0 top-0 bottom-0 w-12">
+        {/* Timeline Connection */}
+        {!isLast && (
+          <div className="absolute left-6 top-8 bottom-0 w-0.5 bg-gray-200"></div>
+        )}
+        
+        {/* Sequence Dot */}
         {sequenceNumber && (
-          <div className="absolute -left-2 sm:-left-3 top-4 w-5 h-5 sm:w-6 sm:h-6 bg-gradient-to-br from-teal-500 to-teal-600 rounded-full flex items-center justify-center shadow-lg border-2 border-white z-10">
-            <span className="text-white text-xs font-bold">{sequenceNumber}</span>
+          <div className="absolute left-4 top-4 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-[10px] font-semibold">{sequenceNumber}</span>
           </div>
         )}
         
-        <div className="flex gap-3 pl-4">
-
-        {/* Photo */}
-        <div className="flex-shrink-0">
-          <PlacePhoto
-            placeId={place.place_id}
-            photoUrl={photoUrl || undefined}
-            placeName={place.name}
-            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
-          />
-        </div>
-
-        {/* Content */}
-        <div className="flex-1">
-          <div className="flex justify-between items-start mb-2">
-            <h4 className="font-medium text-gray-900 text-sm sm:text-base pr-2">{place.name}</h4>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-              {!isEditing && (
-                <>
-                  <button
-                    onClick={() => setIsEditing(true)}
-                    className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded transition-all"
-                    title="Edit"
-                  >
-                    <Edit2 className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => onDelete(place.id)}
-                    className="p-1 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-all"
-                    title="Delete"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </>
-              )}
-            </div>
+        {/* Drag Handle - only visible on hover */}
+        <div className="absolute left-3 top-12 opacity-0 group-hover:opacity-100 transition-opacity">
+          <div className="flex flex-col gap-0.5 p-1 cursor-move">
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
+            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
           </div>
+        </div>
+      </div>
+      
+      {/* Main Content - starts at 48px (after rail) */}
+      <DraggablePlace 
+        place={place}
+        className="ml-12 bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
+      >
+        <div className="flex gap-3">
+          {/* Photo */}
+          <div className="flex-shrink-0">
+            <PlacePhoto
+              placeId={place.place_id}
+              photoUrl={photoUrl || undefined}
+              placeName={place.name}
+              className="w-16 h-16 object-cover rounded-md"
+            />
+          </div>
+
+          {/* Content */}
+          <div className="flex-1">
+            {/* Title row with inline edit/delete */}
+            <div className="flex justify-between items-start mb-1">
+              <h4 className="font-medium text-gray-900 text-sm pr-2">{place.name}</h4>
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                {!isEditing && (
+                  <>
+                    <button
+                      onClick={() => setIsEditing(true)}
+                      className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
+                      title="Edit"
+                    >
+                      <Edit2 className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(place.id)}
+                      className="p-0.5 text-gray-400 hover:text-red-600 transition-colors"
+                      title="Delete"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
 
           {/* Edit Form */}
           {isEditing ? (
@@ -340,38 +356,22 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
                 <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
               </div>
             </div>
-          ) : (
-            <div className="space-y-1 mb-2">
-              {/* Time display - single line without icon */}
-              <div className="text-xs sm:text-sm text-gray-600">
-                {place.start_time || '09:00'} – {endTime} · {place.duration || 90} min
-              </div>
-              
-              {/* Address - compact and truncated if needed */}
-              {place.address && (
-                <div className="text-xs sm:text-sm text-gray-600 truncate" title={place.address}>
-                  {place.address}
+            ) : (
+              <>
+                {/* Unified metadata line */}
+                <div className="text-xs text-gray-500 mb-1">
+                  {place.start_time || '09:00'}–{endTime} · {place.duration || 90} min
+                  {place.address && ` · ${place.address.split(',')[0]}`}
                 </div>
-              )}
-            </div>
-          )}
-
-          {place.notes && (
-            <p className="text-xs sm:text-sm text-gray-600 break-words">{place.notes}</p>
-          )}
-
-          <div className="flex items-center justify-between mt-3">
-            <span className={`text-xs px-2 py-1 rounded-full capitalize ${
-              place.category === 'restaurant' ? 'bg-orange-100 text-orange-800' :
-              place.category === 'attraction' ? 'bg-blue-100 text-blue-800' :
-              place.category === 'hotel' ? 'bg-purple-100 text-purple-800' :
-              'bg-gray-100 text-gray-800'
-            }`}>
-              {place.category}
-            </span>
+                
+                {/* Notes if present */}
+                {place.notes && (
+                  <p className="text-xs text-gray-600 line-clamp-2">{place.notes}</p>
+                )}
+              </>
+            )}
           </div>
         </div>
-      </div>
       </DraggablePlace>
     </div>
   )
@@ -1386,38 +1386,39 @@ export function TripDetail() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
+                      {(selectedDay ? [selectedDay] : days).map((day) => {
                         const isCollapsed = collapsedDays.has(day)
                         const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
                         
                         return (
-                          <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
-                            
-                            {/* Collapsible Header Bar */}
-                            <div 
-                              className="cursor-pointer"
-                              onClick={() => toggleDayCollapse(day)}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault()
-                                  toggleDayCollapse(day)
-                                }
-                              }}
-                              tabIndex={0}
-                              role="button"
-                              aria-expanded={!isCollapsed}
-                              aria-controls={`day-${day}-content`}
-                            >
-                              <div className="bg-gray-100 rounded-lg p-4 hover:bg-gray-200 transition-colors duration-200">
-                                <div className="flex items-center justify-between">
-                                  {/* Left side - Day badge and info */}
-                                  <div className="flex items-center gap-3">
-                                    {/* Day number badge - small and minimal */}
-                                    <div className="flex-shrink-0 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
-                                      <span className="text-white font-semibold text-sm">{day}</span>
-                                    </div>
-                                    
-                                    {/* Day title and date stacked */}
+                          <div key={day} className="relative">
+                            {/* Day Header with Rail */}
+                            <div className="relative">
+                              {/* Left Rail for Day Badge */}
+                              <div className="absolute left-0 top-0 bottom-0 w-12">
+                                <div className="absolute left-4 top-4 w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
+                                  <span className="text-white text-[10px] font-bold">{day}</span>
+                                </div>
+                              </div>
+                              
+                              {/* Day Header Content */}
+                              <div 
+                                className="ml-12 cursor-pointer"
+                                onClick={() => toggleDayCollapse(day)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter' || e.key === ' ') {
+                                    e.preventDefault()
+                                    toggleDayCollapse(day)
+                                  }
+                                }}
+                                tabIndex={0}
+                                role="button"
+                                aria-expanded={!isCollapsed}
+                                aria-controls={`day-${day}-content`}
+                              >
+                                <div className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition-colors duration-200">
+                                  <div className="flex items-center justify-between">
+                                    {/* Day title and date */}
                                     <div className="flex flex-col">
                                       <h3 className="text-base font-semibold text-gray-900">
                                         Day {day}
@@ -1428,17 +1429,17 @@ export function TripDetail() {
                                         </p>
                                       )}
                                     </div>
-                                  </div>
                                   
-                                  {/* Right side - Place count and expand indicator */}
-                                  <div className="flex items-center gap-3">
-                                    <span className="text-sm text-gray-500">
-                                      {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
-                                    </span>
-                                    <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
-                                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                      </svg>
+                                    {/* Right side - Place count and expand indicator */}
+                                    <div className="flex items-center gap-3">
+                                      <span className="text-sm text-gray-500">
+                                        {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                      </span>
+                                      <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                        </svg>
+                                      </div>
                                     </div>
                                   </div>
                                 </div>
