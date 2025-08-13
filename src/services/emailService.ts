@@ -1,4 +1,3 @@
-import { isEmailConfigured } from '../config/api'
 import { resendEmailService } from './resendEmailService'
 
 export interface EmailTemplate {
