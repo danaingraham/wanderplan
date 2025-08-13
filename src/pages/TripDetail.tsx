@@ -389,7 +389,6 @@ export function TripDetail() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
-  const [addFormType, setAddFormType] = useState<'itinerary' | 'logistics'>('itinerary')
   const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
@@ -936,23 +935,8 @@ export function TripDetail() {
             </div>
           </div>
           
-          {/* Top Actions - Add Item and Delete Trip */}
-          <div className="flex items-center gap-2">
-            {/* Add Item Button */}
-            <Button
-              onClick={() => {
-                setShowAddForm(!showAddForm)
-                // Default to itinerary if on itinerary view, logistics if on logistics view
-                setAddFormType(viewMode === 'logistics' ? 'logistics' : 'itinerary')
-              }}
-              className="flex items-center gap-2"
-            >
-              <Plus className="w-4 h-4" />
-              Add Item
-            </Button>
-            
-            {/* Delete Trip Button */}
-            <div className="relative">
+          {/* Delete Trip Button */}
+          <div className="relative">
               <Button
                 variant="ghost"
                 size="sm"
@@ -984,7 +968,6 @@ export function TripDetail() {
                 </div>
               </div>
             )}
-            </div>
           </div>
         </div>
       </div>
@@ -994,7 +977,36 @@ export function TripDetail() {
         <div>
           <div className="card animate-slide-up">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
+              <div className="flex items-center gap-2">
+                {viewMode === 'itinerary' ? (
+                  <>
+                    <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
+                    <button
+                      onClick={() => setShowAddForm(!showAddForm)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Add item"
+                    >
+                      <Plus className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Travel Logistics</h2>
+                      <p className="text-sm text-gray-600 mt-1">
+                        Manage your flights, accommodations, and transportation
+                      </p>
+                    </div>
+                    <button
+                      onClick={() => setShowAddForm(!showAddForm)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Add logistics item"
+                    >
+                      <Plus className="w-5 h-5 text-gray-600" />
+                    </button>
+                  </div>
+                )}
+              </div>
               
               <div className="flex items-center gap-2">
                 {/* Refresh Photos Button - Only show if some places don't have photos */}
@@ -1080,37 +1092,13 @@ export function TripDetail() {
               </div>
             )}
 
-            {/* Add New Item Form - Unified for both Itinerary and Logistics */}
+            {/* Add New Item Form */}
             {showAddForm && (
               <div className="mb-6 bg-gray-50 rounded-xl p-4 animate-scale-in">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Add New {addFormType === 'logistics' ? 'Logistics' : 'Itinerary'} Item</h3>
-                  <div className="flex items-center space-x-1 bg-gray-200 rounded-lg p-1">
-                    <button
-                      onClick={() => setAddFormType('itinerary')}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                        addFormType === 'itinerary'
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Itinerary
-                    </button>
-                    <button
-                      onClick={() => setAddFormType('logistics')}
-                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
-                        addFormType === 'logistics'
-                          ? 'bg-white text-gray-900 shadow-sm'
-                          : 'text-gray-600 hover:text-gray-900'
-                      }`}
-                    >
-                      Logistics
-                    </button>
-                  </div>
-                </div>
+                <h3 className="text-lg font-semibold mb-4">Add New {viewMode === 'logistics' ? 'Logistics' : 'Itinerary'} Item</h3>
                 
-                {/* Conditional Form Fields based on type */}
-                {addFormType === 'itinerary' ? (
+                {/* Conditional Form Fields based on view mode */}
+                {viewMode === 'itinerary' ? (
                   // Itinerary Form Fields
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-4">
@@ -1328,7 +1316,7 @@ export function TripDetail() {
                 <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                   <Button 
                     onClick={() => {
-                      if (addFormType === 'itinerary') {
+                      if (viewMode === 'itinerary') {
                         handleCreateNewItem()
                       } else {
                         // Handle logistics item creation
@@ -1358,7 +1346,7 @@ export function TripDetail() {
                         }
                       }
                     }} 
-                    disabled={addFormType === 'itinerary' ? !newItemData.name.trim() : !newLogisticsData.title.trim()}
+                    disabled={viewMode === 'itinerary' ? !newItemData.name.trim() : !newLogisticsData.title.trim()}
                   >
                     Add Item
                   </Button>
@@ -1558,6 +1546,7 @@ export function TripDetail() {
                   tripStartDate={trip?.start_date}
                   tripEndDate={trip?.end_date}
                   hideAddButton={true}
+                  hideHeader={true}
                 />
               </div>
             )}

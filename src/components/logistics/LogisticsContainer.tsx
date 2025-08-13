@@ -30,6 +30,7 @@ interface LogisticsContainerProps {
   tripStartDate?: string
   tripEndDate?: string
   hideAddButton?: boolean
+  hideHeader?: boolean
 }
 
 const logisticsTypes = [
@@ -303,7 +304,7 @@ function LogisticsCard({ item, onUpdate, onDelete }: {
   )
 }
 
-export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripStartDate, hideAddButton = false }: LogisticsContainerProps) {
+export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripStartDate, hideAddButton = false, hideHeader = false }: LogisticsContainerProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newItem, setNewItem] = useState<Omit<LogisticsItem, 'id'>>({
     type: 'flight',
@@ -339,24 +340,26 @@ export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripS
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-bold text-gray-900">Travel Logistics</h2>
-          <p className="text-sm text-gray-600 mt-1">
-            Manage your flights, accommodations, and transportation
-          </p>
+      {!hideHeader && (
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Travel Logistics</h2>
+            <p className="text-sm text-gray-600 mt-1">
+              Manage your flights, accommodations, and transportation
+            </p>
+          </div>
+          
+          {!hideAddButton && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+            >
+              <Plus className="w-4 h-4" />
+              Add Item
+            </button>
+          )}
         </div>
-        
-        {!hideAddButton && (
-          <button
-            onClick={() => setShowAddForm(true)}
-            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            <Plus className="w-4 h-4" />
-            Add Item
-          </button>
-        )}
-      </div>
+      )}
 
       {/* Add Form */}
       {showAddForm && (
