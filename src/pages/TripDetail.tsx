@@ -18,6 +18,16 @@ import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { LogisticsContainer, type LogisticsItem } from '../components/logistics/LogisticsContainer'
 import type { Place } from '../types'
 
+// Helper function to convert 24-hour time to 12-hour format with AM/PM
+function formatTime12Hour(time24: string): string {
+  if (!time24) return ''
+  const [hoursStr, minutes] = time24.split(':')
+  let hours = parseInt(hoursStr)
+  const ampm = hours >= 12 ? 'PM' : 'AM'
+  hours = hours % 12 || 12 // Convert 0 to 12 for midnight
+  return `${hours}:${minutes} ${ampm}`
+}
+
 // Helper function to calculate end time from start time and duration
 function calculateEndTime(startTime: string, duration: number): string {
   const [hours, minutes] = startTime.split(':').map(Number)
@@ -216,7 +226,9 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
     setIsEditing(false)
   }
 
-  const endTime = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
+  const endTime24 = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
+  const startTime12 = formatTime12Hour(place.start_time || '09:00')
+  const endTime12 = formatTime12Hour(endTime24)
 
   return (
     <DraggablePlace 
@@ -364,7 +376,7 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
               <>
                 {/* Unified metadata line */}
                 <div className="text-xs text-gray-500 mb-1">
-                  {place.start_time || '09:00'}–{endTime} · {place.duration || 90} min
+                  {startTime12}–{endTime12} · {place.duration || 90} min
                   {!isExpanded && place.address && ` · ${place.address.split(',')[0]}`}
                 </div>
                 
