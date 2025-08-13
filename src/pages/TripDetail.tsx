@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -925,13 +925,6 @@ export function TripDetail() {
                   </span>
                 </div>
               )}
-              <div className="flex items-center">
-                <Users className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                <span className="text-sm sm:text-base">
-                  {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
-                  {trip.has_kids && ' (with kids)'}
-                </span>
-              </div>
             </div>
           </div>
           
