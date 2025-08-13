@@ -977,7 +977,7 @@ export function TripDetail() {
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto">
+      <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         {/* Main Content - Timeline/Map */}
         <div>
           <div className="card animate-slide-up">
@@ -1257,7 +1257,7 @@ export function TripDetail() {
 
             {/* Content */}
             {viewMode === 'map' ? (
-              <div className="h-[600px]">
+              <div className="h-[70vh] min-h-[500px] max-h-[900px]">
                 <TripMap
                   places={places}
                   selectedDay={selectedDay}
@@ -1266,7 +1266,7 @@ export function TripDetail() {
               </div>
             ) : viewMode === 'split' ? (
               /* Split View - Side by Side */
-              <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[600px] lg:h-[600px]">
+              <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
                 {/* Mobile notification */}
                 <div className="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 lg:col-span-2">
                   <p className="text-sm text-blue-800">
@@ -1274,7 +1274,7 @@ export function TripDetail() {
                   </p>
                 </div>
                 {/* Itinerary Panel */}
-                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-96 lg:h-auto">
+                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Itinerary</h3>
                     {/* Collapse/Expand All Controls for split view */}
@@ -1448,7 +1448,7 @@ export function TripDetail() {
                 </div>
                 
                 {/* Map Panel */}
-                <div className="rounded-xl overflow-hidden border border-gray-200 h-96 lg:h-auto">
+                <div className="rounded-xl overflow-hidden border border-gray-200 h-[40vh] min-h-[300px] lg:h-auto">
                   <TripMap
                     places={places}
                     selectedDay={selectedDay}
