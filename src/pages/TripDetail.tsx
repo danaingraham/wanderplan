@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Check, X, Plus, RefreshCw, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -383,7 +383,7 @@ export function TripDetail() {
   const navigate = useNavigate()
   const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, bulkUpdatePlaces, deletePlace, deleteTrip, updateTrip } = useTrips()
   const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined)
-  const [viewMode, setViewMode] = useState<'list' | 'map' | 'split' | 'logistics'>('split')
+  const [viewMode, setViewMode] = useState<'itinerary' | 'logistics'>('itinerary')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showConflictModal, setShowConflictModal] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -991,22 +991,11 @@ export function TripDetail() {
                 </Button>
                 
                 {/* View Toggle */}
-                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto overflow-x-auto">
+                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
                 <button
-                  onClick={() => setViewMode('list')}
+                  onClick={() => setViewMode('itinerary')}
                   className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    viewMode === 'list'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <List className="w-4 h-4" />
-                  <span className="hidden sm:inline">List</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('split')}
-                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    viewMode === 'split'
+                    viewMode === 'itinerary'
                       ? 'bg-white text-gray-900 shadow-sm'
                       : 'text-gray-600 hover:text-gray-900'
                   }`}
@@ -1017,18 +1006,7 @@ export function TripDetail() {
                       <div className="bg-current rounded-[1px]"></div>
                     </div>
                   </div>
-                  <span className="hidden sm:inline">Split</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('map')}
-                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    viewMode === 'map'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Map className="w-4 h-4" />
-                  <span className="hidden sm:inline">Map</span>
+                  <span className="hidden sm:inline">Itinerary</span>
                 </button>
                 <button
                   onClick={() => setViewMode('logistics')}
@@ -1231,16 +1209,8 @@ export function TripDetail() {
             )}
 
             {/* Content */}
-            {viewMode === 'map' ? (
-              <div className="h-[70vh] min-h-[500px] max-h-[900px]">
-                <TripMap
-                  places={places}
-                  selectedDay={selectedDay}
-                  className="h-full"
-                />
-              </div>
-            ) : viewMode === 'split' ? (
-              /* Split View - Side by Side */
+            {viewMode === 'itinerary' ? (
+              /* Itinerary View - Side by Side */
               <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
                 {/* Mobile notification */}
                 <div className="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 lg:col-span-2">
@@ -1398,7 +1368,7 @@ export function TripDetail() {
                   />
                 </div>
               </div>
-            ) : viewMode === 'logistics' ? (
+            ) : (
               /* Logistics View */
               <div className="max-w-4xl">
                 <LogisticsContainer
@@ -1410,152 +1380,6 @@ export function TripDetail() {
                   tripEndDate={trip?.end_date}
                 />
               </div>
-            ) : (
-              /* List View */
-              days.length === 0 ? (
-                <div className="text-center py-8 animate-fade-in">
-                  <p className="text-gray-500 text-sm sm:text-base">No places added to this trip yet.</p>
-                </div>
-              ) : (
-                <div className="space-y-6 sm:space-y-8">
-                  
-                  {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
-                    const isCollapsed = collapsedDays.has(day)
-                    const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
-                    
-                    return (
-                      <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
-                        
-                        {/* Enhanced Day Header Card */}
-                        <div 
-                          className="group cursor-pointer transition-all duration-300 hover:shadow-md"
-                          onClick={() => toggleDayCollapse(day)}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              e.preventDefault()
-                              toggleDayCollapse(day)
-                            }
-                          }}
-                          tabIndex={0}
-                          role="button"
-                          aria-expanded={!isCollapsed}
-                          aria-controls={`day-${day}-content`}
-                        >
-                          <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-300 hover:scale-[1.01]">
-                            <div className="flex items-center justify-between">
-                              {/* Left side - Day info and date */}
-                              <div className="flex items-center gap-4">
-                                {/* Day number badge */}
-                                <div className="flex-shrink-0 w-12 h-12 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                                  <span className="text-white font-bold text-lg">{day}</span>
-                                </div>
-                                
-                                {/* Day info */}
-                                <div className="flex flex-col">
-                                  <div className="flex items-center gap-2">
-                                    <h3 className="text-lg font-bold text-gray-900">
-                                      Day {day}
-                                    </h3>
-                                  </div>
-                                  
-                                  {/* Date and weekday */}
-                                  {trip?.start_date && (
-                                    <p className="text-sm text-gray-600 font-medium">
-                                      {formatDate(getDayDate(trip.start_date, day), 'EEEE, MMM dd')}
-                                    </p>
-                                  )}
-                                  
-                                  {/* Item count */}
-                                  <p className="text-xs text-gray-500">
-                                    {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              {/* Right side - Category icons and toggle */}
-                              <div className="flex items-center gap-3">
-                                {/* Category icon summary */}
-                                {dayPlaces.length > 0 && (
-                                  <div className="flex items-center gap-1">
-                                    {[...new Set(dayPlaces.map(p => p.category))].slice(0, 4).map((category) => {
-                                      const IconComponent = getCategoryIcon(category)
-                                      return (
-                                        <div 
-                                          key={category}
-                                          className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50"
-                                          title={`${category} activities`}
-                                        >
-                                          <IconComponent className="w-4 h-4 text-teal-600" />
-                                        </div>
-                                      )
-                                    })}
-                                    {[...new Set(dayPlaces.map(p => p.category))].length > 4 && (
-                                      <div className="w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50">
-                                        <span className="text-xs font-medium text-gray-600">+{[...new Set(dayPlaces.map(p => p.category))].length - 4}</span>
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                                
-                                {/* Quick preview when collapsed */}
-                                {isCollapsed && dayPlaces.length > 0 && (
-                                  <div className="hidden lg:block max-w-48">
-                                    <p className="text-xs text-gray-500 truncate">
-                                      {dayPlaces.slice(0, 2).map(p => p.name).join(', ')}
-                                      {dayPlaces.length > 2 && ` +${dayPlaces.length - 2} more`}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        
-                        {/* Collapsible Day Content with smooth animation */}
-                        <div 
-                          className={`overflow-hidden transition-all duration-500 ease-in-out ${
-                            isCollapsed ? 'max-h-0 opacity-0' : 'max-h-[2000px] opacity-100'
-                          }`}
-                          id={`day-${day}-content`}
-                          aria-hidden={isCollapsed}
-                        >
-                          <div className="pt-4 space-y-3">
-                            <DroppableArea day={day} places={places}>
-                              {dayPlaces.map((place, placeIndex) => {
-                                // Calculate global sequence number across all days
-                                const globalSequenceNumber = places
-                                  .filter(p => p.day < day)
-                                  .length + placeIndex + 1
-                                
-                                return (
-                                  <div 
-                                    key={place.id}
-                                    className="animate-fade-in"
-                                    style={{ animationDelay: `${placeIndex * 0.1}s` }}
-                                  >
-                                    <PlaceItem
-                                      place={place}
-                                      onUpdate={updatePlace}
-                                      onDelete={deletePlace}
-                                      tripDestination={trip?.destination}
-                                      tripDestinationCoords={trip?.latitude && trip?.longitude ? { 
-                                        lat: trip.latitude, 
-                                        lng: trip.longitude 
-                                      } : undefined}
-                                      sequenceNumber={globalSequenceNumber}
-                                      isLast={placeIndex === dayPlaces.length - 1}
-                                    />
-                                  </div>
-                                )
-                              })}
-                            </DroppableArea>
-                          </div>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              )
             )}
           </div>
         </div>
