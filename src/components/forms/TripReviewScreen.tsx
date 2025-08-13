@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { ArrowLeft, Edit2, Calendar, MapPin, Users, Clock, Heart, Globe, Zap, Sparkles, Star, CheckCircle } from 'lucide-react'
+import { ArrowLeft } from 'lucide-react'
 import type { TripFormData } from './TripPlanningForm'
 
 interface TripReviewScreenProps {
@@ -42,7 +41,6 @@ const interestLabels = {
 }
 
 export function TripReviewScreen({ formData, onEdit, onGenerate, isGenerating }: TripReviewScreenProps) {
-  const [showFullCustomItems, setShowFullCustomItems] = useState(false)
   
   // Calculate trip duration (inclusive of both start and end dates)
   const duration = formData.startDate && formData.endDate 
@@ -60,20 +58,6 @@ export function TripReviewScreen({ formData, onEdit, onGenerate, isGenerating }:
     })
   }
 
-  const formatDateRange = (start: string, end: string) => {
-    if (!start || !end) return ''
-    
-    const startDate = new Date(start)
-    const endDate = new Date(end)
-    
-    // Same month and year
-    if (startDate.getMonth() === endDate.getMonth() && startDate.getFullYear() === endDate.getFullYear()) {
-      return `${startDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { day: 'numeric', year: 'numeric' })}`
-    }
-    
-    // Different months/years
-    return `${startDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
-  }
 
   return (
     <div className="max-w-2xl mx-auto">

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, Check, X, Plus, RefreshCw, Zap, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, Check, X, Plus, RefreshCw, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -419,7 +419,6 @@ export function TripDetail() {
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
   const [logistics, setLogistics] = useState<LogisticsItem[]>([])
-  const [logisticsLoading, setLogisticsLoading] = useState(false)
   const [newItemData, setNewItemData] = useState<{
     name: string
     address: string
@@ -1391,7 +1390,7 @@ export function TripDetail() {
                                     {/* Category icon summary */}
                                     {dayPlaces.length > 0 && (
                                       <div className="flex items-center gap-1">
-                                        {[...new Set(dayPlaces.map(p => p.category))].slice(0, 3).map((category, idx) => {
+                                        {[...new Set(dayPlaces.map(p => p.category))].slice(0, 3).map((category) => {
                                           const IconComponent = getCategoryIcon(category)
                                           return (
                                             <div 
@@ -1583,7 +1582,7 @@ export function TripDetail() {
                                 {/* Category icon summary */}
                                 {dayPlaces.length > 0 && (
                                   <div className="flex items-center gap-1">
-                                    {[...new Set(dayPlaces.map(p => p.category))].slice(0, 4).map((category, idx) => {
+                                    {[...new Set(dayPlaces.map(p => p.category))].slice(0, 4).map((category) => {
                                       const IconComponent = getCategoryIcon(category)
                                       return (
                                         <div 
