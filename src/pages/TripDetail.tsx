@@ -1404,9 +1404,9 @@ export function TripDetail() {
                         return (
                           <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
                             
-                            {/* Clean Event Card Style Day Header */}
+                            {/* Collapsible Header Bar */}
                             <div 
-                              className="group cursor-pointer"
+                              className="cursor-pointer"
                               onClick={() => toggleDayCollapse(day)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -1419,31 +1419,38 @@ export function TripDetail() {
                               aria-expanded={!isCollapsed}
                               aria-controls={`day-${day}-content`}
                             >
-                              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
+                              <div className="bg-gray-100 rounded-lg p-4 hover:bg-gray-200 transition-colors duration-200">
                                 <div className="flex items-center justify-between">
                                   {/* Left side - Day badge and info */}
                                   <div className="flex items-center gap-3">
                                     {/* Day number badge - small and minimal */}
-                                    <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                                    <div className="flex-shrink-0 w-8 h-8 bg-gray-700 rounded-full flex items-center justify-center">
                                       <span className="text-white font-semibold text-sm">{day}</span>
                                     </div>
                                     
                                     {/* Day title and date stacked */}
                                     <div className="flex flex-col">
-                                      <h3 className="text-base font-medium text-gray-900">
+                                      <h3 className="text-base font-semibold text-gray-900">
                                         Day {day}
                                       </h3>
                                       {trip?.start_date && (
-                                        <p className="text-sm text-gray-500">
+                                        <p className="text-sm text-gray-600">
                                           {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM dd')}
                                         </p>
                                       )}
                                     </div>
                                   </div>
                                   
-                                  {/* Right side - Place count */}
-                                  <div className="text-sm text-gray-400">
-                                    {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                  {/* Right side - Place count and expand indicator */}
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm text-gray-500">
+                                      {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                    </span>
+                                    <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
+                                    </div>
                                   </div>
                                 </div>
                               </div>
