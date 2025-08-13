@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Image, Check, X, Plus, RefreshCw, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Check, X, Plus, RefreshCw, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -10,6 +10,7 @@ import { Button } from '../components/ui/Button'
 import { PlaceAutocomplete } from '../components/forms/PlaceAutocomplete'
 import { googlePlacesService, type PlaceDetailsResponse } from '../services/googlePlaces'
 import { isGoogleMapsConfigured } from '../config/api'
+import { PlacePhoto } from '../components/places/PlacePhoto'
 import { DragDropProvider } from '../components/dnd/DragDropProvider'
 import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
@@ -238,41 +239,14 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
         <div className="flex gap-3 pl-4">
 
         {/* Photo */}
-        {photoUrl && (
-          <div className="flex-shrink-0">
-            <img
-              src={photoUrl}
-              alt={place.name}
-              className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
-              loading="lazy"
-              onError={(e) => {
-                console.error('❌ Image failed to load:', photoUrl)
-                const target = e.target as HTMLImageElement
-                console.error('Error details:', {
-                  src: target.src,
-                  naturalWidth: target.naturalWidth,
-                  naturalHeight: target.naturalHeight,
-                  complete: target.complete
-                })
-                // Try to retry with a simpler approach or hide broken image
-                setPhotoUrl(null)
-              }}
-              onLoad={(e) => {
-                const target = e.target as HTMLImageElement
-                console.log('✅ Image loaded successfully:', {
-                  src: target.src,
-                  naturalWidth: target.naturalWidth,
-                  naturalHeight: target.naturalHeight
-                })
-              }}
-            />
-          </div>
-        )}
-        {!photoUrl && place.place_id && (
-          <div className="flex-shrink-0 w-16 h-16 sm:w-20 sm:h-20 bg-gray-200 rounded-lg flex items-center justify-center">
-            <Image className="w-6 h-6 text-gray-400" />
-          </div>
-        )}
+        <div className="flex-shrink-0">
+          <PlacePhoto
+            placeId={place.place_id}
+            photoUrl={photoUrl || undefined}
+            placeName={place.name}
+            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
+          />
+        </div>
 
         {/* Content */}
         <div className="flex-1">
