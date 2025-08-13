@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Check, X, Plus, RefreshCw, ChevronDown, ChevronUp, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Map, List, Edit2, Trash2, Check, X, Plus, RefreshCw, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -440,14 +440,6 @@ export function TripDetail() {
     })
   }
 
-  const expandAllDays = () => {
-    setCollapsedDays(new Set())
-  }
-
-  const collapseAllDays = () => {
-    const allDays = [...new Set(places.map(p => p.day))]
-    setCollapsedDays(new Set(allDays))
-  }
 
   // Logistics functions
   const generateLogisticsId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
