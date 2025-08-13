@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Users, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Coffee, UtensilsCrossed, Camera, ShoppingBag, Plane, Hotel, Activity, MapPinIcon, Briefcase } from 'lucide-react'
+import { Calendar, MapPin, Users, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -40,23 +40,23 @@ function minutesToTime(totalMinutes: number): string {
   return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}`
 }
 
-// Helper function to get category icon
-function getCategoryIcon(category: Place['category']) {
-  const iconMap = {
-    restaurant: UtensilsCrossed,
-    cafe: Coffee,
-    attraction: Camera,
-    shop: ShoppingBag,
-    hotel: Hotel,
-    accommodation: Hotel,
-    activity: Activity,
-    transport: Plane,
-    flight: Plane,
-    bar: Coffee,
-    tip: MapPinIcon
-  }
-  return iconMap[category] || MapPinIcon
-}
+// Helper function to get category icon (keeping for potential future use)
+// function getCategoryIcon(category: Place['category']) {
+//   const iconMap = {
+//     restaurant: UtensilsCrossed,
+//     cafe: Coffee,
+//     attraction: Camera,
+//     shop: ShoppingBag,
+//     hotel: Hotel,
+//     accommodation: Hotel,
+//     activity: Activity,
+//     transport: Plane,
+//     flight: Plane,
+//     bar: Coffee,
+//     tip: MapPinIcon
+//   }
+//   return iconMap[category] || MapPinIcon
+// }
 
 // Helper function to calculate date for a given day
 function getDayDate(startDate: string, dayNumber: number): Date {
@@ -1404,9 +1404,9 @@ export function TripDetail() {
                         return (
                           <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
                             
-                            {/* Enhanced Day Header Card */}
+                            {/* Clean Event Card Style Day Header */}
                             <div 
-                              className="group cursor-pointer transition-all duration-300 hover:shadow-md"
+                              className="group cursor-pointer"
                               onClick={() => toggleDayCollapse(day)}
                               onKeyDown={(e) => {
                                 if (e.key === 'Enter' || e.key === ' ') {
@@ -1419,61 +1419,31 @@ export function TripDetail() {
                               aria-expanded={!isCollapsed}
                               aria-controls={`day-${day}-content`}
                             >
-                              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-3 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-300 hover:scale-[1.01]">
+                              <div className="bg-white border border-gray-200 rounded-lg p-4 shadow-sm hover:shadow-md transition-shadow duration-200">
                                 <div className="flex items-center justify-between">
-                                  {/* Left side - Day info and date */}
+                                  {/* Left side - Day badge and info */}
                                   <div className="flex items-center gap-3">
-                                    {/* Day number badge */}
-                                    <div className="flex-shrink-0 w-10 h-10 bg-gradient-to-br from-orange-500 to-red-500 rounded-full flex items-center justify-center shadow-lg">
-                                      <span className="text-white font-bold text-sm">{day}</span>
+                                    {/* Day number badge - small and minimal */}
+                                    <div className="flex-shrink-0 w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
+                                      <span className="text-white font-semibold text-sm">{day}</span>
                                     </div>
                                     
-                                    {/* Day info */}
+                                    {/* Day title and date stacked */}
                                     <div className="flex flex-col">
-                                      <div className="flex items-center gap-2">
-                                        <h3 className="text-base font-bold text-gray-900">
-                                          Day {day}
-                                        </h3>
-                                      </div>
-                                      
-                                      {/* Date and weekday */}
+                                      <h3 className="text-base font-medium text-gray-900">
+                                        Day {day}
+                                      </h3>
                                       {trip?.start_date && (
-                                        <p className="text-xs text-gray-600 font-medium">
+                                        <p className="text-sm text-gray-500">
                                           {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM dd')}
                                         </p>
                                       )}
-                                      
-                                      {/* Item count */}
-                                      <p className="text-xs text-gray-500">
-                                        {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
-                                      </p>
                                     </div>
                                   </div>
                                   
-                                  {/* Right side - Category icons and toggle */}
-                                  <div className="flex items-center gap-2">
-                                    {/* Category icon summary */}
-                                    {dayPlaces.length > 0 && (
-                                      <div className="flex items-center gap-1">
-                                        {[...new Set(dayPlaces.map(p => p.category))].slice(0, 3).map((category) => {
-                                          const IconComponent = getCategoryIcon(category)
-                                          return (
-                                            <div 
-                                              key={category}
-                                              className="w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50"
-                                              title={`${category} activities`}
-                                            >
-                                              <IconComponent className="w-3 h-3 text-teal-600" />
-                                            </div>
-                                          )
-                                        })}
-                                        {[...new Set(dayPlaces.map(p => p.category))].length > 3 && (
-                                          <div className="w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50">
-                                            <span className="text-xs font-medium text-gray-600">+{[...new Set(dayPlaces.map(p => p.category))].length - 3}</span>
-                                          </div>
-                                        )}
-                                      </div>
-                                    )}
+                                  {/* Right side - Place count */}
+                                  <div className="text-sm text-gray-400">
+                                    {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
                                   </div>
                                 </div>
                               </div>
