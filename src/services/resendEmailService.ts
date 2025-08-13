@@ -1,8 +1,5 @@
 import { Resend } from 'resend'
 
-// Initialize Resend with API key
-const resend = new Resend(import.meta.env.VITE_RESEND_API_KEY)
-
 export interface EmailOptions {
   to: string
   subject: string
@@ -12,6 +9,20 @@ export interface EmailOptions {
 
 class ResendEmailService {
   private from = 'Wanderplan <onboarding@resend.dev>' // Default sender for free tier
+  private resend: Resend | null = null
+  
+  private getResendClient(): Resend | null {
+    // Only initialize Resend if we have an API key
+    if (!this.resend && import.meta.env.VITE_RESEND_API_KEY) {
+      try {
+        this.resend = new Resend(import.meta.env.VITE_RESEND_API_KEY)
+      } catch (error) {
+        console.error('Failed to initialize Resend:', error)
+        return null
+      }
+    }
+    return this.resend
+  }
   
   async sendEmail(options: EmailOptions): Promise<{ success: boolean; error?: string }> {
     try {
@@ -24,7 +35,15 @@ class ResendEmailService {
         }
       }
 
-      const { data, error } = await resend.emails.send({
+      const resendClient = this.getResendClient()
+      if (!resendClient) {
+        return {
+          success: false,
+          error: 'Failed to initialize email service'
+        }
+      }
+
+      const { data, error } = await resendClient.emails.send({
         from: this.from,
         to: options.to,
         subject: options.subject,
