@@ -130,9 +130,7 @@ export function NewTripCreation() {
   }
 
   const calculateDefaultStartTime = (index: number) => {
-    const baseHour = 9 // Start at 9 AM
     const activitiesPerDay = 4
-    const dayIndex = Math.floor(index / activitiesPerDay)
     const activityIndex = index % activitiesPerDay
     
     // Spread activities throughout the day: 9 AM, 11 AM, 2 PM, 5 PM
@@ -142,7 +140,7 @@ export function NewTripCreation() {
 
   const calculateDefaultEndTime = (index: number) => {
     const startTime = calculateDefaultStartTime(index)
-    const [hours, minutes] = startTime.split(':').map(Number)
+    const [hours] = startTime.split(':').map(Number)
     const endHour = hours + 1.5 // Default 1.5 hour duration
     const endHours = Math.floor(endHour)
     const endMinutes = (endHour % 1) * 60
@@ -163,17 +161,17 @@ export function NewTripCreation() {
         destination: formData.destination,
         start_date: formData.startDate,
         end_date: formData.endDate,
-        trip_type: formData.tripType || 'cultural',
+        trip_type: (formData.tripType || 'cultural') as 'solo' | 'romantic' | 'family' | 'friends' | 'business',
         group_size: formData.tripType === 'family' ? 4 : 2,
         has_kids: formData.tripType === 'family',
-        pace: formData.travelPace || 'moderate',
+        pace: (formData.travelPace || 'moderate') as 'relaxed' | 'moderate' | 'packed',
         preferences: formData.interests,
         is_guide: false,
         is_public: true, // All trips are now public by default
         original_input: `Generated trip with custom items: ${formData.customItems.join(', ')}`,
         collaborators: [],
-        latitude: formData.destinationCoords?.lat || null,
-        longitude: formData.destinationCoords?.lng || null,
+        latitude: formData.destinationCoords?.lat || undefined,
+        longitude: formData.destinationCoords?.lng || undefined,
       })
 
       console.log('✅ Trip created with ID:', tripId)

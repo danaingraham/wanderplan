@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Calendar, MapPin, Users, Clock, Heart, Zap, Globe, Plus, X } from 'lucide-react'
+import { Plus, X } from 'lucide-react'
 import { DestinationAutocomplete } from './DestinationAutocomplete'
 import { DateRangePicker } from './DateRangePicker'
 

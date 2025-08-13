@@ -52,7 +52,7 @@ const categoryIcons = {
   accommodation: '🏠',
 }
 
-export function TripMap({ places, selectedDay, onPlaceSelect, onPlaceHover, hoveredPlaceId, className = '' }: TripMapProps) {
+export function TripMap({ places, selectedDay, onPlaceSelect, className = '' }: TripMapProps) {
   const mapRef = useRef<HTMLDivElement>(null)
   const mapInstanceRef = useRef<L.Map | null>(null)
   const markersRef = useRef<L.Marker[]>([])

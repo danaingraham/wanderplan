@@ -154,7 +154,7 @@ class GooglePlacesService {
                 console.error('❌ Failed to generate photo URL:', error)
                 return null
               }
-            }).filter(Boolean),
+            }).filter((photo): photo is { photo_reference: string; height: number; width: number } => photo !== null),
             opening_hours: place.opening_hours ? {
               open_now: place.opening_hours.open_now || false,
               weekday_text: place.opening_hours.weekday_text || [],
@@ -219,7 +219,7 @@ class GooglePlacesService {
                 console.error('❌ Failed to generate photo URL:', error)
                 return null
               }
-            }).filter(Boolean),
+            }).filter((photo): photo is { photo_reference: string; height: number; width: number } => photo !== null),
             opening_hours: place.opening_hours ? {
               open_now: place.opening_hours.open_now || false,
               weekday_text: place.opening_hours.weekday_text || [],
