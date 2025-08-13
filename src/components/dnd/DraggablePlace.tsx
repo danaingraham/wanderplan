@@ -14,6 +14,8 @@ interface DraggablePlaceProps {
   children: React.ReactNode
   isOverlay?: boolean
   className?: string
+  hideDefaultHandle?: boolean
+  renderDragHandle?: (listeners: any) => React.ReactNode
 }
 
 // Create environment-aware logging
@@ -27,7 +29,9 @@ export const DraggablePlace = React.memo(({
   place, 
   children, 
   isOverlay = false,
-  className = "" 
+  className = "",
+  hideDefaultHandle = false,
+  renderDragHandle
 }: DraggablePlaceProps) => {
   const {
     attributes,
@@ -80,25 +84,34 @@ export const DraggablePlace = React.memo(({
       `}
       {...attributes}
     >
-      <div className="relative group">
-        {/* Drag Handle */}
-        <button
-          {...listeners}
-          className="absolute left-1 top-1/2 transform -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing opacity-80 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded p-2 shadow-lg border border-gray-300 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
-          aria-label="Drag to reorder"
-          style={{ touchAction: 'none' }}
-          type="button"
-        >
-          <GripVertical className="w-4 h-4 text-gray-500" />
-        </button>
-        
-        {/* Drop Indicator */}
-        {isOver && (
-          <div className="absolute inset-0 border-2 border-dashed border-primary-400 rounded-xl pointer-events-none" />
-        )}
-        
-        {children}
-      </div>
+      {renderDragHandle ? (
+        <>
+          {renderDragHandle(listeners)}
+          {children}
+        </>
+      ) : (
+        <div className="relative group">
+          {/* Default Drag Handle */}
+          {!hideDefaultHandle && (
+            <button
+              {...listeners}
+              className="absolute left-1 top-1/2 transform -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing opacity-80 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded p-2 shadow-lg border border-gray-300 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
+              aria-label="Drag to reorder"
+              style={{ touchAction: 'none' }}
+              type="button"
+            >
+              <GripVertical className="w-4 h-4 text-gray-500" />
+            </button>
+          )}
+          
+          {/* Drop Indicator */}
+          {isOver && (
+            <div className="absolute inset-0 border-2 border-dashed border-primary-400 rounded-xl pointer-events-none" />
+          )}
+          
+          {children}
+        </div>
+      )}
     </div>
   )
 }, (prevProps, nextProps) => {

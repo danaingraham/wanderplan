@@ -219,39 +219,48 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
   const endTime = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
 
   return (
-    <div className="relative group">
-      {/* Left Rail - 48px wide for dots and drag handle */}
-      <div className="absolute left-0 top-0 bottom-0 w-12">
-        {/* Timeline Connection */}
-        {!isLast && (
-          <div className="absolute left-6 top-8 bottom-0 w-0.5 bg-gray-200"></div>
-        )}
-        
-        {/* Sequence Dot */}
-        {sequenceNumber && (
-          <div className="absolute left-4 top-4 w-4 h-4 bg-primary-500 rounded-full flex items-center justify-center">
-            <span className="text-white text-[10px] font-semibold">{sequenceNumber}</span>
-          </div>
-        )}
-        
-        {/* Drag Handle - only visible on hover */}
-        <div className="absolute left-3 top-12 opacity-0 group-hover:opacity-100 transition-opacity">
-          <div className="flex flex-col gap-0.5 p-1 cursor-move">
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-            <div className="w-1 h-1 bg-gray-400 rounded-full"></div>
-          </div>
+    <DraggablePlace 
+      place={place}
+      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+      hideDefaultHandle={true}
+      renderDragHandle={(listeners) => (
+        /* Left Rail - Fixed 40px width */
+        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
+          {/* Numbered Stop Circle */}
+          {sequenceNumber && (
+            <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+              <span className="text-white text-xs font-semibold">{sequenceNumber}</span>
+            </div>
+          )}
+          
+          {/* Drag Handle - 8-12px below circle, visible on hover */}
+          <button
+            {...listeners}
+            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
+            aria-label="Drag to reorder"
+            type="button"
+          >
+            <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
+              <g fill="currentColor">
+                <circle cx="5" cy="3" r="1.5"/>
+                <circle cx="11" cy="3" r="1.5"/>
+                <circle cx="5" cy="8" r="1.5"/>
+                <circle cx="11" cy="8" r="1.5"/>
+                <circle cx="5" cy="13" r="1.5"/>
+                <circle cx="11" cy="13" r="1.5"/>
+              </g>
+            </svg>
+          </button>
+          
+          {/* Timeline Connection */}
+          {!isLast && (
+            <div className="flex-grow w-0.5 bg-gray-200 mt-2"></div>
+          )}
         </div>
-      </div>
-      
-      {/* Main Content - starts at 48px (after rail) */}
-      <DraggablePlace 
-        place={place}
-        className="ml-12 bg-white rounded-lg border border-gray-200 p-3 hover:shadow-md transition-shadow"
-      >
+      )}
+    >
+      {/* Main Content */}
+      <div className="flex-1 p-3">
         <div className="flex gap-3">
           {/* Photo */}
           <div className="flex-shrink-0">
@@ -372,8 +381,8 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
             )}
           </div>
         </div>
-      </DraggablePlace>
-    </div>
+      </div>
+    </DraggablePlace>
   )
 }
 
