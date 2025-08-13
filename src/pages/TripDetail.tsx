@@ -422,28 +422,11 @@ export function TripDetail() {
   console.log('🔍 TripDetail: Trip found:', !!trip)
   console.log('🔍 TripDetail: Places found:', places.length)
 
-  // Helper function to determine current day based on trip dates
-  const getCurrentDay = () => {
-    if (!trip?.start_date) return 1
-    
-    const startDate = new Date(trip.start_date)
-    const today = new Date()
-    const diffTime = today.getTime() - startDate.getTime()
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-    
-    // Return day 1 if trip hasn't started, or the appropriate day if in progress
-    return Math.max(1, Math.min(diffDays, places.length > 0 ? Math.max(...places.map(p => p.day)) : 1))
-  }
-
-  // Initialize collapsed days (collapse all except current day)
+  // Initialize collapsed days (start with all expanded)
   useEffect(() => {
-    if (places.length > 0) {
-      const allDays = [...new Set(places.map(p => p.day))]
-      const currentDay = getCurrentDay()
-      const toCollapse = new Set(allDays.filter(day => day !== currentDay))
-      setCollapsedDays(toCollapse)
-    }
-  }, [places.length, trip?.start_date])
+    // Start with all days expanded
+    setCollapsedDays(new Set())
+  }, [])
 
   const toggleDayCollapse = (day: number) => {
     setCollapsedDays(prev => {
@@ -1305,8 +1288,6 @@ export function TripDetail() {
                       {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
                         const isCollapsed = collapsedDays.has(day)
                         const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
-                        const currentDay = getCurrentDay()
-                        const isCurrentDay = day === currentDay
                         
                         return (
                           <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
@@ -1341,11 +1322,6 @@ export function TripDetail() {
                                         <h3 className="text-base font-bold text-gray-900">
                                           Day {day}
                                         </h3>
-                                        {isCurrentDay && (
-                                          <span className="px-2 py-0.5 text-xs font-medium bg-green-100 text-green-700 rounded-full border border-green-200">
-                                            Today
-                                          </span>
-                                        )}
                                       </div>
                                       
                                       {/* Date and weekday */}
@@ -1497,8 +1473,6 @@ export function TripDetail() {
                   {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
                     const isCollapsed = collapsedDays.has(day)
                     const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
-                    const currentDay = getCurrentDay()
-                    const isCurrentDay = day === currentDay
                     
                     return (
                       <div key={day} className="relative animate-slide-up" style={{animationDelay: `${dayIndex * 0.1}s`}}>
@@ -1533,11 +1507,6 @@ export function TripDetail() {
                                     <h3 className="text-lg font-bold text-gray-900">
                                       Day {day}
                                     </h3>
-                                    {isCurrentDay && (
-                                      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full border border-green-200">
-                                        Today
-                                      </span>
-                                    )}
                                   </div>
                                   
                                   {/* Date and weekday */}
