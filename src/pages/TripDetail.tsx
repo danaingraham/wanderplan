@@ -15,8 +15,8 @@ import { DragDropProvider } from '../components/dnd/DragDropProvider'
 import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
-import { LogisticsContainer } from '../components/logistics/LogisticsContainer'
-import type { Place, LogisticsItem } from '../types'
+import { LogisticsContainer, type LogisticsItem } from '../components/logistics/LogisticsContainer'
+import type { Place } from '../types'
 
 // Helper function to calculate end time from start time and duration
 function calculateEndTime(startTime: string, duration: number): string {
@@ -389,6 +389,7 @@ export function TripDetail() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
+  const [addFormType, setAddFormType] = useState<'itinerary' | 'logistics'>('itinerary')
   const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
@@ -418,6 +419,26 @@ export function TripDetail() {
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
   
+  const [newLogisticsData, setNewLogisticsData] = useState<{
+    type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
+    title: string
+    startDate: string
+    endDate?: string
+    startTime?: string
+    endTime?: string
+    location?: string
+    confirmationNumber?: string
+    email?: string
+    notes?: string
+  }>({
+    type: 'flight',
+    title: '',
+    startDate: trip?.start_date || new Date().toISOString().split('T')[0],
+    location: '',
+    confirmationNumber: '',
+    email: ''
+  })
+  
   console.log('🔍 TripDetail: Component rendered with trip ID:', id)
   console.log('🔍 TripDetail: Trip found:', !!trip)
   console.log('🔍 TripDetail: Places found:', places.length)
@@ -444,7 +465,7 @@ export function TripDetail() {
   // Logistics functions
   const generateLogisticsId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
-  const createLogisticsItem = (item: Omit<LogisticsItem, 'id' | 'trip_id' | 'created_date' | 'updated_date'>) => {
+  const createLogisticsItem = (item: Omit<LogisticsItem, 'id'>) => {
     if (!trip) return
     
     const newItem: LogisticsItem = {
@@ -915,19 +936,34 @@ export function TripDetail() {
             </div>
           </div>
           
-          {/* Delete Trip Button */}
-          <div className="relative">
+          {/* Top Actions - Add Item and Delete Trip */}
+          <div className="flex items-center gap-2">
+            {/* Add Item Button */}
             <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setShowDeleteConfirm(true)}
-              className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              onClick={() => {
+                setShowAddForm(!showAddForm)
+                // Default to itinerary if on itinerary view, logistics if on logistics view
+                setAddFormType(viewMode === 'logistics' ? 'logistics' : 'itinerary')
+              }}
+              className="flex items-center gap-2"
             >
-              <Trash2 className="w-4 h-4" />
+              <Plus className="w-4 h-4" />
+              Add Item
             </Button>
             
-            {showDeleteConfirm && (
-              <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-64">
+            {/* Delete Trip Button */}
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDeleteConfirm(true)}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+              
+              {showDeleteConfirm && (
+                <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-64">
                 <p className="text-sm text-gray-700 mb-3">Are you sure you want to delete this trip?</p>
                 <div className="flex gap-2">
                   <Button
@@ -948,6 +984,7 @@ export function TripDetail() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>
@@ -978,17 +1015,6 @@ export function TripDetail() {
                     }
                   </Button>
                 )}
-                
-                
-                {/* Add Item Button */}
-                <Button
-                  onClick={() => setShowAddForm(!showAddForm)}
-                  size="sm"
-                  className="flex items-center gap-2"
-                >
-                  <Plus className="w-4 h-4" />
-                  Add Item
-                </Button>
                 
                 {/* View Toggle */}
                 <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
@@ -1054,14 +1080,42 @@ export function TripDetail() {
               </div>
             )}
 
-            {/* Add New Item Form */}
+            {/* Add New Item Form - Unified for both Itinerary and Logistics */}
             {showAddForm && (
               <div className="mb-6 bg-gray-50 rounded-xl p-4 animate-scale-in">
-                <h3 className="text-lg font-semibold mb-4">Add New Itinerary Item</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-4">
-                    <div>
-                      <label className="text-sm text-gray-700 block mb-1">Place Name *</label>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Add New {addFormType === 'logistics' ? 'Logistics' : 'Itinerary'} Item</h3>
+                  <div className="flex items-center space-x-1 bg-gray-200 rounded-lg p-1">
+                    <button
+                      onClick={() => setAddFormType('itinerary')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        addFormType === 'itinerary'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Itinerary
+                    </button>
+                    <button
+                      onClick={() => setAddFormType('logistics')}
+                      className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                        addFormType === 'logistics'
+                          ? 'bg-white text-gray-900 shadow-sm'
+                          : 'text-gray-600 hover:text-gray-900'
+                      }`}
+                    >
+                      Logistics
+                    </button>
+                  </div>
+                </div>
+                
+                {/* Conditional Form Fields based on type */}
+                {addFormType === 'itinerary' ? (
+                  // Itinerary Form Fields
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Place Name *</label>
                       <PlaceAutocomplete
                         value={newItemData.name}
                         onChange={(name) => setNewItemData(prev => ({ ...prev, name }))}
@@ -1178,9 +1232,134 @@ export function TripDetail() {
                     </div>
                   </div>
                 </div>
+                ) : (
+                  // Logistics Form Fields
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Type</label>
+                        <select
+                          value={newLogisticsData.type}
+                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, type: e.target.value as any }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                        >
+                          <option value="flight">Flight</option>
+                          <option value="hotel">Hotel</option>
+                          <option value="accommodation">Accommodation</option>
+                          <option value="car_rental">Car Rental</option>
+                          <option value="train">Train</option>
+                          <option value="transport">Transport</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Title *</label>
+                        <input
+                          type="text"
+                          value={newLogisticsData.title}
+                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, title: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="e.g., Flight to Paris, Hotel Reservation"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Location</label>
+                        <input
+                          type="text"
+                          value={newLogisticsData.location || ''}
+                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, location: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="City, Airport, Address"
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div className="flex gap-4">
+                        <div className="flex-1">
+                          <label className="text-sm text-gray-700 block mb-1">Start Date</label>
+                          <input
+                            type="date"
+                            value={newLogisticsData.startDate}
+                            onChange={(e) => setNewLogisticsData(prev => ({ ...prev, startDate: e.target.value }))}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          />
+                        </div>
+                        
+                        {(newLogisticsData.type === 'hotel' || newLogisticsData.type === 'accommodation' || newLogisticsData.type === 'car_rental') && (
+                          <div className="flex-1">
+                            <label className="text-sm text-gray-700 block mb-1">End Date</label>
+                            <input
+                              type="date"
+                              value={newLogisticsData.endDate || ''}
+                              onChange={(e) => setNewLogisticsData(prev => ({ ...prev, endDate: e.target.value }))}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                            />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Confirmation Number</label>
+                        <input
+                          type="text"
+                          value={newLogisticsData.confirmationNumber || ''}
+                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, confirmationNumber: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="ABC123"
+                        />
+                      </div>
+                      
+                      <div>
+                        <label className="text-sm text-gray-700 block mb-1">Email</label>
+                        <input
+                          type="email"
+                          value={newLogisticsData.email || ''}
+                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, email: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                          placeholder="contact@example.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
-                  <Button onClick={handleCreateNewItem} disabled={!newItemData.name.trim()}>
+                  <Button 
+                    onClick={() => {
+                      if (addFormType === 'itinerary') {
+                        handleCreateNewItem()
+                      } else {
+                        // Handle logistics item creation
+                        if (newLogisticsData.title.trim()) {
+                          createLogisticsItem({
+                            type: newLogisticsData.type,
+                            title: newLogisticsData.title,
+                            description: newLogisticsData.notes,
+                            startDate: newLogisticsData.startDate,
+                            endDate: newLogisticsData.endDate,
+                            startTime: newLogisticsData.startTime,
+                            endTime: newLogisticsData.endTime,
+                            location: newLogisticsData.location,
+                            confirmationNumber: newLogisticsData.confirmationNumber,
+                            email: newLogisticsData.email,
+                          })
+                          // Reset form
+                          setNewLogisticsData({
+                            type: 'flight',
+                            title: '',
+                            startDate: trip?.start_date || new Date().toISOString().split('T')[0],
+                            location: '',
+                            confirmationNumber: '',
+                            email: ''
+                          })
+                          setShowAddForm(false)
+                        }
+                      }
+                    }} 
+                    disabled={addFormType === 'itinerary' ? !newItemData.name.trim() : !newLogisticsData.title.trim()}
+                  >
                     Add Item
                   </Button>
                   <Button 
@@ -1378,6 +1557,7 @@ export function TripDetail() {
                   onDelete={deleteLogisticsItem}
                   tripStartDate={trip?.start_date}
                   tripEndDate={trip?.end_date}
+                  hideAddButton={true}
                 />
               </div>
             )}

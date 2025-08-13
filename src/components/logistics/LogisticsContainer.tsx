@@ -4,6 +4,7 @@ import { formatDate } from '../../utils/date'
 
 export interface LogisticsItem {
   id: string
+  trip_id?: string
   type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
   title: string
   description?: string
@@ -17,6 +18,8 @@ export interface LogisticsItem {
   notes?: string
   cost?: number
   currency?: string
+  created_date?: string
+  updated_date?: string
 }
 
 interface LogisticsContainerProps {
@@ -26,6 +29,7 @@ interface LogisticsContainerProps {
   onDelete: (id: string) => void
   tripStartDate?: string
   tripEndDate?: string
+  hideAddButton?: boolean
 }
 
 const logisticsTypes = [
@@ -299,7 +303,7 @@ function LogisticsCard({ item, onUpdate, onDelete }: {
   )
 }
 
-export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripStartDate }: LogisticsContainerProps) {
+export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripStartDate, hideAddButton = false }: LogisticsContainerProps) {
   const [showAddForm, setShowAddForm] = useState(false)
   const [newItem, setNewItem] = useState<Omit<LogisticsItem, 'id'>>({
     type: 'flight',
@@ -343,13 +347,15 @@ export function LogisticsContainer({ logistics, onAdd, onUpdate, onDelete, tripS
           </p>
         </div>
         
-        <button
-          onClick={() => setShowAddForm(true)}
-          className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-        >
-          <Plus className="w-4 h-4" />
-          Add Item
-        </button>
+        {!hideAddButton && (
+          <button
+            onClick={() => setShowAddForm(true)}
+            className="inline-flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            <Plus className="w-4 h-4" />
+            Add Item
+          </button>
+        )}
       </div>
 
       {/* Add Form */}
