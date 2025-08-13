@@ -22,6 +22,7 @@
     "@types/nodemailer": "^6.4.17",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
+    "dayjs": "^1.11.13",
     "framer-motion": "^12.23.12",
     "googleapis": "^155.0.0",
     "leaflet": "^1.9.4",
