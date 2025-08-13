@@ -1260,23 +1260,6 @@ export function TripDetail() {
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-gray-900">Itinerary</h3>
-                    {/* Collapse/Expand All Controls for split view */}
-                    {!selectedDay && days.length > 1 && (
-                      <div className="flex gap-2">
-                        <button
-                          onClick={expandAllDays}
-                          className="px-2 py-1 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-md hover:bg-teal-100 transition-colors"
-                        >
-                          Expand All
-                        </button>
-                        <button
-                          onClick={collapseAllDays}
-                          className="px-2 py-1 text-xs font-medium text-gray-700 bg-gray-200 border border-gray-300 rounded-md hover:bg-gray-300 transition-colors"
-                        >
-                          Collapse All
-                        </button>
-                      </div>
-                    )}
                   </div>
                   
                   {days.length === 0 ? (
@@ -1307,7 +1290,7 @@ export function TripDetail() {
                               aria-expanded={!isCollapsed}
                               aria-controls={`day-${day}-content`}
                             >
-                              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-3 shadow-sm hover:shadow-md transition-all duration-300 hover:border-orange-200">
+                              <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-3 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-300 hover:scale-[1.01]">
                                 <div className="flex items-center justify-between">
                                   {/* Left side - Day info and date */}
                                   <div className="flex items-center gap-3">
@@ -1362,15 +1345,6 @@ export function TripDetail() {
                                         )}
                                       </div>
                                     )}
-                                    
-                                    {/* Toggle icon */}
-                                    <div className="flex-shrink-0 w-6 h-6 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50 group-hover:bg-white transition-colors">
-                                      {isCollapsed ? (
-                                        <ChevronDown className="w-3 h-3 text-gray-600 group-hover:text-gray-800 transition-colors" />
-                                      ) : (
-                                        <ChevronUp className="w-3 h-3 text-gray-600 group-hover:text-gray-800 transition-colors" />
-                                      )}
-                                    </div>
                                   </div>
                                 </div>
                               </div>
@@ -1452,23 +1426,6 @@ export function TripDetail() {
                 </div>
               ) : (
                 <div className="space-y-6 sm:space-y-8">
-                  {/* Collapse/Expand All Controls */}
-                  {!selectedDay && days.length > 1 && (
-                    <div className="flex justify-end gap-2 mb-4">
-                      <button
-                        onClick={expandAllDays}
-                        className="px-3 py-1.5 text-xs font-medium text-teal-700 bg-teal-50 border border-teal-200 rounded-lg hover:bg-teal-100 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-400"
-                      >
-                        Expand All
-                      </button>
-                      <button
-                        onClick={collapseAllDays}
-                        className="px-3 py-1.5 text-xs font-medium text-gray-700 bg-gray-50 border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors focus:outline-none focus:ring-2 focus:ring-gray-400"
-                      >
-                        Collapse All
-                      </button>
-                    </div>
-                  )}
                   
                   {(selectedDay ? [selectedDay] : days).map((day, dayIndex) => {
                     const isCollapsed = collapsedDays.has(day)
@@ -1492,7 +1449,7 @@ export function TripDetail() {
                           aria-expanded={!isCollapsed}
                           aria-controls={`day-${day}-content`}
                         >
-                          <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4 shadow-sm hover:shadow-md transition-all duration-300 hover:border-orange-200">
+                          <div className="bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-100 rounded-xl p-4 shadow-sm hover:shadow-lg transition-all duration-300 hover:border-orange-300 hover:scale-[1.01]">
                             <div className="flex items-center justify-between">
                               {/* Left side - Day info and date */}
                               <div className="flex items-center gap-4">
@@ -1557,15 +1514,6 @@ export function TripDetail() {
                                     </p>
                                   </div>
                                 )}
-                                
-                                {/* Toggle icon */}
-                                <div className="flex-shrink-0 w-8 h-8 bg-white/80 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm border border-white/50 group-hover:bg-white transition-colors">
-                                  {isCollapsed ? (
-                                    <ChevronDown className="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
-                                  ) : (
-                                    <ChevronUp className="w-4 h-4 text-gray-600 group-hover:text-gray-800 transition-colors" />
-                                  )}
-                                </div>
                               </div>
                             </div>
                           </div>
