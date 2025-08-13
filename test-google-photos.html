@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Google Places Photos</title>
+  <script>
+    function initMap() {
+      // Create a dummy div for PlacesService
+      const service = new google.maps.places.PlacesService(document.createElement('div'));
+      
+      // Test with a known place (e.g., Eiffel Tower)
+      const request = {
+        query: 'Eiffel Tower Paris',
+        fields: ['name', 'photos', 'place_id']
+      };
+      
+      service.textSearch(request, (results, status) => {
+        console.log('Search Status:', status);
+        console.log('Results:', results);
+        
+        if (status === google.maps.places.PlacesServiceStatus.OK && results && results[0]) {
+          const place = results[0];
+          console.log('Place found:', place.name);
+          console.log('Place ID:', place.place_id);
+          
+          if (place.photos && place.photos.length > 0) {
+            console.log('Photos available:', place.photos.length);
+            
+            // Get photo URLs
+            place.photos.forEach((photo, index) => {
+              const url = photo.getUrl({ maxWidth: 400, maxHeight: 300 });
+              console.log(`Photo ${index + 1} URL:`, url);
+              
+              // Try to display the photo
+              const img = document.createElement('img');
+              img.src = url;
+              img.style.margin = '10px';
+              img.style.maxWidth = '400px';
+              img.onload = () => console.log(`Photo ${index + 1} loaded successfully`);
+              img.onerror = (e) => console.error(`Photo ${index + 1} failed to load:`, e);
+              document.getElementById('photos').appendChild(img);
+            });
+          } else {
+            console.log('No photos available for this place');
+          }
+        } else {
+          console.error('Place search failed:', status);
+        }
+      });
+    }
+  </script>
+</head>
+<body>
+  <h1>Google Places Photo Test</h1>
+  <p>Check the console for debug information</p>
+  <div id="photos"></div>
+  
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBebfBINIwvDCG3y00_TmTwy98wIQsiUTc&libraries=places&callback=initMap">
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Places Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>Wanderplan Places Data Check</h1>
+    <div id="output"></div>
+    <script>
+        const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+        const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+        
+        let html = '<h2>Trips: ' + trips.length + '</h2>';
+        html += '<h2>Places: ' + places.length + '</h2>';
+        
+        if (places.length > 0) {
+            html += '<h3>Sample Places (first 3):</h3>';
+            places.slice(0, 3).forEach(place => {
+                html += '<pre>' + JSON.stringify({
+                    name: place.name,
+                    place_id: place.place_id,
+                    photo_url: place.photo_url,
+                    address: place.address
+                }, null, 2) + '</pre>';
+            });
+            
+            html += '<h3>Places with place_id: ' + places.filter(p => p.place_id).length + '</h3>';
+            html += '<h3>Places with photo_url: ' + places.filter(p => p.photo_url).length + '</h3>';
+        }
+        
+        document.getElementById('output').innerHTML = html;
+    </script>
+</body>
+</html>

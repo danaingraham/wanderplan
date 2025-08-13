@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Specific Trip Photos</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #fff0f0; border-color: #ff0000; }
+        .success { background: #f0fff0; border-color: #00aa00; }
+        .warning { background: #fff8f0; border-color: #ff8800; }
+        .info { background: #f0f8ff; border-color: #0088ff; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        .place-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .has-photo { border-color: green; background: #f9fff9; }
+        .no-photo { border-color: red; background: #fff9f9; }
+        .has-place-id { border-color: orange; background: #fffaf0; }
+        img { max-width: 100px; max-height: 100px; object-fit: cover; border-radius: 4px; }
+        .photo-test { margin: 10px 0; padding: 10px; background: #f0f0f0; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug Trip Photos: 1754449928505-y47bt10sh</h1>
+    
+    <div class="section info">
+        <h2>Trip Overview</h2>
+        <div id="trip-overview">Loading...</div>
+        <button onclick="analyzeTripData()">Analyze Trip Data</button>
+    </div>
+    
+    <div class="section">
+        <h2>Places Analysis</h2>
+        <div id="places-analysis">Click analyze to see places...</div>
+    </div>
+    
+    <div class="section">
+        <h2>Google API Status</h2>
+        <div id="api-status">Checking...</div>
+        <button onclick="testGoogleAPI()">Test Google API</button>
+    </div>
+    
+    <div class="section">
+        <h2>Photo Fetch Test</h2>
+        <div id="photo-test">Click test to try fetching photos...</div>
+        <button onclick="testPhotoFetch()">Test Photo Fetch for Places</button>
+    </div>
+    
+    <div class="section">
+        <h2>Manual Photo Search</h2>
+        <input type="text" id="search-query" placeholder="Enter place name to search" style="width: 300px; padding: 8px;">
+        <button onclick="manualPhotoSearch()">Search for Photo</button>
+        <div id="manual-search-result"></div>
+    </div>
+
+    <script>
+        const TRIP_ID = '1754449928505-y47bt10sh';
+        let tripData = null;
+        let placesData = [];
+        
+        function analyzeTripData() {
+            // Get trip data from localStorage
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            
+            tripData = trips.find(t => t.id === TRIP_ID);
+            placesData = places.filter(p => p.trip_id === TRIP_ID);
+            
+            const overview = document.getElementById('trip-overview');
+            
+            if (!tripData) {
+                overview.innerHTML = '<p class="error">❌ Trip not found in localStorage!</p>';
+                return;
+            }
+            
+            overview.innerHTML = `
+                <h3>Trip Details:</h3>
+                <pre>${JSON.stringify({
+                    id: tripData.id,
+                    title: tripData.title,
+                    destination: tripData.destination,
+                    latitude: tripData.latitude,
+                    longitude: tripData.longitude,
+                    placesCount: placesData.length
+                }, null, 2)}</pre>
+            `;
+            
+            analyzePlaces();
+        }
+        
+        function analyzePlaces() {
+            const analysis = document.getElementById('places-analysis');
+            
+            if (placesData.length === 0) {
+                analysis.innerHTML = '<p class="error">❌ No places found for this trip!</p>';
+                return;
+            }
+            
+            let html = `<h3>Found ${placesData.length} places:</h3>`;
+            
+            const withPhotos = placesData.filter(p => p.photo_url);
+            const withPlaceId = placesData.filter(p => p.place_id);
+            const withoutPhotos = placesData.filter(p => !p.photo_url);
+            
+            html += `
+                <div class="info">
+                    <p>📊 Summary:</p>
+                    <ul>
+                        <li>Places with photos: ${withPhotos.length}/${placesData.length}</li>
+                        <li>Places with place_id: ${withPlaceId.length}/${placesData.length}</li>
+                        <li>Places without photos: ${withoutPhotos.length}/${placesData.length}</li>
+                    </ul>
+                </div>
+            `;
+            
+            placesData.forEach((place, index) => {
+                const hasPhoto = !!place.photo_url;
+                const hasPlaceId = !!place.place_id;
+                
+                let className = 'no-photo';
+                if (hasPhoto) className = 'has-photo';
+                else if (hasPlaceId) className = 'has-place-id';
+                
+                html += `
+                    <div class="place-item ${className}">
+                        <h4>${place.name} (Day ${place.day})</h4>
+                        <p><strong>Address:</strong> ${place.address || 'No address'}</p>
+                        <p><strong>Category:</strong> ${place.category}</p>
+                        <p><strong>Place ID:</strong> ${hasPlaceId ? '✅ ' + place.place_id : '❌ Missing'}</p>
+                        <p><strong>Photo URL:</strong> ${hasPhoto ? '✅ Has photo' : '❌ Missing'}</p>
+                        
+                        ${hasPhoto ? `
+                            <div class="photo-test">
+                                <p>Testing photo URL:</p>
+                                <img src="${place.photo_url}" 
+                                     onload="this.parentElement.innerHTML += '<p style=color:green>✅ Photo loads successfully!</p>'"
+                                     onerror="this.parentElement.innerHTML += '<p style=color:red>❌ Photo failed to load!</p>'"
+                                     alt="${place.name}">
+                                <br><small style="word-break: break-all;">${place.photo_url}</small>
+                            </div>
+                        ` : ''}
+                        
+                        ${hasPlaceId ? `
+                            <button onclick="testPlacePhoto('${place.id}', '${place.place_id}', '${place.name}')">
+                                Test Photo Fetch for This Place
+                            </button>
+                        ` : `
+                            <button onclick="searchForPlace('${place.name}', '${tripData?.destination || ''}')">
+                                Search Google for This Place
+                            </button>
+                        `}
+                    </div>
+                `;
+            });
+            
+            analysis.innerHTML = html;
+        }
+        
+        function testGoogleAPI() {
+            const status = document.getElementById('api-status');
+            let html = '<h3>Google API Status Check:</h3>';
+            
+            // Check if Google is loaded
+            if (typeof google === 'undefined') {
+                html += '<p class="error">❌ Google object not found</p>';
+            } else {
+                html += '<p class="success">✅ Google object exists</p>';
+                
+                if (google.maps) {
+                    html += '<p class="success">✅ Google Maps loaded</p>';
+                    
+                    if (google.maps.places) {
+                        html += '<p class="success">✅ Google Places loaded</p>';
+                        
+                        if (google.maps.places.PlacesService) {
+                            html += '<p class="success">✅ PlacesService available</p>';
+                        } else {
+                            html += '<p class="error">❌ PlacesService not available</p>';
+                        }
+                    } else {
+                        html += '<p class="error">❌ Google Places not loaded</p>';
+                    }
+                } else {
+                    html += '<p class="error">❌ Google Maps not loaded</p>';
+                }
+            }
+            
+            // Check API key
+            const hasApiKey = document.querySelector('script[src*="maps.googleapis.com"]') || 
+                             localStorage.getItem('google_api_loaded') ||
+                             'VITE_GOOGLE_MAPS_API_KEY' in window;
+            
+            if (hasApiKey) {
+                html += '<p class="success">✅ API key appears to be configured</p>';
+            } else {
+                html += '<p class="error">❌ API key not detected</p>';
+            }
+            
+            status.innerHTML = html;
+        }
+        
+        async function testPlacePhoto(placeId, googlePlaceId, placeName) {
+            const result = document.getElementById('photo-test');
+            result.innerHTML = `<p>🔍 Testing photo fetch for: ${placeName}</p>`;
+            
+            if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                result.innerHTML += '<p class="error">❌ Google Places API not loaded</p>';
+                return;
+            }
+            
+            try {
+                // Create a dummy div for PlacesService
+                const div = document.createElement('div');
+                const service = new google.maps.places.PlacesService(div);
+                
+                const request = {
+                    placeId: googlePlaceId,
+                    fields: ['photos', 'name', 'place_id']
+                };
+                
+                service.getDetails(request, (place, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && place) {
+                        if (place.photos && place.photos.length > 0) {
+                            const photoUrl = place.photos[0].getUrl({ maxWidth: 400, maxHeight: 300 });
+                            result.innerHTML += `
+                                <p class="success">✅ Found ${place.photos.length} photos for ${place.name}</p>
+                                <div class="photo-test">
+                                    <img src="${photoUrl}" alt="${place.name}" style="max-width: 200px;">
+                                    <br><small>${photoUrl}</small>
+                                </div>
+                            `;
+                        } else {
+                            result.innerHTML += `<p class="warning">⚠️ Place found but no photos available</p>`;
+                        }
+                    } else {
+                        result.innerHTML += `<p class="error">❌ Failed to get place details: ${status}</p>`;
+                    }
+                });
+            } catch (error) {
+                result.innerHTML += `<p class="error">❌ Error: ${error.message}</p>`;
+                console.error('Photo test error:', error);
+            }
+        }
+        
+        async function searchForPlace(placeName, destination) {
+            const result = document.getElementById('photo-test');
+            result.innerHTML = `<p>🔍 Searching Google Places for: ${placeName} in ${destination}</p>`;
+            
+            if (typeof google === 'undefined' || !google.maps || !google.maps.places) {
+                result.innerHTML += '<p class="error">❌ Google Places API not loaded</p>';
+                return;
+            }
+            
+            try {
+                const div = document.createElement('div');
+                const service = new google.maps.places.PlacesService(div);
+                
+                const request = {
+                    query: `${placeName} ${destination}`,
+                    fields: ['photos', 'name', 'place_id', 'formatted_address']
+                };
+                
+                service.textSearch(request, (results, status) => {
+                    if (status === google.maps.places.PlacesServiceStatus.OK && results && results.length > 0) {
+                        const place = results[0];
+                        result.innerHTML += `
+                            <p class="success">✅ Found: ${place.name}</p>
+                            <p>Address: ${place.formatted_address}</p>
+                            <p>Place ID: ${place.place_id}</p>
+                        `;
+                        
+                        if (place.photos && place.photos.length > 0) {
+                            const photoUrl = place.photos[0].getUrl({ maxWidth: 400, maxHeight: 300 });
+                            result.innerHTML += `
+                                <div class="photo-test">
+                                    <p class="success">📸 Found ${place.photos.length} photos!</p>
+                                    <img src="${photoUrl}" alt="${place.name}" style="max-width: 200px;">
+                                    <br><small>${photoUrl}</small>
+                                </div>
+                            `;
+                        } else {
+                            result.innerHTML += `<p class="warning">⚠️ No photos available for this place</p>`;
+                        }
+                    } else {
+                        result.innerHTML += `<p class="error">❌ No results found: ${status}</p>`;
+                    }
+                });
+            } catch (error) {
+                result.innerHTML += `<p class="error">❌ Search error: ${error.message}</p>`;
+                console.error('Search error:', error);
+            }
+        }
+        
+        function manualPhotoSearch() {
+            const query = document.getElementById('search-query').value;
+            if (!query) {
+                alert('Please enter a place name to search');
+                return;
+            }
+            
+            searchForPlace(query, tripData?.destination || '');
+        }
+        
+        // Auto-load on page load
+        window.addEventListener('load', () => {
+            analyzeTripData();
+            testGoogleAPI();
+        });
+    </script>
+</body>
+</html>

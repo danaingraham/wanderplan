@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Session Persistence Test</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; max-width: 800px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .success { background: #f0fff0; border-color: #00aa00; }
+        .error { background: #fff0f0; border-color: #ff0000; }
+        .warning { background: #fff8f0; border-color: #ff8800; }
+        .info { background: #f0f8ff; border-color: #0088ff; }
+        button { padding: 12px 24px; margin: 8px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button.success { background: #28a745; }
+        button.danger { background: #dc3545; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        .test-step { margin: 15px 0; padding: 15px; background: #f8f9fa; border-left: 4px solid #007bff; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Session Persistence & Trip Creation Test</h1>
+    
+    <div class="section info">
+        <h2>🎯 Current Session Status</h2>
+        <div id="session-status">Checking...</div>
+        <button onclick="checkSession()">Check Session</button>
+        <button onclick="clearAllData()" class="danger">Clear All Data (Reset)</button>
+    </div>
+    
+    <div class="test-step">
+        <h3>Step 1: Login Test</h3>
+        <p>First, let's make sure you can login and it persists:</p>
+        <button onclick="openLoginPage()">Open Wanderplan Login</button>
+        <button onclick="checkLoginStatus()">Check Login Status</button>
+        <div id="login-result"></div>
+    </div>
+    
+    <div class="test-step">
+        <h3>Step 2: Refresh Test</h3>
+        <p>Test if login persists across page refreshes:</p>
+        <button onclick="testRefreshPersistence()">Test Refresh Persistence</button>
+        <div id="refresh-result"></div>
+    </div>
+    
+    <div class="test-step">
+        <h3>Step 3: Trip Creation Test</h3>
+        <p>Test creating a trip and verifying it saves:</p>
+        <button onclick="openTripCreation()">Create Test Trip</button>
+        <button onclick="checkTrips()">Check My Trips</button>
+        <div id="trip-result"></div>
+    </div>
+    
+    <div class="test-step">
+        <h3>Step 4: Complete Flow Test</h3>
+        <p>Complete end-to-end test:</p>
+        <button onclick="runCompleteTest()" class="success">Run Complete Test</button>
+        <div id="complete-result"></div>
+    </div>
+
+    <script>
+        function checkSession() {
+            const user = localStorage.getItem('wanderplan_user');
+            const session = localStorage.getItem('wanderplan_session');
+            const expiry = localStorage.getItem('wanderplan_session_expiry');
+            
+            const status = document.getElementById('session-status');
+            
+            if (user && session) {
+                const userData = JSON.parse(user);
+                const expiryDate = expiry ? new Date(parseInt(expiry)) : null;
+                const isValid = expiryDate ? expiryDate > new Date() : false;
+                
+                status.innerHTML = `
+                    <div class="success">
+                        <h4>✅ Session Found</h4>
+                        <p><strong>User:</strong> ${userData.email}</p>
+                        <p><strong>Session ID:</strong> ${session}</p>
+                        <p><strong>Expires:</strong> ${expiryDate ? expiryDate.toLocaleString() : 'No expiry'}</p>
+                        <p><strong>Valid:</strong> ${isValid ? '✅ Yes' : '❌ Expired'}</p>
+                    </div>
+                `;
+            } else {
+                status.innerHTML = `
+                    <div class="error">
+                        <h4>❌ No Session Found</h4>
+                        <p>You need to login first.</p>
+                    </div>
+                `;
+            }
+        }
+        
+        function clearAllData() {
+            if (confirm('This will clear ALL Wanderplan data. Are you sure?')) {
+                localStorage.removeItem('wanderplan_user');
+                localStorage.removeItem('wanderplan_session');
+                localStorage.removeItem('wanderplan_session_expiry');
+                localStorage.removeItem('wanderplan_trips');
+                localStorage.removeItem('wanderplan_places');
+                localStorage.removeItem('wanderplan_users');
+                
+                document.getElementById('session-status').innerHTML = '<div class="warning">⚠️ All data cleared. Please login again.</div>';
+            }
+        }
+        
+        function openLoginPage() {
+            window.open('http://localhost:5173', '_wanderplan');
+        }
+        
+        function checkLoginStatus() {
+            const user = localStorage.getItem('wanderplan_user');
+            const result = document.getElementById('login-result');
+            
+            if (user) {
+                const userData = JSON.parse(user);
+                result.innerHTML = `<div class="success">✅ Logged in as: ${userData.email}</div>`;
+            } else {
+                result.innerHTML = `<div class="error">❌ Not logged in. Please login first.</div>`;
+            }
+        }
+        
+        function testRefreshPersistence() {
+            const user = localStorage.getItem('wanderplan_user');
+            if (!user) {
+                document.getElementById('refresh-result').innerHTML = '<div class="error">❌ Please login first</div>';
+                return;
+            }
+            
+            // Mark this as a refresh test
+            sessionStorage.setItem('refresh_persistence_test', 'true');
+            sessionStorage.setItem('pre_refresh_user', user);
+            
+            // Refresh the page
+            location.reload();
+        }
+        
+        function checkTrips() {
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const result = document.getElementById('trip-result');
+            
+            if (trips.length === 0) {
+                result.innerHTML = '<div class="warning">⚠️ No trips found. Create a trip first.</div>';
+            } else {
+                let html = `<div class="success"><h4>✅ Found ${trips.length} trips:</h4>`;
+                trips.forEach(trip => {
+                    html += `<p>- ${trip.title} (${trip.destination})</p>`;
+                });
+                html += '</div>';
+                result.innerHTML = html;
+            }
+        }
+        
+        function openTripCreation() {
+            // Clear any existing trip creation
+            window.open('http://localhost:5173', '_wanderplan');
+        }
+        
+        function runCompleteTest() {
+            const result = document.getElementById('complete-result');
+            const user = localStorage.getItem('wanderplan_user');
+            
+            if (!user) {
+                result.innerHTML = `
+                    <div class="error">
+                        <h4>❌ Cannot run test - Not logged in</h4>
+                        <ol>
+                            <li>Click "Open Wanderplan Login" above</li>
+                            <li>Login or register</li>
+                            <li>Come back and run this test</li>
+                        </ol>
+                    </div>
+                `;
+                return;
+            }
+            
+            result.innerHTML = `
+                <div class="info">
+                    <h4>🧪 Running Complete Test...</h4>
+                    <ol>
+                        <li>✅ User is logged in</li>
+                        <li>🔄 Opening Wanderplan to create a trip...</li>
+                        <li>📝 After creating the trip, come back and click "Check My Trips"</li>
+                        <li>🔄 Then refresh this page to test session persistence</li>
+                    </ol>
+                </div>
+            `;
+            
+            // Open Wanderplan for trip creation
+            window.open('http://localhost:5173', '_wanderplan');
+            
+            // Set up a test marker
+            sessionStorage.setItem('complete_test_running', 'true');
+        }
+        
+        // Check for test results on page load
+        window.addEventListener('load', () => {
+            checkSession();
+            
+            // Check if this is a refresh persistence test
+            if (sessionStorage.getItem('refresh_persistence_test')) {
+                sessionStorage.removeItem('refresh_persistence_test');
+                const preRefreshUser = sessionStorage.getItem('pre_refresh_user');
+                const postRefreshUser = localStorage.getItem('wanderplan_user');
+                
+                const result = document.getElementById('refresh-result');
+                
+                if (preRefreshUser && postRefreshUser) {
+                    result.innerHTML = '<div class="success">✅ PASS: Session persisted after refresh!</div>';
+                } else {
+                    result.innerHTML = '<div class="error">❌ FAIL: Session lost after refresh</div>';
+                }
+                
+                sessionStorage.removeItem('pre_refresh_user');
+            }
+            
+            // Check complete test status
+            if (sessionStorage.getItem('complete_test_running')) {
+                document.getElementById('complete-result').innerHTML = `
+                    <div class="warning">
+                        <h4>⚠️ Complete test in progress</h4>
+                        <p>Create a trip in Wanderplan, then check if it persists here.</p>
+                        <button onclick="checkTrips()">Check Trip Creation</button>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

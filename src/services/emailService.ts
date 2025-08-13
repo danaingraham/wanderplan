@@ -1,4 +1,5 @@
 import { isEmailConfigured } from '../config/api'
+import { resendEmailService } from './resendEmailService'
 
 export interface EmailTemplate {
   subject: string
@@ -99,33 +100,19 @@ class EmailService {
   }
 
   async sendPasswordResetEmail(email: string, userName: string): Promise<{ success: boolean; resetToken?: string; error?: string }> {
-    if (!isEmailConfigured()) {
-      console.warn('📧 Email service not configured, simulating email send for development')
-      
-      // In development, just return success with a token for testing
-      const resetToken = this.generateResetToken()
-      console.log('🔗 Password reset link (DEV MODE):', `${window.location.origin}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`)
-      
-      return {
-        success: true,
-        resetToken
-      }
-    }
-
     try {
       const resetToken = this.generateResetToken()
       const resetUrl = `${window.location.origin}/reset-password?token=${resetToken}&email=${encodeURIComponent(email)}`
       
-      // Generate template for future use when email service is implemented
-      this.getPasswordResetTemplate({
+      // Generate email template
+      const template = this.getPasswordResetTemplate({
         email,
         resetToken,
         resetUrl,
         userName
       })
 
-      // In a real app, you'd send this via your backend API
-      // For now, we'll simulate the email and store the reset token locally
+      // Store reset token data (in production, this should be in a database)
       const resetTokenData = {
         token: resetToken,
         email,
@@ -138,12 +125,50 @@ class EmailService {
       const updatedTokens = [...existingTokens, resetTokenData].filter(t => t.expires > Date.now()) // Clean expired tokens
       localStorage.setItem('wanderplan_reset_tokens', JSON.stringify(updatedTokens))
 
-      console.log('📧 Password reset email "sent" to:', email)
-      console.log('🔗 Reset link:', resetUrl)
+      // Try to send email via Resend
+      if (import.meta.env.VITE_RESEND_API_KEY) {
+        const result = await resendEmailService.sendEmail({
+          to: email,
+          subject: template.subject,
+          html: template.html,
+          text: template.text
+        })
 
-      return {
-        success: true,
-        resetToken
+        if (!result.success) {
+          console.error('📧 Failed to send email via Resend:', result.error)
+          // Fall back to console logging in development
+          if (import.meta.env.DEV) {
+            console.log('🔗 Password reset link (DEV MODE):', resetUrl)
+            return {
+              success: true,
+              resetToken
+            }
+          }
+          return {
+            success: false,
+            error: result.error || 'Failed to send email'
+          }
+        }
+
+        console.log('📧 Password reset email sent to:', email)
+        return {
+          success: true,
+          resetToken
+        }
+      } else {
+        // No email service configured, log to console in development
+        console.warn('📧 Resend API key not configured')
+        if (import.meta.env.DEV) {
+          console.log('🔗 Password reset link (DEV MODE):', resetUrl)
+          return {
+            success: true,
+            resetToken
+          }
+        }
+        return {
+          success: false,
+          error: 'Email service not configured. Please contact support.'
+        }
       }
     } catch (error) {
       console.error('📧 Failed to send password reset email:', error)

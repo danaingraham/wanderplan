@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Wanderplan Issues</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ccc; border-radius: 5px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        pre { background: #f4f4f4; padding: 10px; overflow: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Wanderplan Debug Dashboard</h1>
+    
+    <div class="section">
+        <h2>1. Session/Login Status</h2>
+        <div id="session-info"></div>
+        <button onclick="checkSession()">Refresh Session Info</button>
+        <button onclick="simulateRefresh()">Test Page Refresh</button>
+    </div>
+    
+    <div class="section">
+        <h2>2. Photo/Places Status</h2>
+        <div id="photo-info"></div>
+        <button onclick="checkPhotos()">Check Photo Data</button>
+        <button onclick="testGoogleAPI()">Test Google API</button>
+    </div>
+    
+    <div class="section">
+        <h2>3. API Configuration</h2>
+        <div id="api-info"></div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Console Logs</h2>
+        <pre id="logs"></pre>
+    </div>
+
+    <script>
+        const logs = [];
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        // Intercept console logs
+        console.log = function(...args) {
+            logs.push('[LOG] ' + args.join(' '));
+            updateLogs();
+            originalLog.apply(console, args);
+        };
+        console.error = function(...args) {
+            logs.push('[ERROR] ' + args.join(' '));
+            updateLogs();
+            originalError.apply(console, args);
+        };
+        console.warn = function(...args) {
+            logs.push('[WARN] ' + args.join(' '));
+            updateLogs();
+            originalWarn.apply(console, args);
+        };
+        
+        function updateLogs() {
+            document.getElementById('logs').textContent = logs.slice(-20).join('\n');
+        }
+        
+        function checkSession() {
+            const sessionData = {
+                user: localStorage.getItem('wanderplan_user'),
+                session: localStorage.getItem('wanderplan_session'),
+                sessionExpiry: localStorage.getItem('wanderplan_session_expiry'),
+                lastRefresh: localStorage.getItem('wanderplan_last_refresh')
+            };
+            
+            let html = '<h3>Session Data:</h3>';
+            
+            if (sessionData.user) {
+                try {
+                    const user = JSON.parse(sessionData.user);
+                    html += `<p class="success">✅ User: ${user.email}</p>`;
+                } catch(e) {
+                    html += `<p class="error">❌ Invalid user data</p>`;
+                }
+            } else {
+                html += `<p class="error">❌ No user in localStorage</p>`;
+            }
+            
+            if (sessionData.session) {
+                html += `<p class="success">✅ Session ID: ${sessionData.session}</p>`;
+            } else {
+                html += `<p class="error">❌ No session in localStorage</p>`;
+            }
+            
+            if (sessionData.sessionExpiry) {
+                const expiry = new Date(parseInt(sessionData.sessionExpiry));
+                const isValid = expiry > new Date();
+                html += `<p class="${isValid ? 'success' : 'error'}">${isValid ? '✅' : '❌'} Expiry: ${expiry.toLocaleString()}</p>`;
+            } else {
+                html += `<p class="error">❌ No session expiry</p>`;
+            }
+            
+            document.getElementById('session-info').innerHTML = html;
+            console.log('Session check complete', sessionData);
+        }
+        
+        function simulateRefresh() {
+            console.log('Simulating page refresh...');
+            sessionStorage.setItem('debug_refresh_test', 'true');
+            location.reload();
+        }
+        
+        function checkPhotos() {
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            
+            let html = '<h3>Photo Data Analysis:</h3>';
+            html += `<p>Total trips: ${trips.length}</p>`;
+            html += `<p>Total places: ${places.length}</p>`;
+            
+            const placesWithPhotos = places.filter(p => p.photo_url);
+            const placesWithPlaceId = places.filter(p => p.place_id);
+            
+            html += `<p class="${placesWithPhotos.length > 0 ? 'success' : 'error'}">`;
+            html += `Places with photos: ${placesWithPhotos.length}/${places.length}</p>`;
+            
+            html += `<p class="${placesWithPlaceId.length > 0 ? 'warning' : 'error'}">`;
+            html += `Places with place_id: ${placesWithPlaceId.length}/${places.length}</p>`;
+            
+            if (places.length > 0) {
+                html += '<h4>Sample place (first one):</h4>';
+                html += '<pre>' + JSON.stringify({
+                    name: places[0].name,
+                    place_id: places[0].place_id || 'MISSING',
+                    photo_url: places[0].photo_url || 'MISSING',
+                    address: places[0].address
+                }, null, 2) + '</pre>';
+                
+                if (places[0].photo_url) {
+                    html += '<h4>Testing photo URL:</h4>';
+                    html += `<img src="${places[0].photo_url}" style="max-width: 200px;" onerror="this.parentElement.innerHTML+='<p class=error>❌ Photo failed to load!</p>'" onload="this.parentElement.innerHTML+='<p class=success>✅ Photo loaded!</p>'" />`;
+                }
+            }
+            
+            document.getElementById('photo-info').innerHTML = html;
+            console.log('Photo check complete', { placesWithPhotos: placesWithPhotos.length, placesWithPlaceId: placesWithPlaceId.length });
+        }
+        
+        function testGoogleAPI() {
+            const apiKey = localStorage.getItem('VITE_GOOGLE_MAPS_API_KEY');
+            let html = '<h3>Google API Test:</h3>';
+            
+            // Check if Google Maps is loaded
+            if (typeof google !== 'undefined' && google.maps) {
+                html += '<p class="success">✅ Google Maps API is loaded</p>';
+                
+                if (google.maps.places) {
+                    html += '<p class="success">✅ Google Places API is loaded</p>';
+                } else {
+                    html += '<p class="error">❌ Google Places API not loaded</p>';
+                }
+            } else {
+                html += '<p class="error">❌ Google Maps API not loaded</p>';
+                html += '<p>This might be why photos aren\'t working!</p>';
+            }
+            
+            document.getElementById('api-info').innerHTML = html;
+            console.log('API test complete', { googleMaps: typeof google !== 'undefined' });
+        }
+        
+        // Check for refresh test
+        window.addEventListener('load', () => {
+            checkSession();
+            checkPhotos();
+            testGoogleAPI();
+            
+            if (sessionStorage.getItem('debug_refresh_test')) {
+                sessionStorage.removeItem('debug_refresh_test');
+                const sessionAfterRefresh = localStorage.getItem('wanderplan_session');
+                if (sessionAfterRefresh) {
+                    console.log('✅ Session persisted after refresh!');
+                } else {
+                    console.error('❌ Session lost after refresh!');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

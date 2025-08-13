@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix All Order Conflicts - All Trips</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; max-width: 1200px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #fff0f0; border-color: #ff0000; }
+        .success { background: #f0fff0; border-color: #00aa00; }
+        .warning { background: #fff8f0; border-color: #ff8800; }
+        .info { background: #f0f8ff; border-color: #0088ff; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px; }
+        .trip-summary { margin: 10px 0; padding: 10px; border-left: 4px solid #007bff; background: #f8f9fa; }
+        .conflict { color: #dc3545; font-weight: bold; }
+        .fixed { color: #28a745; font-weight: bold; }
+        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+        .stat-card { padding: 15px; border-radius: 8px; background: #f8f9fa; border: 1px solid #dee2e6; text-align: center; }
+        .stat-number { font-size: 2em; font-weight: bold; color: #007bff; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Fix All Order Conflicts - Every Trip & Itinerary</h1>
+    
+    <div class="section info">
+        <h2>🎯 What This Tool Does</h2>
+        <p>This tool will scan <strong>ALL your trips</strong> and fix order conflicts in every itinerary:</p>
+        <ul>
+            <li>✅ Ensures every item has a unique order number within each day</li>
+            <li>✅ Assigns sequential orders: 0, 1, 2, 3, 4...</li>
+            <li>✅ Preserves the relative positioning of items</li>
+            <li>✅ Works on both existing and future trips</li>
+            <li>✅ Creates a backup before making changes</li>
+        </ul>
+    </div>
+    
+    <div class="section">
+        <h2>📊 System Analysis</h2>
+        <div class="stats" id="stats">
+            <div class="stat-card">
+                <div class="stat-number" id="total-trips">-</div>
+                <div>Total Trips</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="total-places">-</div>
+                <div>Total Places</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="conflict-trips">-</div>
+                <div>Trips with Conflicts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number" id="conflict-places">-</div>
+                <div>Places with Conflicts</div>
+            </div>
+        </div>
+        <button onclick="analyzeAllTrips()">🔍 Analyze All Trips</button>
+        <button onclick="createBackup()">💾 Create Backup</button>
+    </div>
+    
+    <div class="section" id="analysis-results">
+        <h2>🔍 Detailed Analysis</h2>
+        <div id="analysis-content">Click "Analyze All Trips" to see detailed breakdown</div>
+    </div>
+    
+    <div class="section">
+        <h2>🛠️ Fix Operations</h2>
+        <button onclick="fixAllConflicts()" class="danger">🔧 Fix ALL Order Conflicts</button>
+        <button onclick="validateAfterFix()">✅ Validate All Orders</button>
+        <button onclick="restoreBackup()">🔄 Restore from Backup</button>
+        <p><small><strong>Warning:</strong> This will modify ALL your trip data. A backup will be created automatically.</small></p>
+    </div>
+    
+    <div class="section" id="results">
+        <h2>📋 Results</h2>
+        <div id="results-content">No operations performed yet</div>
+    </div>
+
+    <script>
+        let backupData = null;
+        let analysisData = null;
+
+        function createBackup() {
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            
+            backupData = {
+                trips: [...trips],
+                places: [...places],
+                timestamp: new Date().toISOString()
+            };
+            
+            // Also save to localStorage for persistence
+            localStorage.setItem('wanderplan_backup', JSON.stringify(backupData));
+            
+            document.getElementById('results-content').innerHTML = `
+                <div class="success">
+                    <h3>✅ Backup Created</h3>
+                    <p>Backup timestamp: ${backupData.timestamp}</p>
+                    <p>Backed up ${backupData.trips.length} trips and ${backupData.places.length} places</p>
+                </div>
+            `;
+        }
+
+        function restoreBackup() {
+            const savedBackup = localStorage.getItem('wanderplan_backup');
+            if (!savedBackup && !backupData) {
+                document.getElementById('results-content').innerHTML = `
+                    <div class="error">
+                        <h3>❌ No Backup Available</h3>
+                        <p>No backup found. Please create a backup before making changes.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            const backup = backupData || JSON.parse(savedBackup);
+            
+            localStorage.setItem('wanderplan_trips', JSON.stringify(backup.trips));
+            localStorage.setItem('wanderplan_places', JSON.stringify(backup.places));
+            
+            document.getElementById('results-content').innerHTML = `
+                <div class="success">
+                    <h3>✅ Backup Restored</h3>
+                    <p>Restored from backup: ${backup.timestamp}</p>
+                    <p>Restored ${backup.trips.length} trips and ${backup.places.length} places</p>
+                </div>
+            `;
+            
+            // Re-analyze after restore
+            setTimeout(analyzeAllTrips, 500);
+        }
+
+        function analyzeAllTrips() {
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            
+            if (trips.length === 0) {
+                document.getElementById('analysis-content').innerHTML = '<p class="error">No trips found.</p>';
+                return;
+            }
+            
+            let totalConflictTrips = 0;
+            let totalConflictPlaces = 0;
+            let analysisHtml = '';
+            
+            analysisData = {
+                trips: [],
+                totalConflicts: 0
+            };
+            
+            trips.forEach(trip => {
+                const tripPlaces = places.filter(p => p.trip_id === trip.id);
+                
+                if (tripPlaces.length === 0) {
+                    analysisData.trips.push({
+                        trip,
+                        places: [],
+                        conflicts: 0,
+                        dayConflicts: {}
+                    });
+                    return;
+                }
+                
+                // Group by day
+                const dayGroups = {};
+                tripPlaces.forEach(place => {
+                    if (!dayGroups[place.day]) dayGroups[place.day] = [];
+                    dayGroups[place.day].push(place);
+                });
+                
+                let tripConflicts = 0;
+                const dayConflicts = {};
+                
+                Object.keys(dayGroups).forEach(day => {
+                    const dayPlaces = dayGroups[day];
+                    const orderCounts = {};
+                    
+                    dayPlaces.forEach(place => {
+                        if (!orderCounts[place.order]) orderCounts[place.order] = [];
+                        orderCounts[place.order].push(place);
+                    });
+                    
+                    const dayConflictCount = Object.values(orderCounts)
+                        .filter(places => places.length > 1)
+                        .reduce((sum, places) => sum + places.length, 0);
+                    
+                    if (dayConflictCount > 0) {
+                        dayConflicts[day] = {
+                            count: dayConflictCount,
+                            duplicates: Object.entries(orderCounts)
+                                .filter(([order, places]) => places.length > 1)
+                                .map(([order, places]) => ({ order, places: places.map(p => p.name) }))
+                        };
+                        tripConflicts += dayConflictCount;
+                    }
+                });
+                
+                if (tripConflicts > 0) {
+                    totalConflictTrips++;
+                    totalConflictPlaces += tripConflicts;
+                }
+                
+                analysisData.trips.push({
+                    trip,
+                    places: tripPlaces,
+                    conflicts: tripConflicts,
+                    dayConflicts
+                });
+                
+                // Generate HTML for this trip
+                const hasConflicts = tripConflicts > 0;
+                analysisHtml += `
+                    <div class="trip-summary ${hasConflicts ? 'error' : 'success'}">
+                        <h4>${hasConflicts ? '⚠️' : '✅'} ${trip.title}</h4>
+                        <p><strong>Destination:</strong> ${trip.destination}</p>
+                        <p><strong>Places:</strong> ${tripPlaces.length} | <strong>Conflicts:</strong> ${hasConflicts ? `<span class="conflict">${tripConflicts}</span>` : '<span class="fixed">0</span>'}</p>
+                        
+                        ${hasConflicts ? `
+                            <details>
+                                <summary>Show Conflict Details</summary>
+                                ${Object.entries(dayConflicts).map(([day, data]) => `
+                                    <div style="margin-left: 20px;">
+                                        <strong>Day ${day}:</strong> ${data.count} conflicts<br>
+                                        ${data.duplicates.map(dup => 
+                                            `Order ${dup.order}: ${dup.places.join(', ')}`
+                                        ).join('<br>')}
+                                    </div>
+                                `).join('')}
+                            </details>
+                        ` : ''}
+                    </div>
+                `;
+            });
+            
+            analysisData.totalConflicts = totalConflictPlaces;
+            
+            // Update stats
+            document.getElementById('total-trips').textContent = trips.length;
+            document.getElementById('total-places').textContent = places.length;
+            document.getElementById('conflict-trips').textContent = totalConflictTrips;
+            document.getElementById('conflict-places').textContent = totalConflictPlaces;
+            
+            document.getElementById('analysis-content').innerHTML = analysisHtml || '<p class="success">All trips have clean order numbers!</p>';
+        }
+
+        function fixAllConflicts() {
+            if (!analysisData) {
+                document.getElementById('results-content').innerHTML = `
+                    <div class="error">
+                        <h3>❌ Please Analyze First</h3>
+                        <p>Run "Analyze All Trips" before attempting to fix conflicts.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Create backup automatically
+            createBackup();
+            
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            let totalFixed = 0;
+            const fixedTrips = [];
+            
+            analysisData.trips.forEach(tripData => {
+                if (tripData.conflicts === 0) return;
+                
+                const tripPlaces = places.filter(p => p.trip_id === tripData.trip.id);
+                
+                // Group by day
+                const dayGroups = {};
+                tripPlaces.forEach(place => {
+                    if (!dayGroups[place.day]) dayGroups[place.day] = [];
+                    dayGroups[place.day].push(place);
+                });
+                
+                let tripFixed = 0;
+                
+                Object.keys(dayGroups).forEach(day => {
+                    const dayPlaces = dayGroups[day];
+                    
+                    // Sort by current order, then by name for consistency
+                    dayPlaces.sort((a, b) => {
+                        if (a.order === b.order) {
+                            return a.name.localeCompare(b.name);
+                        }
+                        return a.order - b.order;
+                    });
+                    
+                    // Reassign sequential orders
+                    dayPlaces.forEach((place, index) => {
+                        if (place.order !== index) {
+                            place.order = index;
+                            tripFixed++;
+                        }
+                    });
+                });
+                
+                if (tripFixed > 0) {
+                    fixedTrips.push({
+                        title: tripData.trip.title,
+                        fixed: tripFixed
+                    });
+                    totalFixed += tripFixed;
+                }
+            });
+            
+            // Save updated places
+            localStorage.setItem('wanderplan_places', JSON.stringify(places));
+            
+            // Show results
+            document.getElementById('results-content').innerHTML = `
+                <div class="success">
+                    <h3>✅ All Order Conflicts Fixed!</h3>
+                    <p><strong>Total fixes applied:</strong> ${totalFixed} places</p>
+                    <p><strong>Trips updated:</strong> ${fixedTrips.length}</p>
+                    
+                    ${fixedTrips.length > 0 ? `
+                        <details>
+                            <summary>Show Fixed Trips</summary>
+                            <ul>
+                                ${fixedTrips.map(trip => 
+                                    `<li><strong>${trip.title}</strong>: ${trip.fixed} fixes</li>`
+                                ).join('')}
+                            </ul>
+                        </details>
+                    ` : ''}
+                    
+                    <p><strong>🎯 All drag and drop operations should now work perfectly!</strong></p>
+                </div>
+            `;
+            
+            // Re-analyze to confirm
+            setTimeout(analyzeAllTrips, 1000);
+        }
+
+        function validateAfterFix() {
+            analyzeAllTrips();
+            
+            if (analysisData && analysisData.totalConflicts === 0) {
+                document.getElementById('results-content').innerHTML = `
+                    <div class="success">
+                        <h3>✅ Validation Passed!</h3>
+                        <p>All trips have clean, sequential order numbers.</p>
+                        <p>Drag and drop should work perfectly across all itineraries.</p>
+                    </div>
+                `;
+            } else {
+                document.getElementById('results-content').innerHTML = `
+                    <div class="warning">
+                        <h3>⚠️ Conflicts Still Exist</h3>
+                        <p>${analysisData ? analysisData.totalConflicts : 'Unknown'} conflicts remain.</p>
+                        <p>Try running "Fix ALL Order Conflicts" again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        // Auto-analyze on load
+        window.addEventListener('load', () => {
+            analyzeAllTrips();
+            
+            // Check for existing backup
+            const existingBackup = localStorage.getItem('wanderplan_backup');
+            if (existingBackup) {
+                const backup = JSON.parse(existingBackup);
+                document.getElementById('results-content').innerHTML = `
+                    <div class="info">
+                        <h3>💾 Backup Available</h3>
+                        <p>Found existing backup from: ${backup.timestamp}</p>
+                        <p>You can restore this backup if needed.</p>
+                    </div>
+                `;
+            }
+        });
+    </script>
+</body>
+</html>

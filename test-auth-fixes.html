@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Test Auth Fixes</title>
+    <style>
+        body { font-family: system-ui; padding: 20px; max-width: 1000px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #fff0f0; border-color: #ff0000; }
+        .success { background: #f0fff0; border-color: #00aa00; }
+        .warning { background: #fff8f0; border-color: #ff8800; }
+        .info { background: #f0f8ff; border-color: #0088ff; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; }
+        button { padding: 10px 20px; margin: 5px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 4px; }
+        button:hover { background: #0056b3; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Auth Fixes Test</h1>
+    
+    <div class="section info">
+        <h2>🎯 Test Actions</h2>
+        <button onclick="checkCurrentAuthState()">Check Current Auth State</button>
+        <button onclick="clearAuthAndRefresh()">Clear Auth & Test App</button>
+        <button onclick="openAppAndMonitor()">Open App & Monitor</button>
+        <button onclick="simulateLogout()">Simulate Manual Logout</button>
+    </div>
+    
+    <div class="section" id="auth-status">
+        <h2>🔐 Current Auth Status</h2>
+        <div id="auth-status-content">Click "Check Current Auth State" to see status</div>
+    </div>
+    
+    <div class="section" id="test-results">
+        <h2>📊 Test Results</h2>
+        <div id="test-results-content">No tests run yet</div>
+    </div>
+    
+    <div class="section" id="monitor-logs">
+        <h2>📝 Monitor Logs</h2>
+        <div id="monitor-logs-content">
+            <p>Open the app and watch console logs for auth state changes.</p>
+            <p>Look for:</p>
+            <ul>
+                <li>🔐 UserContext: Initializing auth state...</li>
+                <li>🔐 UserContext: Restoring session for user: [email]</li>
+                <li>🚨 UserContext: Auth state corruption detected!</li>
+                <li>🔧 UserContext: Restoring lost session</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        function checkCurrentAuthState() {
+            const authToken = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('wanderplan_user');
+            const content = document.getElementById('auth-status-content');
+            
+            let html = '';
+            
+            if (authToken && userData) {
+                const user = JSON.parse(userData);
+                html = `
+                    <div class="success">
+                        <h3>✅ Auth Data Found</h3>
+                        <p><strong>Auth Token:</strong> ${authToken.substring(0, 30)}...</p>
+                        <p><strong>User Email:</strong> ${user.email}</p>
+                        <p><strong>User ID:</strong> ${user.id}</p>
+                        <p><strong>Auth Provider:</strong> ${user.auth_provider}</p>
+                    </div>
+                `;
+            } else if (authToken && !userData) {
+                html = `
+                    <div class="warning">
+                        <h3>⚠️ Token Without User Data</h3>
+                        <p>Auth token exists but user data is missing. This should be auto-fixed.</p>
+                        <p><strong>Auth Token:</strong> ${authToken.substring(0, 30)}...</p>
+                    </div>
+                `;
+            } else if (!authToken && userData) {
+                html = `
+                    <div class="warning">
+                        <h3>⚠️ User Data Without Token</h3>
+                        <p>User data exists but auth token is missing. This should be auto-fixed.</p>
+                        <p><strong>User Data:</strong> ${userData}</p>
+                    </div>
+                `;
+            } else {
+                html = `
+                    <div class="info">
+                        <h3>ℹ️ No Auth Data</h3>
+                        <p>No authentication data found. User is logged out.</p>
+                    </div>
+                `;
+            }
+            
+            content.innerHTML = html;
+        }
+        
+        function clearAuthAndRefresh() {
+            // Clear all auth data
+            localStorage.removeItem('authToken');
+            localStorage.removeItem('wanderplan_user');
+            localStorage.removeItem('wanderplan_session');
+            localStorage.removeItem('wanderplan_session_expiry');
+            
+            const content = document.getElementById('test-results-content');
+            content.innerHTML = `
+                <div class="success">
+                    <h3>✅ Auth Data Cleared</h3>
+                    <p>All authentication data has been removed.</p>
+                    <p>Now opening the app to test fresh start...</p>
+                </div>
+            `;
+            
+            // Open the app
+            setTimeout(() => {
+                window.open('http://localhost:5173', '_blank');
+            }, 1000);
+        }
+        
+        function openAppAndMonitor() {
+            const content = document.getElementById('test-results-content');
+            content.innerHTML = `
+                <div class="info">
+                    <h3>📱 App Opening</h3>
+                    <p>The app is opening in a new tab.</p>
+                    <p>Watch the browser console for auth state logs.</p>
+                    <p>Try logging in and refreshing the page to test persistence.</p>
+                </div>
+            `;
+            
+            window.open('http://localhost:5173', '_blank');
+        }
+        
+        function simulateLogout() {
+            // Check if user is logged in first
+            const authToken = localStorage.getItem('authToken');
+            const userData = localStorage.getItem('wanderplan_user');
+            
+            if (!authToken || !userData) {
+                const content = document.getElementById('test-results-content');
+                content.innerHTML = `
+                    <div class="warning">
+                        <h3>⚠️ No User Logged In</h3>
+                        <p>Cannot simulate logout - no user is currently logged in.</p>
+                        <p>Please log in first, then try this test.</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            // Simulate unexpected data loss (like what might be causing the logout issue)
+            localStorage.removeItem('authToken'); // Remove only the token, leave user data
+            
+            const content = document.getElementById('test-results-content');
+            content.innerHTML = `
+                <div class="warning">
+                    <h3>🧪 Simulated Token Loss</h3>
+                    <p>Removed auth token but left user data.</p>
+                    <p>The new validation logic should detect this and clean up.</p>
+                    <p>Refresh the app to see the fix in action.</p>
+                </div>
+            `;
+        }
+        
+        // Auto-check auth state on load
+        window.addEventListener('load', () => {
+            checkCurrentAuthState();
+        });
+    </script>
+</body>
+</html>

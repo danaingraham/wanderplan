@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check All Wanderplan Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .error { background: #fff0f0; border-color: #ff0000; }
+        .success { background: #f0fff0; border-color: #00aa00; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 4px; overflow-x: auto; max-height: 300px; }
+        button { padding: 8px 16px; margin: 5px; cursor: pointer; }
+        .trip-item { margin: 10px 0; padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Check All Wanderplan Data</h1>
+    
+    <div class="section">
+        <h2>1. All Trips in localStorage</h2>
+        <button onclick="loadAllTrips()">Load All Trips</button>
+        <div id="all-trips">Click button to load...</div>
+    </div>
+    
+    <div class="section">
+        <h2>2. Search for Trip ID: 1754449928505-y47bt10sh</h2>
+        <button onclick="searchSpecificTrip()">Search for This Trip</button>
+        <div id="trip-search">Click button to search...</div>
+    </div>
+    
+    <div class="section">
+        <h2>3. Google Maps API Investigation</h2>
+        <button onclick="investigateGoogleAPI()">Investigate Google API</button>
+        <div id="google-investigation">Click button to investigate...</div>
+    </div>
+    
+    <div class="section">
+        <h2>4. Environment & Configuration</h2>
+        <button onclick="checkEnvironment()">Check Environment</button>
+        <div id="environment">Click button to check...</div>
+    </div>
+
+    <script>
+        function loadAllTrips() {
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            const result = document.getElementById('all-trips');
+            
+            if (trips.length === 0) {
+                result.innerHTML = '<p class="error">❌ No trips found in localStorage!</p>';
+                return;
+            }
+            
+            let html = `<h3>Found ${trips.length} trips:</h3>`;
+            
+            trips.forEach(trip => {
+                const tripPlaces = places.filter(p => p.trip_id === trip.id);
+                const placesWithPhotos = tripPlaces.filter(p => p.photo_url);
+                
+                html += `
+                    <div class="trip-item">
+                        <h4>${trip.title}</h4>
+                        <p><strong>ID:</strong> ${trip.id}</p>
+                        <p><strong>Destination:</strong> ${trip.destination}</p>
+                        <p><strong>Places:</strong> ${tripPlaces.length} (${placesWithPhotos.length} with photos)</p>
+                        <a href="http://localhost:5173/trip/${trip.id}" target="_blank">Open Trip</a>
+                    </div>
+                `;
+            });
+            
+            result.innerHTML = html;
+        }
+        
+        function searchSpecificTrip() {
+            const targetId = '1754449928505-y47bt10sh';
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]');
+            const result = document.getElementById('trip-search');
+            
+            // Search in trips
+            const trip = trips.find(t => t.id === targetId);
+            
+            // Search in places for any reference
+            const relatedPlaces = places.filter(p => p.trip_id === targetId);
+            
+            // Search for similar IDs
+            const similarTrips = trips.filter(t => t.id.includes('1754449928505') || t.id.includes('y47bt10sh'));
+            
+            let html = `<h3>Search Results for: ${targetId}</h3>`;
+            
+            if (trip) {
+                html += `<p class="success">✅ Trip found!</p>`;
+                html += `<pre>${JSON.stringify(trip, null, 2)}</pre>`;
+            } else {
+                html += `<p class="error">❌ Trip not found in localStorage</p>`;
+            }
+            
+            if (relatedPlaces.length > 0) {
+                html += `<p class="success">✅ Found ${relatedPlaces.length} places for this trip ID</p>`;
+            } else {
+                html += `<p class="error">❌ No places found for this trip ID</p>`;
+            }
+            
+            if (similarTrips.length > 0) {
+                html += `<p>🔍 Similar trip IDs found:</p>`;
+                similarTrips.forEach(t => {
+                    html += `<p>- ${t.id}: ${t.title}</p>`;
+                });
+            }
+            
+            // Check if URL might be wrong
+            const currentUrl = window.location.href;
+            html += `<p>🌐 You accessed this via: ${currentUrl}</p>`;
+            html += `<p>💡 Try visiting the trip directly: <a href="http://localhost:5173/trip/${targetId}" target="_blank">http://localhost:5173/trip/${targetId}</a></p>`;
+            
+            result.innerHTML = html;
+        }
+        
+        function investigateGoogleAPI() {
+            const result = document.getElementById('google-investigation');
+            let html = '<h3>Google Maps API Investigation:</h3>';
+            
+            // Check if scripts are loaded
+            const scripts = Array.from(document.querySelectorAll('script')).map(s => s.src).filter(src => src.includes('googleapis'));
+            
+            html += `<p><strong>Google API Scripts found:</strong> ${scripts.length}</p>`;
+            scripts.forEach(src => {
+                html += `<p>- ${src}</p>`;
+            });
+            
+            // Check global objects
+            html += '<p><strong>Global objects:</strong></p>';
+            html += `<p>- window.google: ${typeof window.google}</p>`;
+            html += `<p>- window.google?.maps: ${typeof window.google?.maps}</p>`;
+            html += `<p>- window.google?.maps?.places: ${typeof window.google?.maps?.places}</p>`;
+            
+            // Check environment variables (if accessible)
+            html += '<p><strong>Environment check:</strong></p>';
+            html += `<p>- VITE_GOOGLE_MAPS_API_KEY in window: ${'VITE_GOOGLE_MAPS_API_KEY' in window}</p>`;
+            
+            // Check if we're in the right context
+            html += `<p>- Current domain: ${window.location.origin}</p>`;
+            html += `<p>- User agent: ${navigator.userAgent}</p>`;
+            
+            // Try to initialize manually
+            html += '<p><strong>Manual initialization test:</strong></p>';
+            try {
+                if (window.google && window.google.maps && window.google.maps.places) {
+                    const div = document.createElement('div');
+                    const service = new window.google.maps.places.PlacesService(div);
+                    html += '<p class="success">✅ Can create PlacesService manually</p>';
+                } else {
+                    html += '<p class="error">❌ Cannot create PlacesService - API not loaded</p>';
+                }
+            } catch (error) {
+                html += `<p class="error">❌ Error creating PlacesService: ${error.message}</p>`;
+            }
+            
+            result.innerHTML = html;
+        }
+        
+        function checkEnvironment() {
+            const result = document.getElementById('environment');
+            let html = '<h3>Environment Check:</h3>';
+            
+            // Check localStorage
+            html += `<p><strong>localStorage available:</strong> ${typeof Storage !== 'undefined'}</p>`;
+            
+            // Check network
+            html += `<p><strong>Online:</strong> ${navigator.onLine}</p>`;
+            
+            // Check if we're in the right app
+            html += `<p><strong>Page title:</strong> ${document.title}</p>`;
+            html += `<p><strong>Current URL:</strong> ${window.location.href}</p>`;
+            
+            // Check for Wanderplan-specific elements
+            const wanderplanElements = document.querySelectorAll('[class*="wanderplan"], [id*="wanderplan"]');
+            html += `<p><strong>Wanderplan elements:</strong> ${wanderplanElements.length}</p>`;
+            
+            // Check React
+            const reactRoots = document.querySelectorAll('[data-reactroot], #root');
+            html += `<p><strong>React roots:</strong> ${reactRoots.length}</p>`;
+            
+            // Check if we're in an iframe or different context
+            html += `<p><strong>In iframe:</strong> ${window !== window.top}</p>`;
+            html += `<p><strong>Window name:</strong> ${window.name || 'none'}</p>`;
+            
+            result.innerHTML = html;
+        }
+        
+        // Auto-run on load
+        window.addEventListener('load', () => {
+            loadAllTrips();
+            searchSpecificTrip();
+            investigateGoogleAPI();
+            checkEnvironment();
+        });
+    </script>
+</body>
+</html>
