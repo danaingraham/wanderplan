@@ -856,6 +856,24 @@ export function TripDetail() {
     setShowAddForm(false)
   }
 
+  // Group places by day - memoized to prevent unnecessary recalculations
+  // MUST be before any early returns to maintain hooks order
+  const placesByDay = useMemo(() => {
+    if (!places || places.length === 0) {
+      return {} as Record<number, typeof places>
+    }
+    return places.reduce((acc, place) => {
+      if (!acc[place.day]) {
+        acc[place.day] = []
+      }
+      acc[place.day].push(place)
+      return acc
+    }, {} as Record<number, typeof places>)
+  }, [places])
+
+  const days = useMemo(() => {
+    return Object.keys(placesByDay).map(Number).sort((a, b) => a - b)
+  }, [placesByDay])
 
   if (loading) {
     return (
@@ -875,21 +893,6 @@ export function TripDetail() {
       </div>
     )
   }
-
-  // Group places by day - memoized to prevent unnecessary recalculations
-  const placesByDay = useMemo(() => {
-    return places.reduce((acc, place) => {
-      if (!acc[place.day]) {
-        acc[place.day] = []
-      }
-      acc[place.day].push(place)
-      return acc
-    }, {} as Record<number, typeof places>)
-  }, [places])
-
-  const days = useMemo(() => {
-    return Object.keys(placesByDay).map(Number).sort((a, b) => a - b)
-  }, [placesByDay])
 
   return (
     <DragDropProvider 
