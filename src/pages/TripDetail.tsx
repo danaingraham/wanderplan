@@ -84,10 +84,9 @@ interface PlaceItemProps {
   tripDestination?: string
   tripDestinationCoords?: { lat: number; lng: number }
   sequenceNumber?: number
-  isLast?: boolean
 }
 
-function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestinationCoords, sequenceNumber, isLast }: PlaceItemProps) {
+function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestinationCoords, sequenceNumber }: PlaceItemProps) {
   const [isEditing, setIsEditing] = useState(false)
   const [editData, setEditData] = useState({
     name: place.name,
@@ -251,11 +250,6 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
               </g>
             </svg>
           </button>
-          
-          {/* Timeline Connection */}
-          {!isLast && (
-            <div className="flex-grow w-0.5 bg-gray-200 mt-2"></div>
-          )}
         </div>
       )}
     >
@@ -1477,7 +1471,6 @@ export function TripDetail() {
                                             lng: trip.longitude 
                                           } : undefined}
                                           sequenceNumber={globalSequenceNumber}
-                                          isLast={placeIndex === dayPlaces.length - 1}
                                         />
                                       </div>
                                     )
