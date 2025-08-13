@@ -88,6 +88,7 @@ interface PlaceItemProps {
 
 function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestinationCoords, sequenceNumber }: PlaceItemProps) {
   const [isEditing, setIsEditing] = useState(false)
+  const [isExpanded, setIsExpanded] = useState(false)
   const [editData, setEditData] = useState({
     name: place.name,
     address: place.address || '',
@@ -364,12 +365,41 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
                 {/* Unified metadata line */}
                 <div className="text-xs text-gray-500 mb-1">
                   {place.start_time || '09:00'}–{endTime} · {place.duration || 90} min
-                  {place.address && ` · ${place.address.split(',')[0]}`}
+                  {!isExpanded && place.address && ` · ${place.address.split(',')[0]}`}
                 </div>
                 
-                {/* Notes if present */}
+                {/* Full address when expanded */}
+                {isExpanded && place.address && (
+                  <div className="text-xs text-gray-500 mb-1">
+                    📍 {place.address}
+                  </div>
+                )}
+                
+                {/* Notes - truncated or full based on expanded state */}
                 {place.notes && (
-                  <p className="text-xs text-gray-600 line-clamp-2">{place.notes}</p>
+                  <div>
+                    <p className={`text-xs text-gray-600 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                      {place.notes}
+                    </p>
+                    {place.notes.length > 100 && (
+                      <button
+                        onClick={() => setIsExpanded(!isExpanded)}
+                        className="text-xs text-primary-600 hover:text-primary-700 mt-1 font-medium"
+                      >
+                        {isExpanded ? 'Show less' : 'Show more'}
+                      </button>
+                    )}
+                  </div>
+                )}
+                
+                {/* Show more button if there's address but no notes */}
+                {!place.notes && place.address && place.address.length > 50 && (
+                  <button
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="text-xs text-primary-600 hover:text-primary-700 mt-1 font-medium"
+                  >
+                    {isExpanded ? 'Show less' : 'Show more'}
+                  </button>
                 )}
               </>
             )}
