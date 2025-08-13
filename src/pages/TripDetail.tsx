@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, MapPin, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
+import { MapPin, Clock, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -902,7 +902,14 @@ export function TripDetail() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-2 sm:mb-4 group">
-                <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{trip.title}</h1>
+                <div>
+                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{trip.title}</h1>
+                  {trip.start_date && (
+                    <p className="text-lg text-gray-600 mt-1">
+                      {formatDate(trip.start_date, 'MMM d')} - {trip.end_date ? formatDate(trip.end_date, 'MMM d, yyyy') : 'TBD'}
+                    </p>
+                  )}
+                </div>
                 <button
                   onClick={handleStartTitleEdit}
                   className="p-1 text-gray-400 hover:text-gray-600 opacity-0 group-hover:opacity-100 transition-all"
@@ -912,19 +919,9 @@ export function TripDetail() {
                 </button>
               </div>
             )}
-            <div className="flex flex-col sm:flex-row sm:flex-wrap sm:items-center gap-3 sm:gap-6 text-gray-600">
-              <div className="flex items-center">
-                <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                <span className="text-sm sm:text-base">{trip.destination}</span>
-              </div>
-              {trip.start_date && (
-                <div className="flex items-center">
-                  <Calendar className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
-                  <span className="text-sm sm:text-base">
-                    {formatDate(trip.start_date)} - {trip.end_date ? formatDate(trip.end_date) : 'TBD'}
-                  </span>
-                </div>
-              )}
+            <div className="flex items-center text-gray-600">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 mr-2" />
+              <span className="text-sm sm:text-base">{trip.destination}</span>
             </div>
           </div>
           
