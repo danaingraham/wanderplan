@@ -1392,54 +1392,44 @@ export function TripDetail() {
                         
                         return (
                           <div key={day} className="relative">
-                            {/* Day Header with Rail */}
-                            <div className="relative">
-                              {/* Left Rail for Day Badge */}
-                              <div className="absolute left-0 top-0 bottom-0 w-12">
-                                <div className="absolute left-4 top-4 w-4 h-4 bg-gray-700 rounded-full flex items-center justify-center">
-                                  <span className="text-white text-[10px] font-bold">{day}</span>
-                                </div>
-                              </div>
-                              
-                              {/* Day Header Content */}
-                              <div 
-                                className="ml-12 cursor-pointer"
-                                onClick={() => toggleDayCollapse(day)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.preventDefault()
-                                    toggleDayCollapse(day)
-                                  }
-                                }}
-                                tabIndex={0}
-                                role="button"
-                                aria-expanded={!isCollapsed}
-                                aria-controls={`day-${day}-content`}
-                              >
-                                <div className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition-colors duration-200">
-                                  <div className="flex items-center justify-between">
-                                    {/* Day title and date */}
-                                    <div className="flex flex-col">
-                                      <h3 className="text-base font-semibold text-gray-900">
-                                        Day {day}
-                                      </h3>
-                                      {trip?.start_date && (
-                                        <p className="text-sm text-gray-600">
-                                          {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM dd')}
-                                        </p>
-                                      )}
-                                    </div>
-                                  
-                                    {/* Right side - Place count and expand indicator */}
-                                    <div className="flex items-center gap-3">
-                                      <span className="text-sm text-gray-500">
-                                        {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
-                                      </span>
-                                      <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
-                                        <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                                        </svg>
-                                      </div>
+                            {/* Day Header */}
+                            <div 
+                              className="cursor-pointer mb-3"
+                              onClick={() => toggleDayCollapse(day)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  toggleDayCollapse(day)
+                                }
+                              }}
+                              tabIndex={0}
+                              role="button"
+                              aria-expanded={!isCollapsed}
+                              aria-controls={`day-${day}-content`}
+                            >
+                              <div className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition-colors duration-200">
+                                <div className="flex items-center justify-between">
+                                  {/* Day title and date */}
+                                  <div className="flex flex-col">
+                                    <h3 className="text-base font-semibold text-gray-900">
+                                      Day {day}
+                                    </h3>
+                                    {trip?.start_date && (
+                                      <p className="text-sm text-gray-600">
+                                        {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM dd')}
+                                      </p>
+                                    )}
+                                  </div>
+                                
+                                  {/* Right side - Place count and expand indicator */}
+                                  <div className="flex items-center gap-3">
+                                    <span className="text-sm text-gray-500">
+                                      {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                    </span>
+                                    <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                      <svg className="w-5 h-5 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                      </svg>
                                     </div>
                                   </div>
                                 </div>
