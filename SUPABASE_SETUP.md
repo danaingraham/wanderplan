@@ -188,9 +188,13 @@ CREATE TRIGGER update_places_updated_at BEFORE UPDATE ON places
 ## 5. Configure Authentication
 
 In Supabase Dashboard:
-1. Go to Authentication → Providers
-2. Enable "Email" provider (should be enabled by default)
-3. Configure email settings:
+1. Go to Authentication → URL Configuration
+2. Add your site URLs to "Redirect URLs":
+   - `https://wanderplan.netlify.app/auth/callback`
+   - `http://localhost:5173/auth/callback` (for local development)
+3. Go to Authentication → Providers
+4. Enable "Email" provider (should be enabled by default)
+5. Configure email settings:
    - Enable "Confirm email" for better security
    - Customize email templates if desired
 
