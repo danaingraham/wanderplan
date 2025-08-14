@@ -4,6 +4,9 @@ import type { User } from '../types'
 import { storage, STORAGE_KEYS } from '../utils/storage'
 import { emailService } from '../services/emailService'
 import { googleAuthService } from '../services/googleAuthService'
+import { supabase } from '../lib/supabase'
+import { supabaseAuth } from '../services/supabaseAuth'
+import type { User as SupabaseUser } from '@supabase/supabase-js'
 
 // Create environment-aware logging
 const log = (...args: any[]) => {
@@ -17,6 +20,7 @@ interface UserContextType {
   setUser: (user: User | null) => void
   isAuthenticated: boolean
   isInitialized: boolean
+  isLoading?: boolean
   login: (email: string, password: string) => Promise<boolean>
   register: (email: string, password: string, fullName: string) => Promise<boolean>
   loginWithGoogle: () => Promise<{ success: boolean; error?: string }>
@@ -25,6 +29,7 @@ interface UserContextType {
   logout: () => void
   updateProfile: (updates: Partial<User>) => void
   getAllUsers: () => User[]
+  isUsingSupabase?: boolean
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -59,51 +64,133 @@ const hashPassword = (password: string) => {
   }
 }
 
+// Convert Supabase user to our User type
+const convertSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
+  if (!supabaseUser) return null
+  
+  return {
+    id: supabaseUser.id,
+    email: supabaseUser.email || '',
+    full_name: supabaseUser.user_metadata?.full_name || supabaseUser.user_metadata?.username || '',
+    profile_picture: supabaseUser.user_metadata?.avatar_url,
+    role: 'user',
+    auth_provider: (supabaseUser.app_metadata?.provider || 'email') as 'local' | 'google',
+    email_verified: !!supabaseUser.email_confirmed_at,
+    created_date: supabaseUser.created_at || new Date().toISOString(),
+    updated_date: supabaseUser.updated_at || new Date().toISOString()
+  }
+}
+
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [isUsingSupabase, setIsUsingSupabase] = useState(false)
 
-  // Initialize auth state from persistent storage
+  // Initialize auth state - check for Supabase first, then fall back to localStorage
   useEffect(() => {
     log('🔐 UserContext: Initializing auth state...')
     
-    const authToken = storage.get<string>('authToken')
-    const savedUser = storage.get<User>(STORAGE_KEYS.USER)
+    // Check if Supabase is configured
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
+    const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     
-    log('🔐 UserContext: Auth token exists:', !!authToken)
-    log('🔐 UserContext: Saved user exists:', !!savedUser)
-    log('🔐 UserContext: Auth token value:', authToken ? `${authToken.substring(0, 20)}...` : 'null')
-    log('🔐 UserContext: User data:', savedUser ? `${savedUser.email} (${savedUser.id})` : 'null')
-    
-    // Check if we have a valid auth token
-    if (authToken && isTokenValid(authToken)) {
-      if (savedUser) {
-        // Both token and user data exist - restore session
-        log('🔐 UserContext: Restoring session for user:', savedUser.email)
-        setUser(savedUser)
-      } else {
-        // Token exists but no user data - this is suspicious, clear token
-        log('🔐 UserContext: Auth token exists but no user data - clearing token')
-        storage.remove('authToken')
+    if (supabaseUrl && supabaseKey && supabaseUrl !== 'https://your-project-id.supabase.co') {
+      // Use Supabase authentication
+      log('🔐 UserContext: Using Supabase authentication')
+      setIsUsingSupabase(true)
+      
+      // Get initial session
+      supabase.auth.getSession().then(({ data: { session }, error }) => {
+        if (error) {
+          console.error('❌ UserContext: Error getting session:', error)
+        } else if (session) {
+          log('🔐 UserContext: Found existing Supabase session for:', session.user.email)
+          setUser(convertSupabaseUser(session.user))
+        } else {
+          log('🔐 UserContext: No Supabase session found')
+        }
+        setIsInitialized(true)
+      })
+
+      // Listen for auth changes
+      const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        async (event, session) => {
+          log('🔐 UserContext: Auth state changed:', event)
+          
+          if (event === 'SIGNED_IN' && session) {
+            log('🔐 UserContext: User signed in:', session.user.email)
+            setUser(convertSupabaseUser(session.user))
+            
+            // Ensure profile exists in database
+            const { error: profileError } = await supabase
+              .from('profiles')
+              .upsert({
+                id: session.user.id,
+                email: session.user.email,
+                full_name: session.user.user_metadata?.full_name,
+                username: session.user.user_metadata?.username,
+                avatar_url: session.user.user_metadata?.avatar_url,
+                updated_at: new Date().toISOString()
+              })
+            
+            if (profileError) {
+              console.error('❌ UserContext: Error creating/updating profile:', profileError)
+            }
+          } else if (event === 'SIGNED_OUT') {
+            log('🔐 UserContext: User signed out')
+            setUser(null)
+          } else if (event === 'USER_UPDATED' && session) {
+            log('🔐 UserContext: User updated')
+            setUser(convertSupabaseUser(session.user))
+          }
+        }
+      )
+
+      return () => {
+        subscription.unsubscribe()
       }
-    } else if (authToken) {
-      // Invalid token format - clear it
-      log('🔐 UserContext: Invalid auth token format - clearing')
-      storage.remove('authToken')
-      storage.remove(STORAGE_KEYS.USER)
-    } else if (savedUser) {
-      // User data exists but no token - clear user data
-      log('🔐 UserContext: User data exists but no auth token - clearing user data')
-      storage.remove(STORAGE_KEYS.USER)
     } else {
-      log('🔐 UserContext: No auth data found - starting fresh')
+      // Use localStorage authentication (original implementation)
+      log('🔐 UserContext: Using localStorage authentication')
+      setIsUsingSupabase(false)
+      
+      const authToken = storage.get<string>('authToken')
+      const savedUser = storage.get<User>(STORAGE_KEYS.USER)
+      
+      log('🔐 UserContext: Auth token exists:', !!authToken)
+      log('🔐 UserContext: Saved user exists:', !!savedUser)
+      
+      // Check if we have a valid auth token
+      if (authToken && isTokenValid(authToken)) {
+        if (savedUser) {
+          // Both token and user data exist - restore session
+          log('🔐 UserContext: Restoring session for user:', savedUser.email)
+          setUser(savedUser)
+        } else {
+          // Token exists but no user data - this is suspicious, clear token
+          log('🔐 UserContext: Auth token exists but no user data - clearing token')
+          storage.remove('authToken')
+        }
+      } else if (authToken) {
+        // Invalid token format - clear it
+        log('🔐 UserContext: Invalid auth token format - clearing')
+        storage.remove('authToken')
+        storage.remove(STORAGE_KEYS.USER)
+      } else if (savedUser) {
+        // User data exists but no token - clear user data
+        log('🔐 UserContext: User data exists but no auth token - clearing user data')
+        storage.remove(STORAGE_KEYS.USER)
+      } else {
+        log('🔐 UserContext: No auth data found - starting fresh')
+      }
+      
+      // Clean up legacy session keys regardless
+      storage.remove('wanderplan_session')
+      storage.remove('wanderplan_session_expiry')
+      
+      setIsInitialized(true)
     }
-    
-    // Clean up legacy session keys regardless
-    storage.remove('wanderplan_session')
-    storage.remove('wanderplan_session_expiry')
-    
-    setIsInitialized(true)
   }, [])
 
   // Simple state logging (no session interference)
@@ -149,6 +236,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [isInitialized, user])
 
   const login = async (email: string, password: string): Promise<boolean> => {
+    // Use Supabase if configured
+    if (isUsingSupabase) {
+      setIsLoading(true)
+      log('🔐 UserContext: Attempting Supabase login for:', email)
+      
+      const { error } = await supabaseAuth.signIn(email, password)
+      
+      if (error) {
+        log('❌ UserContext: Login failed:', error.message)
+        setIsLoading(false)
+        return false
+      }
+      
+      log('✅ UserContext: Login successful for:', email)
+      setIsLoading(false)
+      return true
+    }
+    
+    // Original localStorage implementation
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     log('🔐 UserContext: Attempting login for:', email)
@@ -284,6 +390,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }
 
   const register = async (email: string, password: string, fullName: string): Promise<boolean> => {
+    // Use Supabase if configured
+    if (isUsingSupabase) {
+      setIsLoading(true)
+      log('🔐 UserContext: Attempting Supabase registration for:', email)
+      
+      const { error } = await supabaseAuth.signUp(email, password, fullName)
+      
+      if (error) {
+        log('❌ UserContext: Registration failed:', error.message)
+        setIsLoading(false)
+        return false
+      }
+      
+      log('✅ UserContext: Registration successful for:', email)
+      log('📧 UserContext: Check email for verification link')
+      setIsLoading(false)
+      return true
+    }
+    
+    // Original localStorage implementation
     await new Promise(resolve => setTimeout(resolve, 1000))
     
     // Get existing users
@@ -480,6 +606,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const logout = async () => {
     log('🔐 UserContext: Logging out user')
+    
+    // Use Supabase if configured
+    if (isUsingSupabase) {
+      setIsLoading(true)
+      const { error } = await supabaseAuth.signOut()
+      
+      if (error) {
+        console.error('❌ UserContext: Logout failed:', error.message)
+      } else {
+        log('✅ UserContext: User logged out via Supabase')
+      }
+      setIsLoading(false)
+      return
+    }
+    
+    // Original localStorage implementation
     log('🔐 UserContext: Current user before logout:', user?.email)
     
     // Sign out from Google if applicable
@@ -532,6 +674,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     setUser,
     isAuthenticated: !!user,
     isInitialized,
+    isLoading,
     login,
     register,
     loginWithGoogle,
@@ -539,7 +682,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     resetPassword,
     logout,
     updateProfile,
-    getAllUsers
+    getAllUsers,
+    isUsingSupabase
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
