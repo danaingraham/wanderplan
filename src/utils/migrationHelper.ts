@@ -1,4 +1,3 @@
-import { supabase } from '../lib/supabase'
 import { storage } from './storage'
 import { supabaseAuth } from '../services/supabaseAuth'
 import { supabaseTrips } from '../services/supabaseTrips'
@@ -18,20 +17,20 @@ export interface MigrationResult {
 export const migrationHelper = {
   // Check if user has local data that needs migration
   hasLocalData(): boolean {
-    const users = storage.get('wanderplan_users') || []
-    const trips = storage.get('wanderplan_trips') || []
+    const users: any[] = storage.get('wanderplan_users') || []
+    const trips: any[] = storage.get('wanderplan_trips') || []
     return users.length > 0 || trips.length > 0
   },
 
   // Get local user by email
   getLocalUser(email: string): any {
-    const users = storage.get('wanderplan_users') || []
+    const users: any[] = storage.get('wanderplan_users') || []
     return users.find((u: any) => u.email.toLowerCase() === email.toLowerCase())
   },
 
   // Get local trips for a user
   getLocalTrips(userId: string): any[] {
-    const trips = storage.get('wanderplan_trips') || []
+    const trips: any[] = storage.get('wanderplan_trips') || []
     return trips.filter((t: any) => t.userId === userId)
   },
 
@@ -50,11 +49,11 @@ export const migrationHelper = {
       }
 
       // Try to sign in first (user might already exist in Supabase)
-      let { data: signInData, error: signInError } = await supabaseAuth.signIn(email, password)
+      let { error: signInError } = await supabaseAuth.signIn(email, password)
       
       // If sign in fails, try to create account
       if (signInError) {
-        const { data: signUpData, error: signUpError } = await supabaseAuth.signUp(
+        const { error: signUpError } = await supabaseAuth.signUp(
           email, 
           password,
           localUser.name || localUser.username
