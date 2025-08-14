@@ -4,12 +4,11 @@ import { supabase } from '../lib/supabase'
 import { storage } from '../utils/storage'
 
 export function AuthDebugSupabase() {
-  const { user, isUsingSupabase } = useUser() as any
+  const { user } = useUser()
   const [debugInfo, setDebugInfo] = useState<any>({})
   const [testEmail, setTestEmail] = useState('')
   const [testPassword, setTestPassword] = useState('')
   const [testResult, setTestResult] = useState('')
-  const [supabaseUsers, setSupabaseUsers] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
@@ -64,7 +63,6 @@ export function AuthDebugSupabase() {
     }
     
     setDebugInfo(info)
-    setSupabaseUsers(supabaseProfiles)
   }
 
   const testSupabaseLogin = async () => {
