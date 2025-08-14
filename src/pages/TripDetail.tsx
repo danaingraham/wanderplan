@@ -108,11 +108,11 @@ function PlaceItem({
   return (
     <DraggablePlace 
       place={place}
-      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
+      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow h-28 overflow-hidden"
       hideDefaultHandle={true}
       renderDragHandle={(listeners, attributes) => (
         /* Left Rail - Fixed 40px width */
-        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
+        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent h-full">
           {/* Numbered Stop Circle */}
           {sequenceNumber && (
             <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
@@ -143,9 +143,9 @@ function PlaceItem({
         </div>
       )}
     >
-      {/* Main Content */}
-      <div className="flex-1 p-3">
-        <div className="flex gap-3">
+      {/* Main Content - Fixed height container */}
+      <div className="flex-1 p-3 h-full overflow-hidden">
+        <div className="flex gap-3 h-full">
           {/* Photo */}
           <div className="flex-shrink-0">
             <PlacePhoto
@@ -156,26 +156,28 @@ function PlaceItem({
             />
           </div>
 
-          {/* Content - SIMPLIFIED */}
-          <div className="flex-1">
-            {/* Title only */}
-            <h4 className="font-medium text-gray-900 text-sm pr-2 mb-1">{place.name}</h4>
+          {/* Content - Fixed height with overflow handling */}
+          <div className="flex-1 flex flex-col min-w-0">
+            {/* Title - truncate if too long */}
+            <h4 className="font-medium text-gray-900 text-sm pr-2 truncate" title={place.name}>
+              {place.name}
+            </h4>
             
-            {/* Time and duration */}
-            <div className="text-xs text-gray-500 mb-1">
+            {/* Time and duration - always visible */}
+            <div className="text-xs text-gray-500 mt-1">
               {startTime12}–{endTime12} · {place.duration || 90} min
             </div>
             
-            {/* Address */}
+            {/* Address - truncate if too long */}
             {place.address && (
-              <div className="text-xs text-gray-500 mb-1">
+              <div className="text-xs text-gray-500 mt-1 truncate" title={place.address}>
                 📍 {place.address}
               </div>
             )}
             
-            {/* Notes - always visible in full */}
+            {/* Notes - truncate with ellipsis if too long */}
             {place.notes && (
-              <p className="text-xs text-gray-600 mt-1">
+              <p className="text-xs text-gray-600 mt-1 line-clamp-2" title={place.notes}>
                 {place.notes}
               </p>
             )}
