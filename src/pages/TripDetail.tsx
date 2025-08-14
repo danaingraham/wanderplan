@@ -77,15 +77,6 @@ function getDayDate(startDate: string, dayNumber: number): Date {
   return dayDate
 }
 
-// Helper function to check if two time ranges overlap
-function timesOverlap(start1: string, end1: string, start2: string, end2: string): boolean {
-  const start1Min = timeToMinutes(start1)
-  const end1Min = timeToMinutes(end1)
-  const start2Min = timeToMinutes(start2)
-  const end2Min = timeToMinutes(end2)
-  
-  return start1Min < end2Min && start2Min < end1Min
-}
 
 
 // SIMPLIFIED PlaceItem - No edit/delete functionality
@@ -448,99 +439,55 @@ export function TripDetail() {
 
     const dayPlaces = places.filter(p => p.day === newItemData.day).sort((a, b) => a.order - b.order)
     
-    // Find the correct chronological position
+    // Find the correct chronological position based on start time
     let insertPosition = dayPlaces.length // Default to end
     const newStartTime = newItemData.start_time
-    const adjustedPlaces: Array<{ id: string; start_time: string; end_time: string; order: number }> = []
+    const newEndTime = calculateEndTime(newStartTime, newItemData.duration)
     
     for (let i = 0; i < dayPlaces.length; i++) {
       const currentPlace = dayPlaces[i]
       const currentStart = currentPlace.start_time || '09:00'
       
-      // If new item's start time is before this place's start time
-      if (timeToMinutes(newStartTime) < timeToMinutes(currentStart)) {
+      // If new item's start time is before or equal to this place's start time
+      if (timeToMinutes(newStartTime) <= timeToMinutes(currentStart)) {
         insertPosition = i
         break
       }
     }
     
-    // Check for overlaps and adjust times if necessary
-    let finalStartTime = newStartTime
-    let finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
+    // Calculate time adjustments for all places that come after
+    const timeAdjustments: Array<{ id: string; start_time: string; end_time: string }> = []
     
-    // Check if we need to adjust times due to overlaps
-    if (insertPosition < dayPlaces.length) {
-      const nextPlace = dayPlaces[insertPosition]
-      const nextStart = nextPlace.start_time || '09:00'
+    // Check if we need to push subsequent items to avoid overlap
+    let currentEndTime = newEndTime
+    const BUFFER_MINUTES = 15 // 15-minute buffer between places
+    
+    // Adjust all places that come after the insertion point
+    for (let i = insertPosition; i < dayPlaces.length; i++) {
+      const place = dayPlaces[i]
+      const placeStart = place.start_time || '09:00'
+      const placeEnd = place.end_time || calculateEndTime(placeStart, place.duration || 90)
       
-      // If new item would overlap with the next item
-      if (timesOverlap(finalStartTime, finalEndTime, nextStart, nextPlace.end_time || calculateEndTime(nextStart, nextPlace.duration || 90))) {
-        // Option 1: Try to fit the new item before the next item
-        const nextStartMinutes = timeToMinutes(nextStart)
-        const newEndMinutes = nextStartMinutes - 15 // 15-minute buffer
-        const newStartMinutes = newEndMinutes - newItemData.duration
+      // If current end time (with buffer) would overlap with this place
+      const minStartTime = timeToMinutes(currentEndTime) + BUFFER_MINUTES
+      const currentStartMinutes = timeToMinutes(placeStart)
+      
+      if (minStartTime > currentStartMinutes) {
+        // This place needs to be pushed later
+        const newStart = minutesToTime(minStartTime)
+        const newEnd = calculateEndTime(newStart, place.duration || 90)
         
-        if (newStartMinutes >= 0) {
-          // Check if this new time conflicts with previous item
-          let canFitBefore = true
-          if (insertPosition > 0) {
-            const prevPlace = dayPlaces[insertPosition - 1]
-            const prevEnd = prevPlace.end_time || calculateEndTime(prevPlace.start_time || '09:00', prevPlace.duration || 90)
-            if (timeToMinutes(prevEnd) + 15 > newStartMinutes) { // 15-minute buffer
-              canFitBefore = false
-            }
-          }
-          
-          if (canFitBefore) {
-            finalStartTime = minutesToTime(newStartMinutes)
-            finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
-          } else {
-            // Option 2: Push subsequent items later
-            finalStartTime = newStartTime
-            finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
-            
-            // Calculate how much to push subsequent items
-            const pushAmount = timeToMinutes(finalEndTime) + 15 - timeToMinutes(nextStart) // 15-minute buffer
-            
-            if (pushAmount > 0) {
-              // Adjust all subsequent items
-              for (let j = insertPosition; j < dayPlaces.length; j++) {
-                const placeToAdjust = dayPlaces[j]
-                const currentStartMinutes = timeToMinutes(placeToAdjust.start_time || '09:00')
-                const newAdjustedStart = minutesToTime(currentStartMinutes + pushAmount)
-                const newAdjustedEnd = calculateEndTime(newAdjustedStart, placeToAdjust.duration || 90)
-                
-                adjustedPlaces.push({
-                  id: placeToAdjust.id,
-                  start_time: newAdjustedStart,
-                  end_time: newAdjustedEnd,
-                  order: placeToAdjust.order
-                })
-              }
-            }
-          }
-        } else {
-          // Can't fit before, so push everything after
-          finalStartTime = newStartTime
-          finalEndTime = calculateEndTime(finalStartTime, newItemData.duration)
-          
-          const pushAmount = timeToMinutes(finalEndTime) + 15 - timeToMinutes(nextStart)
-          if (pushAmount > 0) {
-            for (let j = insertPosition; j < dayPlaces.length; j++) {
-              const placeToAdjust = dayPlaces[j]
-              const currentStartMinutes = timeToMinutes(placeToAdjust.start_time || '09:00')
-              const newAdjustedStart = minutesToTime(currentStartMinutes + pushAmount)
-              const newAdjustedEnd = calculateEndTime(newAdjustedStart, placeToAdjust.duration || 90)
-              
-              adjustedPlaces.push({
-                id: placeToAdjust.id,
-                start_time: newAdjustedStart,
-                end_time: newAdjustedEnd,
-                order: placeToAdjust.order
-              })
-            }
-          }
-        }
+        timeAdjustments.push({
+          id: place.id,
+          start_time: newStart,
+          end_time: newEnd
+        })
+        
+        // Update current end time for next iteration
+        currentEndTime = newEnd
+      } else {
+        // No overlap, but still track the end time in case later places need adjustment
+        currentEndTime = placeEnd
       }
     }
     
@@ -552,8 +499,8 @@ export function TripDetail() {
       category: newItemData.category,
       day: newItemData.day,
       order: insertPosition, // This will be the correct position
-      start_time: finalStartTime,
-      end_time: finalEndTime,
+      start_time: newStartTime,
+      end_time: newEndTime,
       duration: newItemData.duration,
       notes: newItemData.notes.trim(),
       is_locked: false,
@@ -564,27 +511,41 @@ export function TripDetail() {
       ...(newItemData.photo_url && { photo_url: newItemData.photo_url })
     }
 
-    // Adjust orders of existing places to make room
-    const placesToUpdate: Array<{ id: string; order: number }> = []
+    // First update orders of existing places to make room
+    // We need to shift all places at or after the insert position
+    const orderUpdates: Array<{ id: string; updates: Partial<Place> }> = []
+    
     for (let i = insertPosition; i < dayPlaces.length; i++) {
-      placesToUpdate.push({
+      orderUpdates.push({
         id: dayPlaces[i].id,
-        order: dayPlaces[i].order + 1
+        updates: { order: i + 1 }  // Shift everything after the insert position by 1
       })
     }
-
-    // Apply all updates
-    createPlaceWithSmartPlanning(newPlace)
     
-    // Update orders of displaced places
-    placesToUpdate.forEach(({ id, order }) => {
-      updatePlace(id, { order })
+    // Add time adjustments to the updates
+    timeAdjustments.forEach(adjustment => {
+      const existingUpdate = orderUpdates.find(u => u.id === adjustment.id)
+      if (existingUpdate) {
+        existingUpdate.updates.start_time = adjustment.start_time
+        existingUpdate.updates.end_time = adjustment.end_time
+      } else {
+        orderUpdates.push({
+          id: adjustment.id,
+          updates: {
+            start_time: adjustment.start_time,
+            end_time: adjustment.end_time
+          }
+        })
+      }
     })
     
-    // Update times of places that were pushed
-    adjustedPlaces.forEach(({ id, start_time, end_time }) => {
-      updatePlace(id, { start_time, end_time })
-    })
+    // Apply all updates in bulk
+    if (orderUpdates.length > 0) {
+      bulkUpdatePlaces(orderUpdates)
+    }
+    
+    // Now create the new place with the correct order
+    createPlace(newPlace)
     
     // Reset form
     setNewItemData({
