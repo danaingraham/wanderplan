@@ -2,10 +2,12 @@ import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
+import { useUser } from '../contexts/UserContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
 import { TripMap } from '../components/maps/TripMap'
 import { TripAssistant } from '../components/ai/TripAssistant'
+import { TripDetailTopChrome } from '../components/trips/TripDetailTopChrome'
 import { Button } from '../components/ui/Button'
 import { PlaceAutocomplete } from '../components/forms/PlaceAutocomplete'
 import { googlePlacesService } from '../services/googlePlaces'
@@ -196,7 +198,9 @@ function PlaceItem({
 export function TripDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
+  const { user } = useUser()
   const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, bulkUpdatePlaces, deletePlace, deleteTrip, updateTrip } = useTrips()
+  const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [mapSelectedDay, setMapSelectedDay] = useState<number | undefined>(undefined)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showConflictModal, setShowConflictModal] = useState(false)
@@ -430,6 +434,15 @@ export function TripDetail() {
     setShowConflictModal(false)
   }
 
+  // Handlers for TripDetailTopChrome
+  const handleBack = () => {
+    navigate('/') // Navigate to My Trips
+  }
+
+  const handleAvatarClick = () => {
+    setShowProfileMenu(!showProfileMenu)
+  }
+
   const handleCreateNewItem = () => {
     if (!id || !newItemData.name.trim()) return
 
@@ -634,6 +647,54 @@ export function TripDetail() {
       onUpdatePlace={updatePlace}
       onBulkUpdatePlaces={handleBulkUpdatePlaces}
     >
+      {/* Trip Detail Top Chrome */}
+      <TripDetailTopChrome
+        title={trip.title}
+        onBack={handleBack}
+        onAvatarClick={handleAvatarClick}
+        userName={user?.full_name}
+      />
+      
+      {/* Profile Menu Dropdown */}
+      {showProfileMenu && (
+        <div 
+          className="fixed top-16 right-4 z-50"
+          style={{ paddingRight: 'max(16px, env(safe-area-inset-right))' }}
+        >
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 py-1 w-48">
+            <button
+              onClick={() => {
+                navigate('/profile')
+                setShowProfileMenu(false)
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Profile Settings
+            </button>
+            <button
+              onClick={() => {
+                navigate('/api-status')
+                setShowProfileMenu(false)
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              API Status
+            </button>
+            <button
+              onClick={() => {
+                // Sign out will need to be handled properly
+                // For now, just navigate to login
+                navigate('/login')
+                setShowProfileMenu(false)
+              }}
+              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+            >
+              Sign Out
+            </button>
+          </div>
+        </div>
+      )}
+      
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-6 sm:mb-8 animate-fade-in">
