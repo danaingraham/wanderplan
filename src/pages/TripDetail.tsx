@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
@@ -8,7 +8,7 @@ import { TripMap } from '../components/maps/TripMap'
 import { TripAssistant } from '../components/ai/TripAssistant'
 import { Button } from '../components/ui/Button'
 import { PlaceAutocomplete } from '../components/forms/PlaceAutocomplete'
-import { googlePlacesService, type PlaceDetailsResponse } from '../services/googlePlaces'
+import { googlePlacesService } from '../services/googlePlaces'
 import { isGoogleMapsConfigured } from '../config/api'
 import { PlacePhoto } from '../components/places/PlacePhoto'
 import { DragDropProvider } from '../components/dnd/DragDropProvider'
@@ -233,40 +233,6 @@ export function TripDetail() {
   
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
-  
-  
-  // Memoize trip destination coordinates
-  const tripDestinationCoords = useMemo(() => {
-    return trip?.latitude && trip?.longitude ? { 
-      lat: trip.latitude, 
-      lng: trip.longitude 
-    } : undefined
-  }, [trip?.latitude, trip?.longitude])
-  
-  // Toggle functions for place state
-  const togglePlaceExpanded = useCallback((placeId: string) => {
-    setExpandedPlaces(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(placeId)) {
-        newSet.delete(placeId)
-      } else {
-        newSet.add(placeId)
-      }
-      return newSet
-    })
-  }, [])
-  
-  const togglePlaceEditing = useCallback((placeId: string) => {
-    setEditingPlaces(prev => {
-      const newSet = new Set(prev)
-      if (newSet.has(placeId)) {
-        newSet.delete(placeId)
-      } else {
-        newSet.add(placeId)
-      }
-      return newSet
-    })
-  }, [])
   
   const [newLogisticsData, setNewLogisticsData] = useState<{
     type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
