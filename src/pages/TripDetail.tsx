@@ -198,7 +198,7 @@ export function TripDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, bulkUpdatePlaces, deletePlace, deleteTrip, updateTrip } = useTrips()
-  const [selectedDay, setSelectedDay] = useState<number | undefined>(undefined)
+  const [mapSelectedDay, setMapSelectedDay] = useState<number | undefined>(undefined)
   const [viewMode, setViewMode] = useState<'itinerary' | 'logistics'>('itinerary')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showConflictModal, setShowConflictModal] = useState(false)
@@ -867,36 +867,6 @@ export function TripDetail() {
               </div>
             </div>
 
-            {/* Day Filter */}
-            {days.length > 1 && (
-              <div className="mb-6">
-                <div className="flex flex-wrap gap-2 mobile-scroll-horizontal">
-                  <button
-                    onClick={() => setSelectedDay(undefined)}
-                    className={`px-3 py-1 text-xs sm:text-sm rounded-full transition-colors whitespace-nowrap ${
-                      selectedDay === undefined
-                        ? 'bg-primary-500 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                    }`}
-                  >
-                    All Days
-                  </button>
-                  {days.map(day => (
-                    <button
-                      key={day}
-                      onClick={() => setSelectedDay(day)}
-                      className={`px-3 py-1 text-xs sm:text-sm rounded-full transition-colors whitespace-nowrap ${
-                        selectedDay === day
-                          ? 'bg-primary-500 text-white'
-                          : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      Day {day}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             {/* Add New Item Form */}
             {showAddForm && (
@@ -1203,7 +1173,7 @@ export function TripDetail() {
                     </div>
                   ) : (
                     <div className="space-y-4">
-                      {(selectedDay ? [selectedDay] : days).map((day) => {
+                      {days.map((day) => {
                         const isCollapsed = collapsedDays.has(day)
                         const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
                         
@@ -1290,11 +1260,41 @@ export function TripDetail() {
                   )}
                 </div>
                 
-                {/* Map Panel */}
-                <div className="rounded-xl overflow-hidden border border-gray-200 h-[40vh] min-h-[300px] lg:h-auto">
+                {/* Map Panel with Day Filter Overlay */}
+                <div className="rounded-xl overflow-hidden border border-gray-200 h-[40vh] min-h-[300px] lg:h-auto relative">
+                  {/* Day Filter Pills - Overlay on Map */}
+                  {days.length > 1 && (
+                    <div className="absolute top-3 right-3" style={{ zIndex: 1000 }}>
+                      <div className="flex flex-wrap gap-2 justify-end">
+                        <button
+                          onClick={() => setMapSelectedDay(undefined)}
+                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all shadow-md backdrop-blur-sm whitespace-nowrap ${
+                            mapSelectedDay === undefined
+                              ? 'bg-primary-500 text-white'
+                              : 'bg-white/90 text-gray-700 hover:bg-white'
+                          }`}
+                        >
+                          All Days
+                        </button>
+                        {days.map(day => (
+                          <button
+                            key={day}
+                            onClick={() => setMapSelectedDay(day)}
+                            className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all shadow-md backdrop-blur-sm whitespace-nowrap ${
+                              mapSelectedDay === day
+                                ? 'bg-primary-500 text-white'
+                                : 'bg-white/90 text-gray-700 hover:bg-white'
+                            }`}
+                          >
+                            Day {day}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                   <TripMap
                     places={places}
-                    selectedDay={selectedDay}
+                    selectedDay={mapSelectedDay}
                     className="h-full"
                   />
                 </div>
