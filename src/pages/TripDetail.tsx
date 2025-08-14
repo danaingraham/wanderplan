@@ -937,10 +937,6 @@ export function TripDetail() {
                 </div>
                 {/* Itinerary Panel */}
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">Itinerary</h3>
-                  </div>
-                  
                   {days.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
