@@ -11,8 +11,9 @@ export function Signup() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [successMessage, setSuccessMessage] = useState('')
   
-  const { register } = useUser()
+  const { register, isUsingSupabase } = useUser() as any
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -30,7 +31,16 @@ export function Signup() {
     try {
       const success = await register(email, password, fullName)
       if (success) {
-        navigate('/')
+        if (isUsingSupabase) {
+          // With Supabase, user needs to verify email
+          setSuccessMessage(`Success! Please check your email (${email}) for a verification link. You must verify your email before you can login.`)
+          setEmail('')
+          setPassword('')
+          setFullName('')
+        } else {
+          // With localStorage, user is logged in immediately
+          navigate('/')
+        }
       } else {
         setError('Email already exists. Please use a different email.')
       }
@@ -52,6 +62,16 @@ export function Signup() {
             Join Wanderplan and start planning amazing trips
           </p>
         </div>
+        
+        {successMessage && (
+          <div className="bg-green-50 border border-green-200 text-green-700 px-4 py-3 rounded-lg">
+            <p className="text-sm">{successMessage}</p>
+            <p className="text-xs mt-2">Note: Check your spam folder if you don't see the email.</p>
+            <Link to="/login" className="text-sm font-medium text-green-600 hover:text-green-500 mt-2 inline-block">
+              Go to login →
+            </Link>
+          </div>
+        )}
         
         <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
           <div className="space-y-4">
