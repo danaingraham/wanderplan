@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
+import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
 import { formatDate } from '../utils/date'
@@ -15,7 +15,6 @@ import { DragDropProvider } from '../components/dnd/DragDropProvider'
 import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
-import { LogisticsContainer, type LogisticsItem } from '../components/logistics/LogisticsContainer'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -199,7 +198,6 @@ export function TripDetail() {
   const navigate = useNavigate()
   const { getTrip, getPlacesByTrip, loading, createPlace, updatePlace, bulkUpdatePlaces, deletePlace, deleteTrip, updateTrip } = useTrips()
   const [mapSelectedDay, setMapSelectedDay] = useState<number | undefined>(undefined)
-  const [viewMode, setViewMode] = useState<'itinerary' | 'logistics'>('itinerary')
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [showConflictModal, setShowConflictModal] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
@@ -208,7 +206,6 @@ export function TripDetail() {
   const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
-  const [logistics, setLogistics] = useState<LogisticsItem[]>([])
   const [newItemData, setNewItemData] = useState<{
     name: string
     address: string
@@ -234,26 +231,6 @@ export function TripDetail() {
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
   
-  const [newLogisticsData, setNewLogisticsData] = useState<{
-    type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
-    title: string
-    startDate: string
-    endDate?: string
-    startTime?: string
-    endTime?: string
-    location?: string
-    confirmationNumber?: string
-    email?: string
-    notes?: string
-  }>({
-    type: 'flight',
-    title: '',
-    startDate: trip?.start_date || new Date().toISOString().split('T')[0],
-    location: '',
-    confirmationNumber: '',
-    email: ''
-  })
-  
   console.log('🔍 TripDetail: Component rendered with trip ID:', id)
   console.log('🔍 TripDetail: Trip found:', !!trip)
   console.log('🔍 TripDetail: Places found:', places.length)
@@ -277,34 +254,6 @@ export function TripDetail() {
   }
 
 
-  // Logistics functions
-  const generateLogisticsId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-
-  const createLogisticsItem = (item: Omit<LogisticsItem, 'id'>) => {
-    if (!trip) return
-    
-    const newItem: LogisticsItem = {
-      ...item,
-      id: generateLogisticsId(),
-      trip_id: trip.id,
-      created_date: new Date().toISOString(),
-      updated_date: new Date().toISOString(),
-    }
-
-    setLogistics(prev => [...prev, newItem])
-  }
-
-  const updateLogisticsItem = (id: string, updates: Partial<LogisticsItem>) => {
-    setLogistics(prev => prev.map(item => 
-      item.id === id 
-        ? { ...item, ...updates, updated_date: new Date().toISOString() }
-        : item
-    ))
-  }
-
-  const deleteLogisticsItem = (id: string) => {
-    setLogistics(prev => prev.filter(item => item.id !== id))
-  }
 
   const handleRefreshPhotos = async () => {
     if (!trip || !isGoogleMapsConfigured()) {
@@ -783,36 +732,7 @@ export function TripDetail() {
         <div>
           <div className="card animate-slide-up">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <div className="flex items-center gap-2">
-                {viewMode === 'itinerary' ? (
-                  <>
-                    <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
-                    <button
-                      onClick={() => setShowAddForm(!showAddForm)}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Add item"
-                    >
-                      <Plus className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </>
-                ) : (
-                  <div className="flex items-center gap-3">
-                    <div>
-                      <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Travel Logistics</h2>
-                      <p className="text-sm text-gray-600 mt-1">
-                        Manage your flights, accommodations, and transportation
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => setShowAddForm(!showAddForm)}
-                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                      title="Add logistics item"
-                    >
-                      <Plus className="w-5 h-5 text-gray-600" />
-                    </button>
-                  </div>
-                )}
-              </div>
+              <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
               
               <div className="flex items-center gap-2">
                 {/* Refresh Photos Button - Only show if some places don't have photos */}
@@ -834,48 +754,26 @@ export function TripDetail() {
                   </Button>
                 )}
                 
-                {/* View Toggle */}
-                <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1 self-center sm:self-auto">
-                <button
-                  onClick={() => setViewMode('itinerary')}
-                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    viewMode === 'itinerary'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
+                {/* Add New Place Button - Prominent */}
+                <Button
+                  onClick={() => setShowAddForm(!showAddForm)}
+                  size="sm"
+                  variant="primary"
+                  className="flex items-center gap-2"
                 >
-                  <div className="w-4 h-4 flex items-center justify-center">
-                    <div className="grid grid-cols-2 gap-0.5 w-3 h-3">
-                      <div className="bg-current rounded-[1px]"></div>
-                      <div className="bg-current rounded-[1px]"></div>
-                    </div>
-                  </div>
-                  <span className="hidden sm:inline">Itinerary</span>
-                </button>
-                <button
-                  onClick={() => setViewMode('logistics')}
-                  className={`flex items-center space-x-1 sm:space-x-2 px-2 sm:px-3 py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
-                    viewMode === 'logistics'
-                      ? 'bg-white text-gray-900 shadow-sm'
-                      : 'text-gray-600 hover:text-gray-900'
-                  }`}
-                >
-                  <Briefcase className="w-4 h-4" />
-                  <span className="hidden sm:inline">Logistics</span>
-                </button>
-              </div>
+                  <Plus className="w-4 h-4" />
+                  Add Place
+                </Button>
               </div>
             </div>
 
 
-            {/* Add New Item Form */}
+            {/* Add New Place Form */}
             {showAddForm && (
               <div className="mb-6 bg-gray-50 rounded-xl p-4 animate-scale-in">
-                <h3 className="text-lg font-semibold mb-4">Add New {viewMode === 'logistics' ? 'Logistics' : 'Itinerary'} Item</h3>
+                <h3 className="text-lg font-semibold mb-4">Add New Place</h3>
                 
-                {/* Conditional Form Fields based on view mode */}
-                {viewMode === 'itinerary' ? (
-                  // Itinerary Form Fields
+                {/* Place Form Fields */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-4">
                       <div>
@@ -996,135 +894,13 @@ export function TripDetail() {
                     </div>
                   </div>
                 </div>
-                ) : (
-                  // Logistics Form Fields
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="space-y-4">
-                      <div>
-                        <label className="text-sm text-gray-700 block mb-1">Type</label>
-                        <select
-                          value={newLogisticsData.type}
-                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, type: e.target.value as any }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                        >
-                          <option value="flight">Flight</option>
-                          <option value="hotel">Hotel</option>
-                          <option value="accommodation">Accommodation</option>
-                          <option value="car_rental">Car Rental</option>
-                          <option value="train">Train</option>
-                          <option value="transport">Transport</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-gray-700 block mb-1">Title *</label>
-                        <input
-                          type="text"
-                          value={newLogisticsData.title}
-                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, title: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="e.g., Flight to Paris, Hotel Reservation"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-gray-700 block mb-1">Location</label>
-                        <input
-                          type="text"
-                          value={newLogisticsData.location || ''}
-                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, location: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="City, Airport, Address"
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-4">
-                      <div className="flex gap-4">
-                        <div className="flex-1">
-                          <label className="text-sm text-gray-700 block mb-1">Start Date</label>
-                          <input
-                            type="date"
-                            value={newLogisticsData.startDate}
-                            onChange={(e) => setNewLogisticsData(prev => ({ ...prev, startDate: e.target.value }))}
-                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          />
-                        </div>
-                        
-                        {(newLogisticsData.type === 'hotel' || newLogisticsData.type === 'accommodation' || newLogisticsData.type === 'car_rental') && (
-                          <div className="flex-1">
-                            <label className="text-sm text-gray-700 block mb-1">End Date</label>
-                            <input
-                              type="date"
-                              value={newLogisticsData.endDate || ''}
-                              onChange={(e) => setNewLogisticsData(prev => ({ ...prev, endDate: e.target.value }))}
-                              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                            />
-                          </div>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-gray-700 block mb-1">Confirmation Number</label>
-                        <input
-                          type="text"
-                          value={newLogisticsData.confirmationNumber || ''}
-                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, confirmationNumber: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="ABC123"
-                        />
-                      </div>
-                      
-                      <div>
-                        <label className="text-sm text-gray-700 block mb-1">Email</label>
-                        <input
-                          type="email"
-                          value={newLogisticsData.email || ''}
-                          onChange={(e) => setNewLogisticsData(prev => ({ ...prev, email: e.target.value }))}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
-                          placeholder="contact@example.com"
-                        />
-                      </div>
-                    </div>
-                  </div>
-                )}
 
                 <div className="flex gap-3 mt-6 pt-4 border-t border-gray-200">
                   <Button 
-                    onClick={() => {
-                      if (viewMode === 'itinerary') {
-                        handleCreateNewItem()
-                      } else {
-                        // Handle logistics item creation
-                        if (newLogisticsData.title.trim()) {
-                          createLogisticsItem({
-                            type: newLogisticsData.type,
-                            title: newLogisticsData.title,
-                            description: newLogisticsData.notes,
-                            startDate: newLogisticsData.startDate,
-                            endDate: newLogisticsData.endDate,
-                            startTime: newLogisticsData.startTime,
-                            endTime: newLogisticsData.endTime,
-                            location: newLogisticsData.location,
-                            confirmationNumber: newLogisticsData.confirmationNumber,
-                            email: newLogisticsData.email,
-                          })
-                          // Reset form
-                          setNewLogisticsData({
-                            type: 'flight',
-                            title: '',
-                            startDate: trip?.start_date || new Date().toISOString().split('T')[0],
-                            location: '',
-                            confirmationNumber: '',
-                            email: ''
-                          })
-                          setShowAddForm(false)
-                        }
-                      }
-                    }} 
-                    disabled={viewMode === 'itinerary' ? !newItemData.name.trim() : !newLogisticsData.title.trim()}
+                    onClick={handleCreateNewItem} 
+                    disabled={!newItemData.name.trim()}
                   >
-                    Add Item
+                    Add Place
                   </Button>
                   <Button 
                     variant="ghost" 
@@ -1151,10 +927,8 @@ export function TripDetail() {
               </div>
             )}
 
-            {/* Content */}
-            {viewMode === 'itinerary' ? (
-              /* Itinerary View - Side by Side */
-              <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
+            {/* Content - Itinerary View */}
+            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
                 {/* Mobile notification */}
                 <div className="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 lg:col-span-2">
                   <p className="text-sm text-blue-800">
@@ -1298,22 +1072,7 @@ export function TripDetail() {
                     className="h-full"
                   />
                 </div>
-              </div>
-            ) : (
-              /* Logistics View */
-              <div className="max-w-4xl">
-                <LogisticsContainer
-                  logistics={logistics}
-                  onAdd={createLogisticsItem}
-                  onUpdate={updateLogisticsItem}
-                  onDelete={deleteLogisticsItem}
-                  tripStartDate={trip?.start_date}
-                  tripEndDate={trip?.end_date}
-                  hideAddButton={true}
-                  hideHeader={true}
-                />
-              </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
