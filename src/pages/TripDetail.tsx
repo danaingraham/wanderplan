@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw, Briefcase } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
@@ -87,144 +87,27 @@ function timesOverlap(start1: string, end1: string, start2: string, end2: string
 }
 
 
+// SIMPLIFIED PlaceItem - No edit/delete functionality
 interface PlaceItemProps {
   place: Place
-  onUpdate: (id: string, updates: Partial<Place>) => void
-  onDelete: (id: string) => void
-  tripDestination?: string
-  tripDestinationCoords?: { lat: number; lng: number }
   sequenceNumber?: number
 }
 
-function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestinationCoords, sequenceNumber }: PlaceItemProps) {
-  const [isEditing, setIsEditing] = useState(false)
-  const [isExpanded, setIsExpanded] = useState(false)
-  const [editData, setEditData] = useState({
-    name: place.name,
-    address: place.address || '',
-    start_time: place.start_time || '',
-    duration: place.duration || 90,
-    notes: place.notes || ''
-  })
+
+function PlaceItem({ 
+  place, 
+  sequenceNumber
+}: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
 
-  // Update edit data when place changes
-  useEffect(() => {
-    setEditData({
-      name: place.name,
-      address: place.address || '',
-      start_time: place.start_time || '',
-      duration: place.duration || 90,
-      notes: place.notes || ''
-    })
-  }, [place.name, place.address, place.start_time, place.duration, place.notes])
 
   // Fetch photo from Google Places
   useEffect(() => {
-    const fetchPhoto = async () => {
-      if (place.photo_url) {
-        console.log('🖼️ Using existing photo URL:', place.photo_url)
-        setPhotoUrl(place.photo_url)
-        return
-      }
-
-      if (!isGoogleMapsConfigured() || !place.place_id) {
-        console.log('⚠️ Skipping photo fetch - API not configured or no place_id', {
-          apiConfigured: isGoogleMapsConfigured(),
-          hasPlaceId: !!place.place_id,
-          placeName: place.name
-        })
-        return
-      }
-
-      // Check if Google Maps API is actually loaded
-      if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
-        console.log('⚠️ Google Maps API not loaded yet, skipping photo fetch')
-        return
-      }
-
-      try {
-        console.log('🔍 Fetching photo for place:', place.name, 'with place_id:', place.place_id)
-        const details = await googlePlacesService.getPlaceDetails(place.place_id)
-        console.log('📸 Place details photos:', details.photos)
-        
-        if (details.photos && details.photos.length > 0) {
-          const photoReference = details.photos[0].photo_reference
-          console.log('📷 Photo reference (URL):', photoReference)
-          const url = googlePlacesService.getPhotoUrl(photoReference)
-          console.log('🔗 Final photo URL:', url)
-          setPhotoUrl(url)
-          // Update the place with the photo URL
-          onUpdate(place.id, { photo_url: url })
-        } else {
-          console.log('❌ No photos available for this place')
-        }
-      } catch (error) {
-        console.error('Failed to fetch place photo:', error)
-      }
+    if (place.photo_url) {
+      setPhotoUrl(place.photo_url)
     }
+  }, [place.photo_url])
 
-    fetchPhoto()
-  }, [place.place_id, place.photo_url, onUpdate, place.id])
-
-  const handlePlaceSelect = (placeDetails: PlaceDetailsResponse) => {
-    // Auto-populate fields from Google Places data
-    setEditData(prev => ({
-      ...prev,
-      name: placeDetails.name,
-      address: placeDetails.formatted_address
-    }))
-    
-    // Also update additional place details if available
-    const updates: Partial<Place> = {
-      place_id: placeDetails.place_id,
-      latitude: placeDetails.geometry.location.lat,
-      longitude: placeDetails.geometry.location.lng,
-      website: placeDetails.website,
-      phone: placeDetails.formatted_phone_number
-    }
-    
-    // Determine category from place types
-    if (placeDetails.types.some(type => ['restaurant', 'food', 'meal_takeaway', 'cafe', 'bar'].includes(type))) {
-      updates.category = 'restaurant'
-    } else if (placeDetails.types.some(type => ['lodging', 'hotel'].includes(type))) {
-      updates.category = 'hotel'  
-    } else {
-      updates.category = 'attraction'
-    }
-    
-    // Only add rating to notes, skip reviews
-    if (placeDetails.rating) {
-      // Only add rating if notes don't already contain rating info
-      const currentNotes = place.notes || ''
-      if (!currentNotes.includes('⭐') && !currentNotes.includes('rating')) {
-        updates.notes = `⭐ ${placeDetails.rating}/5 rating\n\n${currentNotes}`.trim()
-      }
-    }
-    
-    // Update photo if available
-    if (placeDetails.photos && placeDetails.photos.length > 0) {
-      console.log('🎯 Place selection - photos available:', placeDetails.photos)
-      updates.photo_url = placeDetails.photos[0].photo_reference
-      console.log('🎯 Setting photo_url to:', updates.photo_url)
-    }
-    
-    // Apply updates immediately (not just to edit form)
-    onUpdate(place.id, updates)
-  }
-
-  const handleSaveEdit = () => {
-    const endTime = calculateEndTime(editData.start_time, editData.duration)
-    onUpdate(place.id, {
-      name: editData.name.trim(),
-      address: editData.address.trim(),
-      start_time: editData.start_time,
-      duration: editData.duration,
-      end_time: endTime,
-      notes: editData.notes.trim()
-    })
-    setIsEditing(false)
-  }
 
   const endTime24 = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
   const startTime12 = formatTime12Hour(place.start_time || '09:00')
@@ -235,7 +118,7 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
       place={place}
       className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow"
       hideDefaultHandle={true}
-      renderDragHandle={(listeners) => (
+      renderDragHandle={(listeners, attributes) => (
         /* Left Rail - Fixed 40px width */
         <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
           {/* Numbered Stop Circle */}
@@ -248,9 +131,11 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
           {/* Drag Handle - 8-12px below circle, visible on hover */}
           <button
             {...listeners}
+            {...attributes}
             className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
             aria-label="Drag to reorder"
             type="button"
+            style={{ touchAction: 'none' }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
               <g fill="currentColor">
@@ -279,141 +164,28 @@ function PlaceItem({ place, onUpdate, onDelete, tripDestination, tripDestination
             />
           </div>
 
-          {/* Content */}
+          {/* Content - SIMPLIFIED */}
           <div className="flex-1">
-            {/* Title row with inline edit/delete */}
-            <div className="flex justify-between items-start mb-1">
-              <h4 className="font-medium text-gray-900 text-sm pr-2">{place.name}</h4>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                {!isEditing && (
-                  <>
-                    <button
-                      onClick={() => setIsEditing(true)}
-                      className="p-0.5 text-gray-400 hover:text-gray-600 transition-colors"
-                      title="Edit"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(place.id)}
-                      className="p-0.5 text-gray-400 hover:text-red-600 transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </>
-                )}
-              </div>
+            {/* Title only */}
+            <h4 className="font-medium text-gray-900 text-sm pr-2 mb-1">{place.name}</h4>
+            
+            {/* Time and duration */}
+            <div className="text-xs text-gray-500 mb-1">
+              {startTime12}–{endTime12} · {place.duration || 90} min
             </div>
-
-          {/* Edit Form */}
-          {isEditing ? (
-            <div className="space-y-3 mb-3">
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 block">Place Name:</label>
-                <PlaceAutocomplete
-                  value={editData.name}
-                  onChange={(name) => setEditData(prev => ({ ...prev, name }))}
-                  onPlaceSelect={handlePlaceSelect}
-                  destination={tripDestination}
-                  destinationCoords={tripDestinationCoords}
-                  placeholder="Search for places..."
-                />
+            
+            {/* Address */}
+            {place.address && (
+              <div className="text-xs text-gray-500 mb-1">
+                📍 {place.address}
               </div>
-              
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 block">Address:</label>
-                <input
-                  type="text"
-                  value={editData.address}
-                  onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                  className="text-sm border border-gray-300 rounded px-3 py-2 w-full"
-                  placeholder="Enter address"
-                />
-              </div>
-              
-              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4">
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Start:</label>
-                  <input
-                    type="time"
-                    value={editData.start_time}
-                    onChange={(e) => setEditData({ ...editData, start_time: e.target.value })}
-                    className="text-sm border border-gray-300 rounded px-2 py-1"
-                  />
-                </div>
-                <div className="flex items-center gap-2">
-                  <label className="text-xs text-gray-500">Duration:</label>
-                  <input
-                    type="number"
-                    value={editData.duration}
-                    onChange={(e) => setEditData({ ...editData, duration: parseInt(e.target.value) || 90 })}
-                    className="text-sm border border-gray-300 rounded px-2 py-1 w-16"
-                    min="15"
-                    step="15"
-                  />
-                  <span className="text-xs text-gray-500">min</span>
-                </div>
-              </div>
-              
-              <div className="space-y-2">
-                <label className="text-xs text-gray-500 block">Notes:</label>
-                <textarea
-                  value={editData.notes}
-                  onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                  className="text-sm border border-gray-300 rounded px-3 py-2 w-full resize-none"
-                  placeholder="Add personal notes about this place..."
-                  rows={3}
-                />
-              </div>
-              
-              <div className="flex gap-2 pt-2">
-                <Button size="sm" onClick={handleSaveEdit}>Save</Button>
-                <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
-              </div>
-            </div>
-            ) : (
-              <>
-                {/* Unified metadata line */}
-                <div className="text-xs text-gray-500 mb-1">
-                  {startTime12}–{endTime12} · {place.duration || 90} min
-                  {!isExpanded && place.address && ` · ${place.address.split(',')[0]}`}
-                </div>
-                
-                {/* Full address when expanded */}
-                {isExpanded && place.address && (
-                  <div className="text-xs text-gray-500 mb-1">
-                    📍 {place.address}
-                  </div>
-                )}
-                
-                {/* Notes - truncated or full based on expanded state */}
-                {place.notes && (
-                  <div>
-                    <p className={`text-xs text-gray-600 ${!isExpanded ? 'line-clamp-2' : ''}`}>
-                      {place.notes}
-                    </p>
-                    {place.notes.length > 100 && (
-                      <button
-                        onClick={() => setIsExpanded(!isExpanded)}
-                        className="text-xs text-primary-600 hover:text-primary-700 mt-1 font-medium"
-                      >
-                        {isExpanded ? 'Show less' : 'Show more'}
-                      </button>
-                    )}
-                  </div>
-                )}
-                
-                {/* Show more button if there's address but no notes */}
-                {!place.notes && place.address && place.address.length > 50 && (
-                  <button
-                    onClick={() => setIsExpanded(!isExpanded)}
-                    className="text-xs text-primary-600 hover:text-primary-700 mt-1 font-medium"
-                  >
-                    {isExpanded ? 'Show less' : 'Show more'}
-                  </button>
-                )}
-              </>
+            )}
+            
+            {/* Notes - always visible in full */}
+            {place.notes && (
+              <p className="text-xs text-gray-600 mt-1">
+                {place.notes}
+              </p>
             )}
           </div>
         </div>
@@ -461,6 +233,40 @@ export function TripDetail() {
   
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
+  
+  
+  // Memoize trip destination coordinates
+  const tripDestinationCoords = useMemo(() => {
+    return trip?.latitude && trip?.longitude ? { 
+      lat: trip.latitude, 
+      lng: trip.longitude 
+    } : undefined
+  }, [trip?.latitude, trip?.longitude])
+  
+  // Toggle functions for place state
+  const togglePlaceExpanded = useCallback((placeId: string) => {
+    setExpandedPlaces(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(placeId)) {
+        newSet.delete(placeId)
+      } else {
+        newSet.add(placeId)
+      }
+      return newSet
+    })
+  }, [])
+  
+  const togglePlaceEditing = useCallback((placeId: string) => {
+    setEditingPlaces(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(placeId)) {
+        newSet.delete(placeId)
+      } else {
+        newSet.add(placeId)
+      }
+      return newSet
+    })
+  }, [])
   
   const [newLogisticsData, setNewLogisticsData] = useState<{
     type: 'flight' | 'hotel' | 'car_rental' | 'train' | 'accommodation' | 'transport'
@@ -704,7 +510,7 @@ export function TripDetail() {
     bulkUpdatePlaces(updates)
   }
 
-  const handleConflictResolution = (_resolution: 'auto_adjust' | 'manual_review' | 'accept_as_is') => {
+  const handleConflictResolution = () => {
     // For now, just close the modal. Later we can implement specific resolution logic
     setShowConflictModal(false)
   }
@@ -1505,13 +1311,6 @@ export function TripDetail() {
                                       >
                                         <PlaceItem
                                           place={place}
-                                          onUpdate={updatePlace}
-                                          onDelete={deletePlace}
-                                          tripDestination={trip?.destination}
-                                          tripDestinationCoords={trip?.latitude && trip?.longitude ? { 
-                                            lat: trip.latitude, 
-                                            lng: trip.longitude 
-                                          } : undefined}
                                           sequenceNumber={globalSequenceNumber}
                                         />
                                       </div>

@@ -1,34 +1,20 @@
-import { useState } from 'react'
-import { MapPin, Clock, ChevronDown, ChevronUp, Edit2, Trash2, Plus } from 'lucide-react'
+import { MapPin, Clock, ChevronDown, ChevronUp } from 'lucide-react'
 import type { Place } from '../../types'
 import { PlacePhoto } from '../places/PlacePhoto'
 
+// SIMPLIFIED PlaceCard - No edit or expand functionality
 interface PlaceCardProps {
   place: Place
-  onEdit: () => void
-  onDelete: () => void
 }
 
-export function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
-  const [showActions, setShowActions] = useState(false)
-  const [expanded, setExpanded] = useState(false)
-  
+export function PlaceCard({ place }: PlaceCardProps) {
   // Format time display
   const timeDisplay = place.start_time && place.end_time 
     ? `${place.start_time} - ${place.end_time}`
     : place.start_time || ''
   
-  // Truncate description for cleaner display
-  const description = place.notes || ''
-  const shouldTruncate = description.length > 100
-  const displayDescription = expanded ? description : description.slice(0, 100)
-  
   return (
-    <div 
-      className="group relative bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-gray-100"
-      onMouseEnter={() => setShowActions(true)}
-      onMouseLeave={() => setShowActions(false)}
-    >
+    <div className="group relative bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-gray-100">
       <div className="flex gap-4">
         {/* Photo */}
         <div className="flex-shrink-0">
@@ -40,36 +26,14 @@ export function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
           />
         </div>
         
-        {/* Content */}
+        {/* Content - All visible, no expand/collapse */}
         <div className="flex-1 min-w-0">
-          {/* Title and Actions */}
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <h3 className="font-medium text-gray-900 text-base">
-              {place.name}
-            </h3>
-            
-            {/* Action Menu - Only visible on hover */}
-            {showActions && (
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button
-                  onClick={onEdit}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Edit"
-                >
-                  <Edit2 className="w-4 h-4 text-gray-600" />
-                </button>
-                <button
-                  onClick={onDelete}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Delete"
-                >
-                  <Trash2 className="w-4 h-4 text-gray-600" />
-                </button>
-              </div>
-            )}
-          </div>
+          {/* Title */}
+          <h3 className="font-medium text-gray-900 text-base mb-2">
+            {place.name}
+          </h3>
           
-          {/* Secondary Details - Smaller, lighter font */}
+          {/* Details */}
           <div className="space-y-1 text-sm text-gray-500">
             {timeDisplay && (
               <div className="flex items-center gap-2">
@@ -81,27 +45,17 @@ export function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
             {place.address && (
               <div className="flex items-start gap-2">
                 <MapPin className="w-3.5 h-3.5 mt-0.5" />
-                <span className="line-clamp-1">{place.address}</span>
+                <span>{place.address}</span>
               </div>
             )}
-            
           </div>
           
-          {/* Description with expand/collapse */}
-          {description && (
+          {/* Full description - always visible */}
+          {place.notes && (
             <div className="mt-2">
               <p className="text-sm text-gray-600">
-                {displayDescription}
-                {shouldTruncate && !expanded && '...'}
+                {place.notes}
               </p>
-              {shouldTruncate && (
-                <button
-                  onClick={() => setExpanded(!expanded)}
-                  className="text-sm text-primary-600 hover:text-primary-700 mt-1"
-                >
-                  {expanded ? 'Show less' : 'Read more'}
-                </button>
-              )}
             </div>
           )}
         </div>
@@ -110,15 +64,13 @@ export function PlaceCard({ place, onEdit, onDelete }: PlaceCardProps) {
   )
 }
 
+// SIMPLIFIED DayCard - No edit functionality
 interface DayCardProps {
   dayNumber: number
   date: string
   places: Place[]
   isCollapsed: boolean
   onToggleCollapse: () => void
-  onAddItem: () => void
-  onEditPlace: (place: Place) => void
-  onDeletePlace: (place: Place) => void
 }
 
 export function DayCard({ 
@@ -126,10 +78,7 @@ export function DayCard({
   date, 
   places, 
   isCollapsed, 
-  onToggleCollapse,
-  onAddItem,
-  onEditPlace,
-  onDeletePlace
+  onToggleCollapse
 }: DayCardProps) {
   return (
     <div className="bg-gray-50 rounded-2xl p-6 space-y-4">
@@ -173,19 +122,8 @@ export function DayCard({
             <PlaceCard
               key={place.id}
               place={place}
-              onEdit={() => onEditPlace(place)}
-              onDelete={() => onDeletePlace(place)}
             />
           ))}
-          
-          {/* Add Item Button */}
-          <button
-            onClick={onAddItem}
-            className="w-full py-3 border-2 border-dashed border-gray-300 rounded-xl text-gray-500 hover:border-gray-400 hover:text-gray-600 transition-colors flex items-center justify-center gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add item to Day {dayNumber}</span>
-          </button>
         </div>
       )}
     </div>

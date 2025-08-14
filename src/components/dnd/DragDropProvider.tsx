@@ -17,12 +17,6 @@ import type { Place } from '../../types'
 import type { DragOperation, ScheduleConflict } from './types'
 import { recalculateTimesAfterReorder } from '../../utils/timeCalculator'
 
-// Create environment-aware logging
-const log = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args)
-  }
-}
 
 interface DragDropContextType {
   draggedPlace: Place | null
@@ -62,7 +56,7 @@ export function DragDropProvider({
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 3,
+        distance: 8,
       },
     }),
     useSensor(KeyboardSensor, {
@@ -75,57 +69,36 @@ export function DragDropProvider({
 
   const handleDragStart = (event: DragStartEvent) => {
     const { active } = event
-    log('🚀 Drag started:', { 
-      activeId: active.id, 
-      activeData: active.data.current,
-      allPlaceIds: places.map(p => p.id)
-    })
     const place = places.find(p => p.id === active.id)
     if (place) {
-      log('✅ Found dragged place:', place.name)
       setDraggedPlace(place)
-    } else {
-      log('❌ Could not find place with id:', active.id)
     }
   }
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
     
-    log('🎯 Drag ended:', { activeId: active.id, overId: over?.id })
-    
     setDraggedPlace(null)
     
     if (!over || active.id === over.id) {
-      log('🚫 No valid drop target or same element')
       return
     }
 
     const draggedPlace = places.find(p => p.id === active.id)
     const targetPlace = places.find(p => p.id === over.id)
     
-    log('🔍 Found places:', { 
-      draggedPlace: draggedPlace?.name, 
-      targetPlace: targetPlace?.name 
-    })
-    
     if (!draggedPlace || !targetPlace) {
-      log('❌ Could not find dragged or target place')
       return
     }
 
     // Handle same day reordering
     if (draggedPlace.day === targetPlace.day) {
-      log('🔄 Reordering within same day')
-      
       const dayPlaces = places
         .filter(p => p.day === draggedPlace.day)
         .sort((a, b) => a.order - b.order)
       
       const oldIndex = dayPlaces.findIndex(p => p.id === draggedPlace.id)
       const newIndex = dayPlaces.findIndex(p => p.id === targetPlace.id)
-      
-      log('📍 Indices:', { oldIndex, newIndex })
       
       if (oldIndex !== newIndex) {
         // Reorder the array
@@ -166,7 +139,6 @@ export function DragDropProvider({
           updates
         }))
         
-        log('💾 Applying batched updates:', batchedUpdates.length, 'places')
         
         if (onBulkUpdatePlaces) {
           onBulkUpdatePlaces(batchedUpdates)
@@ -176,7 +148,6 @@ export function DragDropProvider({
       }
     } else {
       // Handle cross-day movement
-      log('🔄 Moving between days:', draggedPlace.day, '->', targetPlace.day)
       
       const sourceDayPlaces = places
         .filter(p => p.day === draggedPlace.day && p.id !== draggedPlace.id)
@@ -241,7 +212,6 @@ export function DragDropProvider({
         updates
       }))
       
-      log('💾 Applying cross-day batched updates:', batchedUpdates.length, 'places')
       
       if (onBulkUpdatePlaces) {
         onBulkUpdatePlaces(batchedUpdates)

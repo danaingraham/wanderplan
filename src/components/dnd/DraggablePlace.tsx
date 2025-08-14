@@ -15,14 +15,7 @@ interface DraggablePlaceProps {
   isOverlay?: boolean
   className?: string
   hideDefaultHandle?: boolean
-  renderDragHandle?: (listeners: any) => React.ReactNode
-}
-
-// Create environment-aware logging
-const log = (...args: any[]) => {
-  if (process.env.NODE_ENV === 'development') {
-    console.log(...args)
-  }
+  renderDragHandle?: (listeners: any, attributes: any) => React.ReactNode
 }
 
 export const DraggablePlace = React.memo(({ 
@@ -49,21 +42,12 @@ export const DraggablePlace = React.memo(({
     },
   })
 
-  log(`🎯 DraggablePlace ${place.name}:`, { 
-    id: place.id, 
-    isDragging, 
-    isOver,
-    hasListeners: !!listeners,
-    listenersKeys: listeners ? Object.keys(listeners) : [],
-    day: place.day,
-    order: place.order
-  })
-
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
   }
 
+  // Overlay for dragging
   if (isOverlay) {
     return (
       <div className={`${className} opacity-95 rotate-3 shadow-2xl`}>
@@ -72,6 +56,43 @@ export const DraggablePlace = React.memo(({
     )
   }
 
+  // Custom drag handle implementation
+  if (renderDragHandle) {
+    return (
+      <div
+        ref={setNodeRef}
+        style={style}
+        className={`
+          ${className}
+          ${isDragging ? 'opacity-50 z-50' : ''}
+          ${isOver ? 'ring-2 ring-primary-400 ring-opacity-50' : ''}
+          transition-all duration-200
+        `}
+        data-sortable-id={place.id}
+      >
+        <div className="flex">
+          {/* Drag handle area */}
+          <div 
+            className="flex-shrink-0"
+            {...listeners}
+            {...attributes}
+            style={{ 
+              touchAction: 'none',
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+          >
+            {renderDragHandle(listeners, attributes)}
+          </div>
+          {/* Content area */}
+          <div className="flex-1">
+            {children}
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Default drag handle implementation
   return (
     <div
       ref={setNodeRef}
@@ -82,40 +103,39 @@ export const DraggablePlace = React.memo(({
         ${isOver ? 'ring-2 ring-primary-400 ring-opacity-50' : ''}
         transition-all duration-200
       `}
-      {...attributes}
+      data-sortable-id={place.id}
     >
-      {renderDragHandle ? (
-        <>
-          {renderDragHandle(listeners)}
-          {children}
-        </>
-      ) : (
-        <div className="relative group">
-          {/* Default Drag Handle */}
-          {!hideDefaultHandle && (
-            <button
-              {...listeners}
-              className="absolute left-1 top-1/2 transform -translate-y-1/2 z-20 cursor-grab active:cursor-grabbing opacity-80 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded p-2 shadow-lg border border-gray-300 hover:border-primary-400 focus:outline-none focus:ring-2 focus:ring-primary-400"
-              aria-label="Drag to reorder"
-              style={{ touchAction: 'none' }}
-              type="button"
-            >
-              <GripVertical className="w-4 h-4 text-gray-500" />
-            </button>
-          )}
-          
-          {/* Drop Indicator */}
-          {isOver && (
-            <div className="absolute inset-0 border-2 border-dashed border-primary-400 rounded-xl pointer-events-none" />
-          )}
-          
+      <div className="relative group">
+        {/* Simple Drag Handle */}
+        {!hideDefaultHandle && (
+          <div
+            className="absolute left-1 top-1/2 transform -translate-y-1/2 z-20"
+            {...listeners}
+            {...attributes}
+            style={{ 
+              touchAction: 'none',
+              cursor: isDragging ? 'grabbing' : 'grab'
+            }}
+          >
+            <div className="opacity-80 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded p-2 shadow-lg border border-gray-300 hover:border-primary-400">
+              <GripVertical className="w-4 h-4 text-gray-500 pointer-events-none" />
+            </div>
+          </div>
+        )}
+        
+        {/* Drop Indicator */}
+        {isOver && (
+          <div className="absolute inset-0 border-2 border-dashed border-primary-400 rounded-xl pointer-events-none" />
+        )}
+        
+        {/* Content area */}
+        <div className="pl-10">
           {children}
         </div>
-      )}
+      </div>
     </div>
   )
 }, (prevProps, nextProps) => {
-  // Custom comparison - only re-render if these specific props change
   return (
     prevProps.place.id === nextProps.place.id &&
     prevProps.place.order === nextProps.place.order &&
@@ -139,12 +159,6 @@ export const DroppableArea = React.memo(({ children, day, places }: DroppableAre
   const dayPlaces = places.filter(p => p.day === day).sort((a, b) => a.order - b.order)
   const placeIds = dayPlaces.map(p => p.id)
 
-  log(`📋 DroppableArea Day ${day}:`, { 
-    placeCount: dayPlaces.length, 
-    placeIds,
-    placeNames: dayPlaces.map(p => p.name)
-  })
-
   return (
     <SortableContext items={placeIds}>
       <div className="space-y-3 min-h-[50px]">
@@ -153,7 +167,6 @@ export const DroppableArea = React.memo(({ children, day, places }: DroppableAre
     </SortableContext>
   )
 }, (prevProps, nextProps) => {
-  // Only re-render if the places for this day have changed
   const prevDayPlaces = prevProps.places.filter(p => p.day === prevProps.day)
   const nextDayPlaces = nextProps.places.filter(p => p.day === nextProps.day)
   
