@@ -16,6 +16,8 @@ import { AuthDebugSupabase } from './pages/AuthDebugSupabase'
 import { AuthCallback } from './pages/AuthCallback'
 import { SimpleMobileTest } from './pages/SimpleMobileTest'
 import { NetworkDiagnostic } from './pages/NetworkDiagnostic'
+import { DirectLoginTest } from './pages/DirectLoginTest'
+import { MobileAuthTest } from './pages/MobileAuthTest'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 
@@ -47,6 +49,8 @@ function AppContent() {
         <Route path="/auth/callback" element={<AuthCallback />} />
         <Route path="/mobile-test" element={<SimpleMobileTest />} />
         <Route path="/network-test" element={<NetworkDiagnostic />} />
+        <Route path="/direct-login" element={<DirectLoginTest />} />
+        <Route path="/mobile-auth" element={<MobileAuthTest />} />
         
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />

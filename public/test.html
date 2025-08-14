@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Test</title>
+</head>
+<body style="padding: 20px; font-family: sans-serif;">
+    <h1>Test Page</h1>
+    <p>If you can see this, HTML works!</p>
+    
+    <div id="output" style="background: #f0f0f0; padding: 10px; margin: 10px 0; border-radius: 5px;">
+        Loading JavaScript...
+    </div>
+    
+    <button onclick="testButton()" style="padding: 10px 20px; font-size: 16px;">Click Me</button>
+    
+    <script>
+        // Basic JavaScript test
+        document.getElementById('output').innerHTML = 'JavaScript is working!<br>';
+        
+        // Test if we can create functions
+        function testButton() {
+            document.getElementById('output').innerHTML += 'Button clicked!<br>';
+        }
+        
+        // Test localStorage
+        try {
+            localStorage.setItem('test', 'value');
+            document.getElementById('output').innerHTML += 'localStorage works!<br>';
+            localStorage.removeItem('test');
+        } catch(e) {
+            document.getElementById('output').innerHTML += 'localStorage error: ' + e.message + '<br>';
+        }
+        
+        // Show user agent
+        document.getElementById('output').innerHTML += 'Browser: ' + navigator.userAgent.substring(0, 50) + '...<br>';
+    </script>
+</body>
+</html>

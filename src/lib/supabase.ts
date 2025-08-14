@@ -13,8 +13,9 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
-    flowType: 'pkce',
+    flowType: 'implicit', // Using implicit for better mobile compatibility
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
+    storageKey: 'wanderplan-auth'
   }
 })
 

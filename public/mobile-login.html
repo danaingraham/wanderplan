@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Login Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 20px;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        input {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            font-size: 16px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            background: #3b82f6;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:disabled {
+            background: #ccc;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 12px;
+            background: #f5f5f5;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .error { color: red; }
+        .success { color: green; }
+    </style>
+</head>
+<body>
+    <h1>Mobile Login Test (No React)</h1>
+    <p>This page tests Supabase auth directly without React.</p>
+    
+    <input type="email" id="email" placeholder="Email" autocomplete="email">
+    <input type="password" id="password" placeholder="Password" autocomplete="current-password">
+    <button id="loginBtn" onclick="testLogin()">Test Login</button>
+    
+    <div id="result"></div>
+
+    <script type="module">
+        // Import Supabase from CDN
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        
+        const result = document.getElementById('result');
+        
+        // Log that the page loaded
+        result.textContent = 'Page loaded successfully!\n';
+        
+        // Test localStorage
+        try {
+            localStorage.setItem('test', 'works');
+            localStorage.removeItem('test');
+            result.textContent += '✅ localStorage works\n';
+        } catch (e) {
+            result.textContent += '❌ localStorage error: ' + e.message + '\n';
+        }
+        
+        // Initialize Supabase
+        let supabase;
+        try {
+            supabase = createClient(
+                'https://zhusodnwzmbpvvkxjtvn.supabase.co',
+                'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpodXNvZG53em1icHZ2a3hqdHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDQyOTUsImV4cCI6MjA3MDcyMDI5NX0.CcwEJ7FtVgVDXWS83A7ui8zMZSwTNn1UWivFVnPoh9g',
+                {
+                    auth: {
+                        persistSession: true,
+                        storageKey: 'wanderplan-mobile-test',
+                        flowType: 'implicit'
+                    }
+                }
+            );
+            result.textContent += '✅ Supabase client created\n';
+        } catch (e) {
+            result.textContent += '❌ Supabase init error: ' + e.message + '\n';
+        }
+        
+        // Make testLogin global
+        window.testLogin = async function() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value;
+            const btn = document.getElementById('loginBtn');
+            
+            if (!email || !password) {
+                result.textContent += '❌ Please enter email and password\n';
+                return;
+            }
+            
+            btn.disabled = true;
+            result.textContent += '\nAttempting login...\n';
+            
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    result.textContent += `❌ Login failed: ${error.message}\n`;
+                    result.textContent += `Error code: ${error.code}\n`;
+                    result.textContent += `Status: ${error.status}\n`;
+                } else if (data.user) {
+                    result.textContent += `✅ LOGIN SUCCESS!\n`;
+                    result.textContent += `User: ${data.user.email}\n`;
+                    result.textContent += `ID: ${data.user.id}\n`;
+                    
+                    // Check session
+                    const { data: sessionData } = await supabase.auth.getSession();
+                    if (sessionData.session) {
+                        result.textContent += '✅ Session is active\n';
+                        result.textContent += `Token: ${sessionData.session.access_token.substring(0, 20)}...\n`;
+                    } else {
+                        result.textContent += '❌ No session found\n';
+                    }
+                }
+            } catch (err) {
+                result.textContent += `❌ Unexpected error: ${err.message}\n`;
+                console.error(err);
+            } finally {
+                btn.disabled = false;
+            }
+        }
+        
+        // Check for existing session on load
+        if (supabase) {
+            supabase.auth.getSession().then(({ data }) => {
+                if (data.session) {
+                    result.textContent += `ℹ️ Existing session found for: ${data.session.user.email}\n`;
+                } else {
+                    result.textContent += 'ℹ️ No existing session\n';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
