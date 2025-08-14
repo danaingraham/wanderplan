@@ -190,7 +190,7 @@ CREATE TRIGGER update_places_updated_at BEFORE UPDATE ON places
 In Supabase Dashboard:
 1. Go to Authentication → URL Configuration
 2. Add your site URLs to "Redirect URLs":
-   - `https://wanderplan.netlify.app/auth/callback`
+   - `https://wanderplanning.netlify.app/auth/callback`
    - `http://localhost:5173/auth/callback` (for local development)
 3. Go to Authentication → Providers
 4. Enable "Email" provider (should be enabled by default)
