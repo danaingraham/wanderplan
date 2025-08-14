@@ -14,6 +14,7 @@ import { ResetPassword } from './pages/ResetPassword'
 import { AuthDebug } from './pages/AuthDebug'
 import { AuthDebugSupabase } from './pages/AuthDebugSupabase'
 import { AuthCallback } from './pages/AuthCallback'
+import { SimpleMobileTest } from './pages/SimpleMobileTest'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 
@@ -43,6 +44,7 @@ function AppContent() {
         <Route path="/auth-debug" element={<AuthDebug />} />
         <Route path="/auth-debug-supabase" element={<AuthDebugSupabase />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/mobile-test" element={<SimpleMobileTest />} />
         
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
