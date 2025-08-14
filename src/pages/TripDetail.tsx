@@ -1264,10 +1264,8 @@ export function TripDetail() {
                               <div className="pt-3 space-y-2">
                                 <DroppableArea day={day} places={places}>
                                   {dayPlaces.map((place, placeIndex) => {
-                                    // Calculate global sequence number across all days
-                                    const globalSequenceNumber = places
-                                      .filter(p => p.day < day)
-                                      .length + placeIndex + 1
+                                    // Calculate sequence number that resets for each day
+                                    const daySequenceNumber = placeIndex + 1
                                     
                                     return (
                                       <div 
@@ -1277,7 +1275,7 @@ export function TripDetail() {
                                       >
                                         <PlaceItem
                                           place={place}
-                                          sequenceNumber={globalSequenceNumber}
+                                          sequenceNumber={daySequenceNumber}
                                         />
                                       </div>
                                     )
