@@ -105,19 +105,45 @@ export function AuthDebug() {
     
     if (user) {
       try {
-        // Hash the new password using the new method
-        const encoder = new TextEncoder()
-        const data = encoder.encode(newPassword + 'wanderplan-salt-v2')
-        const hashedPassword = btoa(String.fromCharCode(...data))
+        // Try multiple hashing methods to ensure compatibility
+        const methods = []
         
-        // Update the password
-        storage.set(`wanderplan_password_${user.id}`, hashedPassword)
+        // Method 1: New UTF-8 safe method
+        try {
+          const encoder = new TextEncoder()
+          const data = encoder.encode(newPassword + 'wanderplan-salt-v2')
+          const hash1 = btoa(String.fromCharCode(...data))
+          methods.push({ name: 'UTF-8 v2', hash: hash1 })
+        } catch (e) {
+          methods.push({ name: 'UTF-8 v2', hash: 'Failed: ' + e })
+        }
+        
+        // Method 2: Old simple method
+        try {
+          const hash2 = btoa(newPassword + 'wanderplan-salt')
+          methods.push({ name: 'Simple v1', hash: hash2 })
+        } catch (e) {
+          methods.push({ name: 'Simple v1', hash: 'Failed: ' + e })
+        }
+        
+        // Use the first successful method
+        const successfulMethod = methods.find(m => !m.hash.startsWith('Failed'))
+        if (!successfulMethod) {
+          throw new Error('All hashing methods failed')
+        }
+        
+        // Update the password with the successful hash
+        storage.set(`wanderplan_password_${user.id}`, successfulMethod.hash)
         
         setTestResult(`
           Password Reset Successful!
           Email: ${user.email}
           New Password: ${newPassword}
-          New Hash (first 20): ${hashedPassword.substring(0, 20)}...
+          Method Used: ${successfulMethod.name}
+          New Hash (first 30): ${successfulMethod.hash.substring(0, 30)}...
+          
+          All Methods Tested:
+          ${methods.map(m => `${m.name}: ${m.hash.substring(0, 20)}...`).join('\n          ')}
           
           You can now login with this password.
         `)
@@ -127,6 +153,93 @@ export function AuthDebug() {
     } else {
       setTestResult(`No user found with email: ${testEmail}`)
     }
+  }
+
+  const testLogin = () => {
+    if (!testEmail || !testPassword) {
+      setTestResult('Please enter both email and password to test')
+      return
+    }
+
+    const users: any[] = storage.get('wanderplan_users') || []
+    const user = users.find((u: any) => u.email.toLowerCase() === testEmail.toLowerCase())
+    
+    if (!user) {
+      setTestResult(`No user found with email: ${testEmail}`)
+      return
+    }
+
+    const storedHash = storage.get(`wanderplan_password_${user.id}`) as string
+    
+    // Try all possible hash methods to see which one matches
+    const attempts = []
+    
+    // Method 1: New UTF-8 safe method
+    try {
+      const encoder = new TextEncoder()
+      const data = encoder.encode(testPassword + 'wanderplan-salt-v2')
+      const hash1 = btoa(String.fromCharCode(...data))
+      attempts.push({
+        method: 'UTF-8 v2',
+        hash: hash1,
+        matches: hash1 === storedHash
+      })
+    } catch (e: any) {
+      attempts.push({
+        method: 'UTF-8 v2',
+        hash: 'Error: ' + e.message,
+        matches: false
+      })
+    }
+    
+    // Method 2: Old simple method
+    try {
+      const hash2 = btoa(testPassword + 'wanderplan-salt')
+      attempts.push({
+        method: 'Simple v1',
+        hash: hash2,
+        matches: hash2 === storedHash
+      })
+    } catch (e: any) {
+      attempts.push({
+        method: 'Simple v1',
+        hash: 'Error: ' + e.message,
+        matches: false
+      })
+    }
+    
+    // Method 3: Direct comparison (in case password was stored unhashed somehow)
+    attempts.push({
+      method: 'Direct',
+      hash: testPassword,
+      matches: testPassword === storedHash
+    })
+    
+    const matchingMethod = attempts.find(a => a.matches)
+    
+    setTestResult(`
+      Login Test Results:
+      Email: ${user.email}
+      Password Entered: "${testPassword}"
+      Password Length: ${testPassword.length}
+      
+      Stored Hash (first 30): ${storedHash?.substring(0, 30)}...
+      Stored Hash Length: ${storedHash?.length || 0}
+      
+      ${matchingMethod ? '✅ LOGIN WOULD SUCCEED' : '❌ LOGIN WOULD FAIL'}
+      ${matchingMethod ? `Matching Method: ${matchingMethod.method}` : 'No matching method found'}
+      
+      All Methods Tested:
+      ${attempts.map(a => `
+        ${a.method}: ${a.matches ? '✅ MATCH' : '❌ NO MATCH'}
+        Generated: ${typeof a.hash === 'string' ? a.hash.substring(0, 30) + '...' : a.hash}
+      `).join('')}
+      
+      Debugging Info:
+      - Check for trailing spaces in password
+      - Check for autocapitalization on mobile
+      - Try typing password in notes app first, then copy/paste
+    `)
   }
 
   const clearAllData = () => {
@@ -187,6 +300,32 @@ export function AuthDebug() {
               className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
             >
               Find User
+            </button>
+          </div>
+
+          {/* Test Login */}
+          <div className="mb-6 border-2 border-blue-500 p-4 rounded bg-blue-50">
+            <h3 className="font-medium mb-2 text-blue-700">🔑 Test Login (Use This First!)</h3>
+            <p className="text-sm text-gray-600 mb-3">Test if your email/password combination would work</p>
+            <input
+              type="email"
+              value={testEmail}
+              onChange={(e) => setTestEmail(e.target.value)}
+              placeholder="Email address"
+              className="w-full px-3 py-2 border rounded mb-2"
+            />
+            <input
+              type="text"
+              value={testPassword}
+              onChange={(e) => setTestPassword(e.target.value)}
+              placeholder="Password to test"
+              className="w-full px-3 py-2 border rounded mb-2"
+            />
+            <button
+              onClick={testLogin}
+              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 font-semibold"
+            >
+              Test Login
             </button>
           </div>
 
