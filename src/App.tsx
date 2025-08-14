@@ -11,6 +11,7 @@ import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
+import { AuthDebug } from './pages/AuthDebug'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 
@@ -37,6 +38,7 @@ function AppContent() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
+        <Route path="/auth-debug" element={<AuthDebug />} />
         
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
