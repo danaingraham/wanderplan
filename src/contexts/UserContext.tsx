@@ -33,7 +33,31 @@ const UserContext = createContext<UserContextType | undefined>(undefined)
 const generateUserId = () => `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
 // Hash password (simple demo version - in production use proper hashing)
-const hashPassword = (password: string) => btoa(password + 'wanderplan-salt')
+// Using a more reliable approach that handles special characters and works consistently across browsers
+const hashPassword = (password: string) => {
+  try {
+    // Encode the password + salt as UTF-8 before base64 encoding
+    // This handles special characters and emojis properly
+    const encoder = new TextEncoder()
+    const data = encoder.encode(password + 'wanderplan-salt-v2')
+    
+    // Convert to base64 using a more reliable method
+    const base64 = btoa(String.fromCharCode(...data))
+    return base64
+  } catch (error) {
+    // Fallback to a simple hash if encoding fails
+    console.error('Password hashing error:', error)
+    // Use a simple hash as fallback
+    let hash = 0
+    const str = password + 'wanderplan-salt-v2'
+    for (let i = 0; i < str.length; i++) {
+      const char = str.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32-bit integer
+    }
+    return 'fallback_' + Math.abs(hash).toString(36)
+  }
+}
 
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
@@ -133,11 +157,36 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const users = storage.get<User[]>('wanderplan_users') || []
     const hashedPassword = hashPassword(password)
     
-    // Find user with matching email and password
-    const foundUser = users.find(u => 
-      u.email === email && 
-      storage.get<string>(`wanderplan_password_${u.id}`) === hashedPassword
-    )
+    // Also try the old hashing method for backward compatibility
+    const oldHashedPassword = (() => {
+      try {
+        return btoa(password + 'wanderplan-salt')
+      } catch {
+        return null
+      }
+    })()
+    
+    // Find user with matching email and password (try both new and old hash)
+    const foundUser = users.find(u => {
+      if (u.email !== email) return false
+      
+      const storedPassword = storage.get<string>(`wanderplan_password_${u.id}`)
+      
+      // Check new hash first
+      if (storedPassword === hashedPassword) {
+        return true
+      }
+      
+      // Check old hash for backward compatibility
+      if (oldHashedPassword && storedPassword === oldHashedPassword) {
+        // Migrate to new hash
+        log('🔐 UserContext: Migrating password to new hash for:', u.email)
+        storage.set(`wanderplan_password_${u.id}`, hashedPassword)
+        return true
+      }
+      
+      return false
+    })
     
     if (foundUser) {
       log('🔐 UserContext: Login successful for:', foundUser.email)

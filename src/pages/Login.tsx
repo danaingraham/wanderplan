@@ -21,13 +21,18 @@ export function Login() {
     setIsLoading(true)
 
     try {
+      // Add some debug logging for mobile issues
+      console.log('Login attempt for email:', email)
+      console.log('Password length:', password.length)
+      
       const success = await login(email, password)
       if (success) {
         navigate('/')
       } else {
-        setError('Invalid email or password')
+        setError('Invalid email or password. Please check your credentials and try again.')
       }
     } catch (err) {
+      console.error('Login error:', err)
       setError('An error occurred. Please try again.')
     } finally {
       setIsLoading(false)
@@ -101,9 +106,12 @@ export function Login() {
                   name="password"
                   type={showPassword ? 'text' : 'password'}
                   autoComplete="current-password"
+                  autoCapitalize="off"
+                  autoCorrect="off"
+                  spellCheck="false"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => setPassword(e.target.value.trim())}
                   className="appearance-none relative block w-full pl-10 pr-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />
