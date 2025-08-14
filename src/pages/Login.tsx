@@ -111,7 +111,7 @@ export function Login() {
                   spellCheck="false"
                   required
                   value={password}
-                  onChange={(e) => setPassword(e.target.value.trim())}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="appearance-none relative block w-full pl-10 pr-10 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-lg focus:outline-none focus:ring-primary-500 focus:border-primary-500 focus:z-10 sm:text-sm"
                   placeholder="Password"
                 />

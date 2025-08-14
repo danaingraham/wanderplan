@@ -100,16 +100,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
       log('🔐 UserContext: Using Supabase authentication')
       setIsUsingSupabase(true)
       
-      // Get initial session
+      // Get initial session with timeout
+      const initTimeout = setTimeout(() => {
+        console.error('⚠️ UserContext: Supabase initialization timeout - falling back to localStorage')
+        setIsUsingSupabase(false)
+        setIsInitialized(true)
+      }, 5000) // 5 second timeout
+      
       supabase.auth.getSession().then(({ data: { session }, error }) => {
+        clearTimeout(initTimeout)
         if (error) {
           console.error('❌ UserContext: Error getting session:', error)
+          // If Supabase fails, fall back to localStorage
+          if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
+            console.log('🔄 UserContext: Network error, falling back to localStorage')
+            setIsUsingSupabase(false)
+          }
         } else if (session) {
           log('🔐 UserContext: Found existing Supabase session for:', session.user.email)
           setUser(convertSupabaseUser(session.user))
         } else {
           log('🔐 UserContext: No Supabase session found')
         }
+        setIsInitialized(true)
+      }).catch((err) => {
+        clearTimeout(initTimeout)
+        console.error('❌ UserContext: Supabase initialization failed:', err)
+        setIsUsingSupabase(false)
         setIsInitialized(true)
       })
 
