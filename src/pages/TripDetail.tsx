@@ -732,29 +732,9 @@ export function TripDetail() {
         <div>
           <div className="card animate-slide-up">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-              <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
-              
-              <div className="flex items-center gap-2">
-                {/* Refresh Photos Button - Only show if some places don't have photos */}
-                {isGoogleMapsConfigured() && places.some(p => !p.photo_url) && (
-                  <Button
-                    onClick={handleRefreshPhotos}
-                    size="sm"
-                    variant="ghost"
-                    disabled={isRefreshingPhotos}
-                    className="flex items-center gap-2"
-                  >
-                    <RefreshCw className={`w-4 h-4 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
-                    {isRefreshingPhotos 
-                      ? refreshProgress 
-                        ? `${refreshProgress.current}/${refreshProgress.total}`
-                        : 'Refreshing...'
-                      : 'Add Photos'
-                    }
-                  </Button>
-                )}
-                
-                {/* Add New Place Button - Prominent */}
+              <div className="flex items-center gap-3">
+                <h2 className="text-lg sm:text-xl font-semibold">Your Itinerary</h2>
+                {/* Add New Place Button - Next to title */}
                 <Button
                   onClick={() => setShowAddForm(!showAddForm)}
                   size="sm"
@@ -765,6 +745,25 @@ export function TripDetail() {
                   Add Place
                 </Button>
               </div>
+              
+              {/* Refresh Photos Button - Only show if some places don't have photos */}
+              {isGoogleMapsConfigured() && places.some(p => !p.photo_url) && (
+                <Button
+                  onClick={handleRefreshPhotos}
+                  size="sm"
+                  variant="ghost"
+                  disabled={isRefreshingPhotos}
+                  className="flex items-center gap-2"
+                >
+                  <RefreshCw className={`w-4 h-4 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
+                  {isRefreshingPhotos 
+                    ? refreshProgress 
+                      ? `${refreshProgress.current}/${refreshProgress.total}`
+                      : 'Refreshing...'
+                    : 'Add Photos'
+                  }
+                </Button>
+              )}
             </div>
 
 
