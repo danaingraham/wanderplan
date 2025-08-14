@@ -162,14 +162,41 @@ export function AuthDebug() {
     }
 
     const users: any[] = storage.get('wanderplan_users') || []
-    const user = users.find((u: any) => u.email.toLowerCase() === testEmail.toLowerCase())
     
-    if (!user) {
-      setTestResult(`No user found with email: ${testEmail}`)
+    // Debug: Show all users
+    const allEmails = users.map((u: any) => u.email)
+    
+    // Try different email matching approaches
+    const user = users.find((u: any) => u.email.toLowerCase() === testEmail.toLowerCase())
+    const userExactMatch = users.find((u: any) => u.email === testEmail)
+    const userTrimmed = users.find((u: any) => u.email.toLowerCase().trim() === testEmail.toLowerCase().trim())
+    
+    if (!user && !userExactMatch && !userTrimmed) {
+      setTestResult(`
+        No user found with email: "${testEmail}"
+        Email length: ${testEmail.length} characters
+        
+        All registered users (${users.length} total):
+        ${allEmails.map((e: string, i: number) => `${i + 1}. "${e}" (${e.length} chars)`).join('\n        ')}
+        
+        Debug Info:
+        - Your entered email: "${testEmail}"
+        - Trimmed version: "${testEmail.trim()}"
+        - Lowercase: "${testEmail.toLowerCase()}"
+        - Has spaces: ${testEmail !== testEmail.trim() ? 'YES - FOUND SPACES!' : 'No'}
+        
+        Try:
+        1. Copy email from "Find User" result
+        2. Check for invisible characters
+        3. Retype email manually
+      `)
       return
     }
+    
+    // Use whichever user was found
+    const foundUser = user || userExactMatch || userTrimmed
 
-    const storedHash = storage.get(`wanderplan_password_${user.id}`) as string
+    const storedHash = storage.get(`wanderplan_password_${foundUser.id}`) as string
     
     // Try all possible hash methods to see which one matches
     const attempts = []
@@ -219,7 +246,7 @@ export function AuthDebug() {
     
     setTestResult(`
       Login Test Results:
-      Email: ${user.email}
+      Email: ${foundUser.email}
       Password Entered: "${testPassword}"
       Password Length: ${testPassword.length}
       
@@ -242,6 +269,11 @@ export function AuthDebug() {
     `)
   }
 
+  const refreshData = () => {
+    // Force re-read of localStorage
+    window.location.reload()
+  }
+
   const clearAllData = () => {
     if (window.confirm('This will delete ALL Wanderplan data. Are you sure?')) {
       const keys = Object.keys(localStorage).filter(k => k.includes('wanderplan'))
@@ -253,7 +285,15 @@ export function AuthDebug() {
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">Authentication Debug Page</h1>
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">Authentication Debug Page</h1>
+          <button
+            onClick={refreshData}
+            className="px-4 py-2 bg-gray-500 text-white rounded hover:bg-gray-600"
+          >
+            🔄 Refresh Data
+          </button>
+        </div>
         
         {/* Current Status */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
