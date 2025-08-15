@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Supabase Direct</title>
+</head>
+<body style="padding: 20px; font-family: sans-serif;">
+    <h1>Test Supabase Connection Directly</h1>
+    <p>This tests the Supabase connection without React.</p>
+    
+    <button onclick="testConnection()" style="padding: 10px 20px; font-size: 16px; background: #3b82f6; color: white; border: none; border-radius: 4px; margin: 10px 0;">
+        Test API Connection
+    </button>
+    
+    <button onclick="resetPassword()" style="padding: 10px 20px; font-size: 16px; background: #10b981; color: white; border: none; border-radius: 4px; margin: 10px 0;">
+        Send Password Reset Email
+    </button>
+    
+    <div id="result" style="margin-top: 20px; padding: 10px; background: #f5f5f5; border-radius: 4px; font-family: monospace; white-space: pre-wrap;"></div>
+    
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'
+        
+        const result = document.getElementById('result');
+        
+        const SUPABASE_URL = 'https://zhusodnwzmbpvvkxjtvn.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpodXNvZG53em1icHZ2a3hqdHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDQyOTUsImV4cCI6MjA3MDcyMDI5NX0.CcwEJ7FtVgVDXWS83A7ui8zMZSwTNn1UWivFVnPoh9g';
+        
+        // Check key details
+        result.textContent = `API Key Details:
+- Length: ${SUPABASE_ANON_KEY.length}
+- Starts with: ${SUPABASE_ANON_KEY.substring(0, 20)}...
+- Ends with: ...${SUPABASE_ANON_KEY.substring(SUPABASE_ANON_KEY.length - 10)}
+- URL: ${SUPABASE_URL}\n\n`;
+        
+        let supabase;
+        try {
+            supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+                auth: {
+                    persistSession: false,
+                    autoRefreshToken: false,
+                    detectSessionInUrl: false
+                }
+            });
+            result.textContent += '✅ Supabase client created successfully\n\n';
+        } catch (error) {
+            result.textContent += `❌ Failed to create client: ${error.message}\n\n`;
+        }
+        
+        window.testConnection = async function() {
+            result.textContent += 'Testing API connection...\n';
+            
+            try {
+                // Test 1: Simple fetch to check if API is reachable
+                const response = await fetch(`${SUPABASE_URL}/rest/v1/`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                result.textContent += `API Response: ${response.status} ${response.statusText}\n`;
+                
+                // Test 2: Try getSession
+                const { data, error } = await supabase.auth.getSession();
+                if (error) {
+                    result.textContent += `GetSession Error: ${error.message}\n`;
+                } else {
+                    result.textContent += `GetSession Success: Session = ${data.session ? 'Active' : 'None'}\n`;
+                }
+                
+                // Test 3: Check auth health
+                const healthResponse = await fetch(`${SUPABASE_URL}/auth/v1/health`, {
+                    headers: {
+                        'apikey': SUPABASE_ANON_KEY
+                    }
+                });
+                result.textContent += `Auth Health: ${healthResponse.status} ${healthResponse.statusText}\n`;
+                
+            } catch (err) {
+                result.textContent += `Error: ${err.message}\n`;
+            }
+        }
+        
+        window.resetPassword = async function() {
+            const email = prompt('Enter your email address:');
+            if (!email) return;
+            
+            result.textContent += `\nSending password reset to ${email}...\n`;
+            
+            try {
+                const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+                    redirectTo: 'https://wanderplanning.netlify.app/reset-password'
+                });
+                
+                if (error) {
+                    result.textContent += `❌ Reset failed: ${error.message}\n`;
+                } else {
+                    result.textContent += `✅ Password reset email sent! Check your inbox.\n`;
+                }
+            } catch (err) {
+                result.textContent += `❌ Error: ${err.message}\n`;
+            }
+        }
+    </script>
+</body>
+</html>

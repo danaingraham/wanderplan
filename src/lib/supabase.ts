@@ -15,8 +15,14 @@ if (typeof window !== 'undefined') {
     key: supabaseAnonKey ? 'configured' : 'missing',
     keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
     keyPrefix: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'none',
+    keySuffix: supabaseAnonKey ? '...' + supabaseAnonKey.substring(supabaseAnonKey.length - 10) : 'none',
     storageKey: 'sb-wanderplan-auth-token'
   })
+  
+  // Check if the key looks valid
+  if (supabaseAnonKey && supabaseAnonKey.length !== 208) {
+    console.error('🔴 WARNING: API key length is', supabaseAnonKey.length, 'but should be 208!')
+  }
 }
 
 // Working configuration - gradually add features back
