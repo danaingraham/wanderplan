@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:mobile": "vite --host",
+    "dev:network": "echo 'Starting dev server on network...' && vite --host 0.0.0.0",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "preview:mobile": "vite preview --host",
     "test": "npm run test:build && npm run test:qa",
     "test:build": "tsc -b --noEmit",
     "test:qa": "echo 'Open qa-test-suite.html in browser to run QA tests'",
