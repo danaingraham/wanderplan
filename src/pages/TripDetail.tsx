@@ -111,23 +111,45 @@ function PlaceItem({
       className="group bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
       hideDefaultHandle={true}
       renderDragHandle={(listeners, attributes) => (
-        /* Desktop: Left Rail with drag handle */
-        <div className="hidden sm:flex w-10 flex-shrink-0 flex-col items-center pt-3 bg-transparent">
-          {/* Numbered Stop Circle */}
-          {sequenceNumber && (
-            <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-              <span className="text-white text-xs font-semibold">{sequenceNumber}</span>
-            </div>
-          )}
-          
-          {/* Drag Handle - visible on hover */}
+        <>
+          {/* Desktop: Left Rail with drag handle */}
+          <div className="hidden sm:flex w-10 flex-shrink-0 flex-col items-center pt-3 bg-transparent">
+            {/* Numbered Stop Circle */}
+            {sequenceNumber && (
+              <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs font-semibold">{sequenceNumber}</span>
+              </div>
+            )}
+            
+            {/* Drag Handle - visible on hover */}
+            <button
+              {...listeners}
+              {...attributes}
+              className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
+              aria-label="Drag to reorder"
+              type="button"
+              style={{ touchAction: 'none' }}
+            >
+              <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
+                <g fill="currentColor">
+                  <circle cx="5" cy="3" r="1.5"/>
+                  <circle cx="11" cy="3" r="1.5"/>
+                  <circle cx="5" cy="8" r="1.5"/>
+                  <circle cx="11" cy="8" r="1.5"/>
+                  <circle cx="5" cy="13" r="1.5"/>
+                  <circle cx="11" cy="13" r="1.5"/>
+                </g>
+              </svg>
+            </button>
+          </div>
+
+          {/* Mobile: Drag Handle - visible on left side */}
           <button
             {...listeners}
             {...attributes}
-            className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
+            className="sm:hidden flex-shrink-0 cursor-grab active:cursor-grabbing p-1 touch-none"
             aria-label="Drag to reorder"
             type="button"
-            style={{ touchAction: 'none' }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
               <g fill="currentColor">
@@ -140,11 +162,13 @@ function PlaceItem({
               </g>
             </svg>
           </button>
-        </div>
+        </>
       )}
     >
       {/* Mobile: Compact side-by-side layout */}
-      <article className="sm:hidden flex gap-3 p-3">
+      <div className="sm:hidden flex gap-2 p-3">
+        {/* Note: Drag handle is rendered above via renderDragHandle */}
+        
         {/* LEFT: Thumbnail - fixed square */}
         <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
           <PlacePhoto
@@ -187,8 +211,11 @@ function PlaceItem({
                 <button
                   type="button"
                   aria-expanded={isExpanded}
-                  onClick={() => setIsExpanded(!isExpanded)}
-                  className="mt-1 text-sm font-medium text-slate-900"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsExpanded(!isExpanded);
+                  }}
+                  className="mt-1 text-sm font-medium text-slate-900 hover:text-primary-600"
                 >
                   {isExpanded ? 'Show less' : 'More'}
                 </button>
@@ -196,7 +223,7 @@ function PlaceItem({
             </div>
           )}
         </div>
-      </article>
+      </div>
 
       {/* Desktop: Original layout */}
       <div className="hidden sm:flex flex-1 p-3 min-w-0">
