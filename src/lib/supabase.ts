@@ -13,19 +13,23 @@ if (typeof window !== 'undefined') {
   console.log('🔧 Supabase client initialization:', {
     url: supabaseUrl ? 'configured' : 'missing',
     key: supabaseAnonKey ? 'configured' : 'missing',
-    storageKey: 'wanderplan-auth'
+    keyLength: supabaseAnonKey ? supabaseAnonKey.length : 0,
+    keyPrefix: supabaseAnonKey ? supabaseAnonKey.substring(0, 20) + '...' : 'none',
+    storageKey: 'sb-wanderplan-auth-token'
   })
 }
 
-// Try minimal configuration to avoid hanging
+// Working configuration - gradually add features back
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      persistSession: false, // Disable session persistence temporarily
-      autoRefreshToken: false, // Disable auto refresh
-      detectSessionInUrl: false // Disable URL detection
+      persistSession: true, // Re-enable session persistence
+      autoRefreshToken: true, // Re-enable auto refresh
+      detectSessionInUrl: false, // Keep this disabled - it was causing hanging
+      storageKey: 'sb-wanderplan-auth-token', // Use different key to avoid conflicts
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }
   }
 )
