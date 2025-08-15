@@ -105,14 +105,58 @@ function PlaceItem({
   const endTime12 = formatTime12Hour(endTime24)
 
   return (
-    <DraggablePlace 
-      place={place}
-      className="group bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
-      hideDefaultHandle={true}
-      renderDragHandle={(listeners, attributes) => (
-        <>
-          {/* Desktop: Left Rail with drag handle */}
-          <div className="hidden sm:flex w-10 flex-shrink-0 flex-col items-center pt-3 bg-transparent">
+    <>
+      {/* Mobile: Simple non-draggable card */}
+      <div className="sm:hidden bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        <div className="flex gap-3 p-3">
+          {/* LEFT: Thumbnail - fixed square */}
+          <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
+            <PlacePhoto
+              placeId={place.place_id}
+              photoUrl={photoUrl || undefined}
+              placeName={place.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+          
+          {/* RIGHT: Text column */}
+          <div className="flex-1 min-w-0">
+            {/* Title */}
+            <h3 className="text-base font-semibold leading-tight break-words text-gray-900">
+              {place.name}
+            </h3>
+            
+            {/* Time and duration */}
+            <div className="mt-0.5 text-sm text-slate-600 break-words">
+              {startTime12}–{endTime12} • {place.duration || 90} min
+            </div>
+            
+            {/* Address */}
+            {place.address && (
+              <div className="mt-0.5 text-sm text-slate-600 flex items-start gap-1">
+                <MapPin className="mt-0.5 w-4 h-4 shrink-0" />
+                <span className="break-words">{place.address}</span>
+              </div>
+            )}
+            
+            {/* Notes - show full text */}
+            {place.notes && (
+              <p className="mt-1 text-sm text-slate-700 break-words">
+                {place.notes}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Desktop: Original draggable layout */}
+      <DraggablePlace 
+        place={place}
+        className="hidden sm:flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden group"
+        hideDefaultHandle={true}
+        renderDragHandle={(listeners, attributes) => (
+          /* Left Rail - Fixed 40px width */
+          <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
             {/* Numbered Stop Circle */}
             {sequenceNumber && (
               <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
@@ -141,93 +185,51 @@ function PlaceItem({
               </svg>
             </button>
           </div>
-
-        </>
-      )}
-    >
-      {/* Mobile: Simple layout without drag-and-drop */}
-      <div className="sm:hidden flex gap-3 p-3">
-        {/* LEFT: Thumbnail - fixed square */}
-        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
-          <PlacePhoto
-            placeId={place.place_id}
-            photoUrl={photoUrl || undefined}
-            placeName={place.name}
-            className="w-full h-full object-cover"
-          />
-        </div>
-        
-        {/* RIGHT: Text column */}
-        <div className="flex-1 min-w-0">
-          {/* Title */}
-          <h3 className="text-base font-semibold leading-tight break-words text-gray-900">
-            {place.name}
-          </h3>
-          
-          {/* Time and duration */}
-          <div className="mt-0.5 text-sm text-slate-600 break-words">
-            {startTime12}–{endTime12} • {place.duration || 90} min
-          </div>
-          
-          {/* Address */}
-          {place.address && (
-            <div className="mt-0.5 text-sm text-slate-600 flex items-start gap-1">
-              <MapPin className="mt-0.5 w-4 h-4 shrink-0" />
-              <span className="break-words">{place.address}</span>
+        )}
+      >
+        {/* Main Content - Auto height container */}
+        <div className="flex-1 p-3 min-w-0">
+          <div className="flex gap-3">
+            {/* Photo */}
+            <div className="flex-shrink-0">
+              <PlacePhoto
+                placeId={place.place_id}
+                photoUrl={photoUrl || undefined}
+                placeName={place.name}
+                className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md"
+              />
             </div>
-          )}
-          
-          {/* Notes - show full text */}
-          {place.notes && (
-            <p className="mt-1 text-sm text-slate-700 break-words">
-              {place.notes}
-            </p>
-          )}
-        </div>
-      </div>
 
-      {/* Desktop: Original layout */}
-      <div className="hidden sm:flex flex-1 p-3 min-w-0">
-        <div className="flex gap-3">
-          {/* Photo */}
-          <div className="flex-shrink-0">
-            <PlacePhoto
-              placeId={place.place_id}
-              photoUrl={photoUrl || undefined}
-              placeName={place.name}
-              className="w-16 h-16 object-cover rounded-md"
-            />
-          </div>
-
-          {/* Content */}
-          <div className="flex-1 min-w-0">
-            {/* Title */}
-            <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
-              {place.name}
-            </h4>
-            
-            {/* Time and duration */}
-            <div className="text-xs text-gray-500 mt-1 break-words">
-              {startTime12}–{endTime12} · {place.duration || 90} min
-            </div>
-            
-            {/* Address */}
-            {place.address && (
+            {/* Content - Auto height with proper text wrapping */}
+            <div className="flex-1 min-w-0">
+              {/* Title - wrap text properly */}
+              <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
+                {place.name}
+              </h4>
+              
+              {/* Time and duration - always visible */}
               <div className="text-xs text-gray-500 mt-1 break-words">
-                📍 {place.address}
+                {startTime12}–{endTime12} · {place.duration || 90} min
               </div>
-            )}
-            
-            {/* Notes */}
-            {place.notes && (
-              <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
-                {place.notes}
-              </p>
-            )}
+              
+              {/* Address - wrap text properly */}
+              {place.address && (
+                <div className="text-xs text-gray-500 mt-1 break-words">
+                  📍 {place.address}
+                </div>
+              )}
+              
+              {/* Notes - show full text with proper wrapping */}
+              {place.notes && (
+                <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
+                  {place.notes}
+                </p>
+              )}
+            </div>
           </div>
         </div>
-      </div>
-    </DraggablePlace>
+      </DraggablePlace>
+    </>
   )
 }
 
