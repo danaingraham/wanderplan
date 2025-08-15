@@ -91,7 +91,6 @@ function PlaceItem({
   sequenceNumber
 }: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-  const [isExpanded, setIsExpanded] = useState(false)
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -143,20 +142,11 @@ function PlaceItem({
             </button>
           </div>
 
-          {/* Mobile: Invisible drag area that covers the card except interactive elements */}
-          <div
-            {...listeners}
-            {...attributes}
-            className="sm:hidden absolute inset-0 z-0"
-            aria-label="Drag to reorder"
-            style={{ touchAction: 'none' }}
-          />
         </>
       )}
     >
-      {/* Mobile: Compact side-by-side layout */}
-      <div className="sm:hidden flex gap-3 p-3 relative">{/* Added relative for z-index context */}
-        
+      {/* Mobile: Simple layout without drag-and-drop */}
+      <div className="sm:hidden flex gap-3 p-3">
         {/* LEFT: Thumbnail - fixed square */}
         <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
           <PlacePhoto
@@ -167,51 +157,31 @@ function PlaceItem({
           />
         </div>
         
-        {/* RIGHT: Text column - flexible with min-w-0 to prevent clipping */}
+        {/* RIGHT: Text column */}
         <div className="flex-1 min-w-0">
-          {/* Title - wrap properly, max 2 lines */}
-          <h3 className="text-base font-semibold leading-tight break-words line-clamp-2 text-gray-900">
+          {/* Title */}
+          <h3 className="text-base font-semibold leading-tight break-words text-gray-900">
             {place.name}
           </h3>
           
-          {/* Meta: time + duration - allow wrapping */}
-          <div className="mt-0.5 text-sm text-slate-600 whitespace-normal break-words">
+          {/* Time and duration */}
+          <div className="mt-0.5 text-sm text-slate-600 break-words">
             {startTime12}–{endTime12} • {place.duration || 90} min
           </div>
           
-          {/* Address - wrap, do NOT truncate */}
+          {/* Address */}
           {place.address && (
             <div className="mt-0.5 text-sm text-slate-600 flex items-start gap-1">
               <MapPin className="mt-0.5 w-4 h-4 shrink-0" />
-              <span className="min-w-0 break-words whitespace-normal">{place.address}</span>
+              <span className="break-words">{place.address}</span>
             </div>
           )}
           
-          {/* Description - collapsible */}
+          {/* Notes - show full text */}
           {place.notes && (
-            <div className="mt-1">
-              <p className={`text-sm text-slate-700 whitespace-normal break-words [overflow-wrap:anywhere] ${
-                !isExpanded ? 'line-clamp-2' : ''
-              }`}>
-                {place.notes}
-              </p>
-              {place.notes.length > 100 && (
-                <button
-                  type="button"
-                  aria-expanded={isExpanded}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    setIsExpanded(!isExpanded);
-                  }}
-                  className="relative z-10 mt-1 text-sm font-medium text-slate-900 hover:text-primary-600 active:text-primary-700"
-                  onPointerDown={(e) => e.stopPropagation()}
-                  onTouchStart={(e) => e.stopPropagation()}
-                >
-                  {isExpanded ? 'Show less' : 'More'}
-                </button>
-              )}
-            </div>
+            <p className="mt-1 text-sm text-slate-700 break-words">
+              {place.notes}
+            </p>
           )}
         </div>
       </div>
@@ -1118,24 +1088,22 @@ export function TripDetail() {
                               aria-hidden={isCollapsed}
                             >
                               <div className="pt-3 space-y-2">
-                                <DroppableArea day={day} places={places}>
-                                  {dayPlaces.map((place, placeIndex) => {
-                                    const daySequenceNumber = placeIndex + 1
-                                    
-                                    return (
-                                      <div 
-                                        key={place.id}
-                                        className="animate-fade-in"
-                                        style={{ animationDelay: `${placeIndex * 0.1}s` }}
-                                      >
-                                        <PlaceItem
-                                          place={place}
-                                          sequenceNumber={daySequenceNumber}
-                                        />
-                                      </div>
-                                    )
-                                  })}
-                                </DroppableArea>
+                                {dayPlaces.map((place, placeIndex) => {
+                                  const daySequenceNumber = placeIndex + 1
+                                  
+                                  return (
+                                    <div 
+                                      key={place.id}
+                                      className="animate-fade-in"
+                                      style={{ animationDelay: `${placeIndex * 0.1}s` }}
+                                    >
+                                      <PlaceItem
+                                        place={place}
+                                        sequenceNumber={daySequenceNumber}
+                                      />
+                                    </div>
+                                  )
+                                })}
                               </div>
                             </div>
                           </div>
