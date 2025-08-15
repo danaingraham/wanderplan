@@ -241,6 +241,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // Periodic auth state validation to catch unexpected logouts
   useEffect(() => {
     if (!isInitialized) return
+    
+    // Skip validation if using Supabase (it has its own session management)
+    if (isUsingSupabase) return
 
     const validateAuthState = () => {
       const authToken = storage.get<string>('authToken')
