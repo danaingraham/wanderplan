@@ -144,55 +144,59 @@ function PlaceItem({
       )}
     >
       {/* Mobile: Compact side-by-side layout */}
-      <div className="sm:hidden flex gap-3 p-3">
-        {/* Thumbnail - fixed square */}
-        <div className="flex-shrink-0">
+      <article className="sm:hidden flex gap-3 p-3">
+        {/* LEFT: Thumbnail - fixed square */}
+        <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
           <PlacePhoto
             placeId={place.place_id}
             photoUrl={photoUrl || undefined}
             placeName={place.name}
-            className="w-16 h-16 object-cover rounded-lg"
+            className="w-full h-full object-cover"
           />
         </div>
         
-        {/* Content area - prioritized hierarchy */}
+        {/* RIGHT: Text column - flexible with min-w-0 to prevent clipping */}
         <div className="flex-1 min-w-0">
-          {/* Title - most important, can take 2 lines */}
-          <h4 className="text-base font-semibold leading-tight line-clamp-2 text-gray-900">
+          {/* Title - wrap properly, max 2 lines */}
+          <h3 className="text-base font-semibold leading-tight break-words line-clamp-2 text-gray-900">
             {place.name}
-          </h4>
+          </h3>
           
-          {/* Time and duration */}
-          <div className="mt-0.5 text-sm text-slate-600">
+          {/* Meta: time + duration - allow wrapping */}
+          <div className="mt-0.5 text-sm text-slate-600 whitespace-normal break-words">
             {startTime12}–{endTime12} • {place.duration || 90} min
           </div>
           
-          {/* Location with pin icon */}
+          {/* Address - wrap, do NOT truncate */}
           {place.address && (
-            <div className="mt-0.5 text-sm text-slate-600 flex items-center gap-1 line-clamp-1">
-              <MapPin className="w-3 h-3 flex-shrink-0" />
-              <span className="truncate">{place.address}</span>
+            <div className="mt-0.5 text-sm text-slate-600 flex items-start gap-1">
+              <MapPin className="mt-0.5 w-4 h-4 shrink-0" />
+              <span className="min-w-0 break-words whitespace-normal">{place.address}</span>
             </div>
           )}
           
-          {/* Notes - truncated with expansion option */}
+          {/* Description - collapsible */}
           {place.notes && (
             <div className="mt-1">
-              <p className={`text-sm text-slate-700 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+              <p className={`text-sm text-slate-700 whitespace-normal break-words [overflow-wrap:anywhere] ${
+                !isExpanded ? 'line-clamp-2' : ''
+              }`}>
                 {place.notes}
               </p>
               {place.notes.length > 100 && (
                 <button
+                  type="button"
+                  aria-expanded={isExpanded}
                   onClick={() => setIsExpanded(!isExpanded)}
-                  className="text-xs text-primary-600 hover:text-primary-700 mt-1"
+                  className="mt-1 text-sm font-medium text-slate-900"
                 >
-                  {isExpanded ? 'Show less' : 'Show more'}
+                  {isExpanded ? 'Show less' : 'More'}
                 </button>
               )}
             </div>
           )}
         </div>
-      </div>
+      </article>
 
       {/* Desktop: Original layout */}
       <div className="hidden sm:flex flex-1 p-3 min-w-0">
