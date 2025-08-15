@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Edit2, Trash2, Check, X, Plus, RefreshCw } from 'lucide-react'
+import { MapPin, Trash2, Check, X, Plus, RefreshCw, Edit2 } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { useUser } from '../contexts/UserContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
@@ -79,7 +79,7 @@ function getDayDate(startDate: string, dayNumber: number): Date {
 
 
 
-// SIMPLIFIED PlaceItem - No edit/delete functionality
+// SIMPLIFIED PlaceItem - No edit functionality
 interface PlaceItemProps {
   place: Place
   sequenceNumber?: number
@@ -91,15 +91,7 @@ function PlaceItem({
   sequenceNumber
 }: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-  const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState({
-    name: place.name,
-    start_time: place.start_time || '09:00',
-    duration: place.duration || 90,
-    notes: place.notes || '',
-    address: place.address || ''
-  })
-  const { updatePlace, deletePlace } = useTrips()
+  const { deletePlace } = useTrips()
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -109,34 +101,9 @@ function PlaceItem({
   }, [place.photo_url])
 
 
-  const endTime24 = isEditing 
-    ? calculateEndTime(editData.start_time, editData.duration)
-    : (place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90))
-  const startTime12 = formatTime12Hour(isEditing ? editData.start_time : (place.start_time || '09:00'))
+  const endTime24 = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
+  const startTime12 = formatTime12Hour(place.start_time || '09:00')
   const endTime12 = formatTime12Hour(endTime24)
-
-  const handleSaveEdit = () => {
-    updatePlace(place.id, {
-      name: editData.name,
-      start_time: editData.start_time,
-      duration: editData.duration,
-      notes: editData.notes,
-      address: editData.address,
-      end_time: calculateEndTime(editData.start_time, editData.duration)
-    })
-    setIsEditing(false)
-  }
-
-  const handleCancelEdit = () => {
-    setEditData({
-      name: place.name,
-      start_time: place.start_time || '09:00',
-      duration: place.duration || 90,
-      notes: place.notes || '',
-      address: place.address || ''
-    })
-    setIsEditing(false)
-  }
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to remove "${place.name}" from your itinerary?`)) {
@@ -192,119 +159,59 @@ function PlaceItem({
       {/* Desktop: Original draggable layout */}
       <DraggablePlace 
         place={place}
-        className="hidden sm:flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden group"
+        className="hidden sm:block bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden group"
         hideDefaultHandle={true}
         renderDragHandle={(listeners, attributes) => (
-          /* Left Rail - Fixed 40px width */
-          <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
-            {/* Numbered Stop Circle */}
-            {sequenceNumber && (
-              <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-semibold">{sequenceNumber}</span>
-              </div>
-            )}
-            
-            {/* Drag Handle - visible on hover */}
-            <button
-              {...listeners}
-              {...attributes}
-              className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
-              aria-label="Drag to reorder"
-              type="button"
-              style={{ touchAction: 'none' }}
-            >
-              <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
-                <g fill="currentColor">
-                  <circle cx="5" cy="3" r="1.5"/>
-                  <circle cx="11" cy="3" r="1.5"/>
-                  <circle cx="5" cy="8" r="1.5"/>
-                  <circle cx="11" cy="8" r="1.5"/>
-                  <circle cx="5" cy="13" r="1.5"/>
-                  <circle cx="11" cy="13" r="1.5"/>
-                </g>
-              </svg>
-            </button>
-          </div>
-        )}
-      >
-        {/* Main Content - Auto height container */}
-        <div className="flex-1 p-3 min-w-0">
-          {isEditing ? (
-            /* Edit Mode */
-            <div className="space-y-3">
-              <input
-                type="text"
-                value={editData.name}
-                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Place name"
-              />
+            /* Left Rail - Fixed 40px width */
+            <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
+              {/* Numbered Stop Circle */}
+              {sequenceNumber && (
+                <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-semibold">{sequenceNumber}</span>
+                </div>
+              )}
               
-              <div className="flex gap-2">
-                <input
-                  type="time"
-                  value={editData.start_time}
-                  onChange={(e) => setEditData({ ...editData, start_time: e.target.value })}
-                  className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                />
-                <input
-                  type="number"
-                  value={editData.duration}
-                  onChange={(e) => setEditData({ ...editData, duration: parseInt(e.target.value) || 90 })}
-                  className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  placeholder="Duration (min)"
-                />
-              </div>
-              
-              <input
-                type="text"
-                value={editData.address}
-                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
-                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="Address"
-              />
-              
-              <textarea
-                value={editData.notes}
-                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
-                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
-                rows={2}
-                placeholder="Notes"
-              />
-              
-              <div className="flex gap-2">
-                <button
-                  onClick={handleSaveEdit}
-                  className="flex items-center gap-1 px-2 py-1 bg-primary-500 text-white text-xs rounded hover:bg-primary-600"
-                >
-                  <Check className="w-3 h-3" />
-                  Save
-                </button>
-                <button
-                  onClick={handleCancelEdit}
-                  className="flex items-center gap-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
-                >
-                  <X className="w-3 h-3" />
-                  Cancel
-                </button>
-              </div>
+              {/* Drag Handle - visible on hover */}
+              <button
+                {...listeners}
+                {...attributes}
+                className="mt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 cursor-grab active:cursor-grabbing p-1"
+                aria-label="Drag to reorder"
+                type="button"
+                style={{ touchAction: 'none' }}
+              >
+                <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
+                  <g fill="currentColor">
+                    <circle cx="5" cy="3" r="1.5"/>
+                    <circle cx="11" cy="3" r="1.5"/>
+                    <circle cx="5" cy="8" r="1.5"/>
+                    <circle cx="11" cy="8" r="1.5"/>
+                    <circle cx="5" cy="13" r="1.5"/>
+                    <circle cx="11" cy="13" r="1.5"/>
+                  </g>
+                </svg>
+              </button>
             </div>
-          ) : (
-            /* Normal View Mode */
+          )}
+        >
+          {/* Main Content - Auto height container */}
+          <div className="p-3 min-w-0">
             <div className="relative">
               {/* Hover Actions - positioned absolutely */}
-              <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+              <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1 z-10">
                 <button
-                  onClick={() => setIsEditing(true)}
-                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
-                  aria-label="Edit place"
-                >
-                  <Edit2 className="w-3.5 h-3.5 text-gray-600" />
-                </button>
-                <button
-                  onClick={handleDelete}
-                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-red-50 transition-colors"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    handleDelete();
+                  }}
+                  onMouseDown={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                  }}
+                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-red-50 transition-colors pointer-events-auto"
                   aria-label="Delete place"
+                  type="button"
                 >
                   <Trash2 className="w-3.5 h-3.5 text-red-500" />
                 </button>
@@ -349,7 +256,6 @@ function PlaceItem({
                 </div>
               </div>
             </div>
-          )}
         </div>
       </DraggablePlace>
     </>
@@ -397,9 +303,6 @@ export function TripDetail() {
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
   
-  console.log('🔍 TripDetail: Component rendered with trip ID:', id)
-  console.log('🔍 TripDetail: Trip found:', !!trip)
-  console.log('🔍 TripDetail: Places found:', places.length)
 
   // Initialize collapsed days (start with all expanded)
   useEffect(() => {
@@ -1215,10 +1118,11 @@ export function TripDetail() {
                               <div className="pt-3 space-y-2">
                                 {dayPlaces.map((place, placeIndex) => {
                                   const daySequenceNumber = placeIndex + 1
+                                  const placeId = place.id; // Capture the ID to avoid closure issues
                                   
                                   return (
                                     <div 
-                                      key={place.id}
+                                      key={placeId}
                                       className="animate-fade-in"
                                       style={{ animationDelay: `${placeIndex * 0.1}s` }}
                                     >
@@ -1370,10 +1274,11 @@ export function TripDetail() {
                                   {dayPlaces.map((place, placeIndex) => {
                                     // Calculate sequence number that resets for each day
                                     const daySequenceNumber = placeIndex + 1
+                                    const placeId = place.id; // Capture the ID to avoid closure issues
                                     
                                     return (
                                       <div 
-                                        key={place.id}
+                                        key={placeId}
                                         className="animate-fade-in"
                                         style={{ animationDelay: `${placeIndex * 0.1}s` }}
                                       >

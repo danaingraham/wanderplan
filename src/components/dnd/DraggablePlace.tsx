@@ -74,12 +74,6 @@ export const DraggablePlace = React.memo(({
           {/* Drag handle area */}
           <div 
             className="flex-shrink-0"
-            {...listeners}
-            {...attributes}
-            style={{ 
-              touchAction: 'none',
-              cursor: isDragging ? 'grabbing' : 'grab'
-            }}
           >
             {renderDragHandle(listeners, attributes)}
           </div>
