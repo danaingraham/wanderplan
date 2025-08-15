@@ -37,17 +37,28 @@ export const supabaseAuth = {
   // Sign in with email and password
   async signIn(email: string, password: string): Promise<AuthResponse> {
     try {
+      console.log('[supabaseAuth] Attempting sign in for:', email)
+      
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
       })
 
       if (error) {
+        console.error('[supabaseAuth] Sign in error:', error)
         return { error: { message: error.message, code: error.code } }
       }
 
+      console.log('[supabaseAuth] Sign in successful, user:', data.user?.email)
+      console.log('[supabaseAuth] Session exists:', !!data.session)
+      
+      // Verify session was stored
+      const { data: sessionCheck } = await supabase.auth.getSession()
+      console.log('[supabaseAuth] Session check after login:', !!sessionCheck.session)
+
       return { data }
     } catch (error: any) {
+      console.error('[supabaseAuth] Unexpected error:', error)
       return { error: { message: error.message || 'Sign in failed' } }
     }
   },
