@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { DestinationAutocomplete } from './DestinationAutocomplete'
 import { DateRangePicker } from './DateRangePicker'
 
@@ -19,6 +19,7 @@ interface TripPlanningFormProps {
   onSubmit: (data: TripFormData) => void
   onDataChange?: (data: TripFormData) => void
   initialData?: Partial<TripFormData>
+  isGenerating?: boolean
 }
 
 const tripTypeOptions = [
@@ -57,39 +58,19 @@ const interestOptions = [
 const generateTripTitle = (destination: string, startDate: string, endDate: string, tripType: string): string => {
   if (!destination) return ''
   
-  const start = new Date(startDate)
-  const end = new Date(endDate)
-  const duration = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  
-  // Format dates based on trip length and timing
-  let dateString = ''
-  if (startDate && endDate) {
-    if (duration <= 3) {
-      dateString = `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}-${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
-    } else if (duration <= 14) {
-      dateString = `${duration} Days`
-    } else {
-      dateString = `${start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`
-    }
-  }
-  
   // Get trip type label
   const typeOption = tripTypeOptions.find(opt => opt.value === tripType)
   const typeLabel = typeOption ? typeOption.label.replace(/[^\w\s]/g, '').trim() : ''
   
-  // Generate title variations
-  if (typeLabel && dateString) {
-    return `${destination} ${typeLabel} - ${dateString}`
-  } else if (dateString) {
-    return `${destination} Trip - ${dateString}`
-  } else if (typeLabel) {
+  // Generate title without dates
+  if (typeLabel) {
     return `${destination} ${typeLabel}`
   } else {
     return `${destination} Adventure`
   }
 }
 
-export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPlanningFormProps) {
+export function TripPlanningForm({ onSubmit, onDataChange, initialData, isGenerating }: TripPlanningFormProps) {
   const [formData, setFormData] = useState<TripFormData>({
     destination: '',
     destinationCoords: null,
@@ -105,6 +86,7 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
 
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [newCustomItem, setNewCustomItem] = useState('')
+  const [showOptional, setShowOptional] = useState(false)
 
   // Auto-generate title when key fields change
   useEffect(() => {
@@ -146,6 +128,10 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
 
     if (formData.startDate && formData.endDate && new Date(formData.endDate) <= new Date(formData.startDate)) {
       newErrors.endDate = 'End date must be after start date'
+    }
+
+    if (!formData.travelPace) {
+      newErrors.travelPace = 'Please select your travel pace'
     }
 
     setErrors(newErrors)
@@ -221,59 +207,17 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
               endDate={formData.endDate}
               onStartDateChange={(date) => updateFormData({ startDate: date })}
               onEndDateChange={(date) => updateFormData({ endDate: date })}
-              placeholder="Click to select your travel dates"
+              placeholder="Select travel dates"
               minDate={new Date()}
               error={errors.startDate || errors.endDate}
             />
           </div>
 
-          {duration > 0 && (
-            <div className="text-center">
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
-                {duration} day{duration !== 1 ? 's' : ''} trip
-              </span>
-            </div>
-          )}
-        </div>
-
-        {/* Divider */}
-        <div className="relative mb-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-white text-gray-500">Want to customize? (Optional)</span>
-          </div>
-        </div>
-
-        {/* Optional Customizations */}
-        <div className="space-y-6">
-          
-          {/* Trip Type - Simplified */}
+          {/* Travel Pace - Now Required */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Trip type</label>
-            <div className="grid grid-cols-2 gap-3">
-              {tripTypeOptions.slice(0, 6).map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => updateFormData({ tripType: option.value })}
-                  className={`p-3 rounded-lg border text-left transition-all ${
-                    formData.tripType === option.value
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300'
-                  }`}
-                >
-                  <div className="text-sm font-medium">{option.label}</div>
-                </button>
-              ))}
-            </div>
-          </div>
-
-
-          {/* Travel Pace - Simplified */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Travel pace</label>
+            <label className="block text-sm font-medium text-gray-900 mb-2">
+              Travel pace *
+            </label>
             <div className="grid grid-cols-3 gap-3">
               {travelPaceOptions.map((option) => (
                 <button
@@ -291,46 +235,96 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
                 </button>
               ))}
             </div>
+            {errors.travelPace && (
+              <p className="mt-1 text-sm text-red-600">{errors.travelPace}</p>
+            )}
           </div>
 
-          {/* Interests - Compact */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Interests</label>
-            <div className="flex flex-wrap gap-2">
-              {interestOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() => toggleInterest(option.value)}
-                  className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border transition-all ${
-                    formData.interests.includes(option.value)
-                      ? 'border-blue-500 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 hover:border-gray-300 text-gray-700'
-                  }`}
-                >
-                  <span>{option.icon}</span>
-                  <span>{option.label}</span>
-                </button>
-              ))}
+          {duration > 0 && (
+            <div className="text-center">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700">
+                {duration} day{duration !== 1 ? 's' : ''} trip
+              </span>
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Custom Items - Simplified */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-3">Must-visit places</label>
-            <div className="flex gap-2 mb-3">
-              <input
-                type="text"
-                value={newCustomItem}
-                onChange={(e) => setNewCustomItem(e.target.value)}
-                onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomItem())}
-                placeholder="Add specific places you want to visit..."
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+        {/* Optional Section - Collapsible */}
+        <div className="mt-8">
+          <button
+            type="button"
+            onClick={() => setShowOptional(!showOptional)}
+            className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+          >
+            <span className="text-sm font-medium text-gray-700">Additional preferences (optional)</span>
+            {showOptional ? (
+              <ChevronUp className="h-5 w-5 text-gray-500" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-gray-500" />
+            )}
+          </button>
+
+          {showOptional && (
+            <div className="mt-6 space-y-6">
+              {/* Trip Type */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Trip type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  {tripTypeOptions.slice(0, 6).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => updateFormData({ tripType: option.value })}
+                      className={`p-3 rounded-lg border text-left transition-all ${
+                        formData.tripType === option.value
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300'
+                      }`}
+                    >
+                      <div className="text-sm font-medium">{option.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Interests */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Interests</label>
+                <div className="flex flex-wrap gap-2">
+                  {interestOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => toggleInterest(option.value)}
+                      className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-full text-sm border transition-all ${
+                        formData.interests.includes(option.value)
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700'
+                      }`}
+                    >
+                      <span>{option.icon}</span>
+                      <span>{option.label}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Custom Items */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-3">Must-visit places</label>
+                <div className="flex gap-2 mb-3">
+                  <input
+                    type="text"
+                    value={newCustomItem}
+                    onChange={(e) => setNewCustomItem(e.target.value)}
+                    onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addCustomItem())}
+                    placeholder="Add specific places you want to visit..."
+                    className="flex-1 px-3 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <button
                 type="button"
                 onClick={addCustomItem}
-                className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                className="px-3 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"
               >
                 <Plus className="w-4 h-4" />
               </button>
@@ -355,7 +349,9 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
                 ))}
               </div>
             )}
-          </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -373,9 +369,10 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData }: TripPl
       <div className="text-center">
         <button
           type="submit"
-          className="bg-green-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-green-700 transition-colors"
+          disabled={isGenerating}
+          className="bg-primary-500 text-white px-8 py-3 rounded-lg font-medium hover:bg-primary-600 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
-          Review & generate trip
+          {isGenerating ? 'Generating your trip...' : 'Generate trip'}
         </button>
       </div>
     </form>

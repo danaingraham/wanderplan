@@ -209,7 +209,7 @@ export function DateRangePicker({
       )}
       
       {isOpen && (
-        <div className="absolute z-[90] mt-1 bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-80">
+        <div className="absolute z-[90] mt-1 bg-white rounded-xl shadow-lg border border-gray-200 p-4 w-80 left-1/2 -translate-x-1/2 md:left-0 md:translate-x-0">
           <div className="flex items-center justify-between mb-4">
             <button
               type="button"
@@ -230,15 +230,6 @@ export function DateRangePicker({
             </button>
           </div>
 
-          {/* Instructions */}
-          <div className="mb-3 p-2 bg-blue-50 rounded-lg">
-            <p className="text-xs text-blue-700">
-              {selectingStart || !selectedStartDate 
-                ? "Click to select start date" 
-                : "Click to select end date, double-click to start new range"
-              }
-            </p>
-          </div>
           
           <div className="grid grid-cols-7 gap-1 mb-2">
             {['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'].map(day => (
