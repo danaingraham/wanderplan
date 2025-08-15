@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Search, Plus, User } from 'lucide-react'
+import { Home, Compass, Plus } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 export function MobileNav() {
@@ -7,9 +7,8 @@ export function MobileNav() {
 
   const navItems = [
     { to: '/', icon: Home, label: 'Home' },
-    { to: '/explore', icon: Search, label: 'Explore' },
     { to: '/create', icon: Plus, label: 'Create', isCreate: true },
-    { to: '/profile', icon: User, label: 'Profile' }
+    { to: '/explore', icon: Compass, label: 'Explore' }
   ]
 
   return (
@@ -24,10 +23,10 @@ export function MobileNav() {
               location.pathname === to
                 ? "text-primary-600"
                 : "text-gray-500 hover:text-gray-700",
-              isCreate && "bg-primary-500 text-white hover:bg-primary-600 -mt-4 shadow-lg"
+              isCreate && "bg-primary-500 text-white hover:bg-primary-600 -mt-6 shadow-lg rounded-full p-4"
             )}
           >
-            <Icon className={cn("h-6 w-6", isCreate ? "h-7 w-7" : "")} />
+            <Icon className={cn("h-6 w-6", isCreate ? "h-8 w-8" : "")} />
             <span className={cn("text-xs mt-1 font-medium", isCreate ? "hidden" : "")}>
               {label}
             </span>

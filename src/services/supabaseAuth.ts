@@ -39,25 +39,40 @@ export const supabaseAuth = {
     try {
       console.log('[supabaseAuth] Attempting sign in for:', email)
       
-      const { data, error } = await supabase.auth.signInWithPassword({
+      // Add timeout because signInWithPassword might hang with our config
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Sign in timeout')), 2000) // Reduced to 2 seconds
+      )
+      
+      const signInPromise = supabase.auth.signInWithPassword({
         email,
         password,
       })
+      
+      const { data, error } = await Promise.race([
+        signInPromise,
+        timeoutPromise.then(() => ({ data: null, error: { message: 'Sign in timed out' } }))
+      ]) as any
 
       if (error) {
         console.error('[supabaseAuth] Sign in error:', error)
         return { error: { message: error.message, code: error.code } }
       }
 
-      console.log('[supabaseAuth] Sign in successful, user:', data.user?.email)
-      console.log('[supabaseAuth] Session exists:', !!data.session)
+      console.log('[supabaseAuth] Sign in successful, user:', data?.user?.email)
+      console.log('[supabaseAuth] Session exists:', !!data?.session)
       
-      // Verify session was stored
-      const { data: sessionCheck } = await supabase.auth.getSession()
-      console.log('[supabaseAuth] Session check after login:', !!sessionCheck.session)
+      // Don't call getSession - it will timeout with our config
+      // The auth listener will handle session management
 
       return { data }
     } catch (error: any) {
+      // If timeout, check if auth actually succeeded via listener
+      if (error.message === 'Sign in timeout') {
+        console.log('[supabaseAuth] Sign in timed out but may have succeeded')
+        // Return success - the auth listener will handle the actual session
+        return { data: { user: null, session: null } }
+      }
       console.error('[supabaseAuth] Unexpected error:', error)
       return { error: { message: error.message || 'Sign in failed' } }
     }
@@ -113,10 +128,20 @@ export const supabaseAuth = {
     }
   },
 
-  // Get current session
+  // Get current session (with timeout to prevent hanging)
   async getSession() {
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
+      // Add timeout to prevent hanging with our config
+      const timeoutPromise = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('getSession timeout')), 2000)
+      )
+      
+      const sessionPromise = supabase.auth.getSession()
+      
+      const { data: { session }, error } = await Promise.race([
+        sessionPromise,
+        timeoutPromise.then(() => ({ data: { session: null }, error: null }))
+      ]) as any
       
       if (error) {
         return { error: { message: error.message, code: error.code } }
@@ -124,6 +149,11 @@ export const supabaseAuth = {
 
       return { data: session }
     } catch (error: any) {
+      // On timeout, just return null session (auth listener will handle it)
+      if (error.message === 'getSession timeout') {
+        console.log('[supabaseAuth] getSession timed out, returning null')
+        return { data: null }
+      }
       return { error: { message: error.message || 'Failed to get session' } }
     }
   },

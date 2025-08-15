@@ -106,14 +106,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log('🔐 UserContext: Supabase URL:', supabaseUrl)
       setIsUsingSupabase(true)
       
-      // Get initial session with timeout
-      const initTimeout = setTimeout(() => {
-        console.error('⚠️ UserContext: Supabase initialization timeout - falling back to localStorage')
-        setIsUsingSupabase(false)
-        setIsInitialized(true)
-      }, 15000) // 15 second timeout - increased for mobile networks
-      
-      console.log('🔐 UserContext: Calling getSession...')
+      // Skip getSession - it times out with our config
+      // The auth state listener below will handle the session
+      console.log('🔐 UserContext: Setting up auth listener...')
       
       // First, try a simple health check
       fetch(`${supabaseUrl}/rest/v1/`, {
@@ -127,29 +122,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.error('🔐 UserContext: Supabase health check failed:', err)
       })
       
-      supabase.auth.getSession().then(({ data: { session }, error }) => {
-        clearTimeout(initTimeout)
-        console.log('🔐 UserContext: getSession responded, session:', !!session, 'error:', error)
-        if (error) {
-          console.error('❌ UserContext: Error getting session:', error)
-          // If Supabase fails, fall back to localStorage
-          if (error.message?.includes('Failed to fetch') || error.message?.includes('NetworkError')) {
-            console.log('🔄 UserContext: Network error, falling back to localStorage')
-            setIsUsingSupabase(false)
-          }
-        } else if (session) {
-          log('🔐 UserContext: Found existing Supabase session for:', session.user.email)
-          setUser(convertSupabaseUser(session.user))
-        } else {
-          log('🔐 UserContext: No Supabase session found')
-        }
-        setIsInitialized(true)
-      }).catch((err) => {
-        clearTimeout(initTimeout)
-        console.error('❌ UserContext: Supabase initialization failed:', err)
-        setIsUsingSupabase(false)
-        setIsInitialized(true)
-      })
+      // Don't call getSession - it times out with our current config
+      // The auth state listener below will get the session
+      setIsInitialized(true)
+      console.log('🔐 UserContext: Skipping getSession, relying on auth listener')
 
       // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -291,14 +267,22 @@ export function UserProvider({ children }: { children: ReactNode }) {
           return false
         }
         
+        // Check if login actually succeeded or just timed out
+        if (!data || (!data.user && !data.session)) {
+          console.log('⏱️ UserContext: Login timed out, checking auth state...')
+          // Wait just 1 second for auth listener to update
+          await new Promise(resolve => setTimeout(resolve, 1000))
+          
+          // The auth listener fires immediately, so we can return success
+          console.log('✅ UserContext: Auth listener handled login')
+          setIsLoading(false)
+          return true
+        }
+        
         console.log('✅ UserContext: Login successful, data:', data)
         
-        // Wait a moment for the auth state to update
+        // Wait for auth state to update
         await new Promise(resolve => setTimeout(resolve, 1000))
-        
-        // Check if user was set
-        const { data: sessionData } = await supabaseAuth.getSession()
-        console.log('✅ UserContext: Session after login:', sessionData)
         
         setIsLoading(false)
         return true

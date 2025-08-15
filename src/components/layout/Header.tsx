@@ -113,15 +113,6 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
             </Link>
             
             <div className="flex items-center space-x-2">
-              {showCreateTrip && !isSettings && (
-                <Link
-                  to="/create"
-                  className="btn-primary flex items-center"
-                >
-                  <Plus className="h-5 w-5" />
-                </Link>
-              )}
-              
               <div className="relative">
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}

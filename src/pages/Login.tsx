@@ -27,7 +27,7 @@ export function Login() {
       
       // Add a timeout to prevent infinite hanging
       const timeoutPromise = new Promise<boolean>((_, reject) => {
-        setTimeout(() => reject(new Error('Login timeout')), 15000) // 15 second timeout
+        setTimeout(() => reject(new Error('Login timeout')), 5000) // Reduced to 5 seconds
       })
       
       const loginPromise = login(email, password)

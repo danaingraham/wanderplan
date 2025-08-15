@@ -25,38 +25,23 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Most stable configuration - disable features that cause intermittent hanging
+// Attempt to re-enable session persistence with minimal config
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      persistSession: false, // DISABLE - causes intermittent hanging
-      autoRefreshToken: false, // Keep disabled
-      detectSessionInUrl: false, // Keep disabled
-      // Remove storage completely when not persisting
+      persistSession: true, // Re-enable to keep sessions
+      autoRefreshToken: false, // Keep disabled to prevent hanging
+      detectSessionInUrl: false, // Keep disabled - was causing hanging
+      storageKey: 'sb-auth-token', // Simple key
+      storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }
   }
 )
 
-// Test the client immediately with a timeout
-if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
-  const testTimeout = setTimeout(() => {
-    console.error('🔧 Supabase client test timeout - getSession not responding')
-  }, 3000)
-  
-  supabase.auth.getSession().then(({ data, error }) => {
-    clearTimeout(testTimeout)
-    if (error) {
-      console.error('🔧 Supabase client test failed:', error)
-    } else {
-      console.log('🔧 Supabase client test successful, session:', !!data.session)
-    }
-  }).catch(err => {
-    clearTimeout(testTimeout)
-    console.error('🔧 Supabase client test error:', err)
-  })
-}
+// Don't test getSession here - it times out due to our config
+// The auth state listener in UserContext handles session management
 
 // Database types (will be generated from your Supabase schema)
 export interface Profile {

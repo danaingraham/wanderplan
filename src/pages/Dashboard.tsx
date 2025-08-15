@@ -145,7 +145,7 @@ export function Dashboard() {
                       <RefreshCw className="h-5 w-5" />
                       <span>Recover My Trips</span>
                     </button>
-                    <Link to="/create" className="btn-secondary inline-flex items-center space-x-2">
+                    <Link to="/create" className="hidden md:inline-flex btn-secondary items-center space-x-2">
                       <Plus className="h-5 w-5" />
                       <span>Create New Trip</span>
                     </Link>
@@ -162,10 +162,9 @@ export function Dashboard() {
                   <p className="text-gray-500 mb-6 text-sm sm:text-base px-4">
                     Create a new trip and let our AI help you discover amazing places and build the perfect itinerary.
                   </p>
-                  <Link to="/create" className="btn-primary inline-flex items-center space-x-2">
+                  <Link to="/create" className="hidden md:inline-flex btn-primary items-center space-x-2">
                     <Plus className="h-5 w-5" />
-                    <span className="hidden sm:inline">Plan New Trip</span>
-                    <span className="sm:hidden">New Trip</span>
+                    <span>Plan New Trip</span>
                   </Link>
                 </>
               )}
