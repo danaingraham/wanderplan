@@ -1050,35 +1050,55 @@ export function TripDetail() {
                 
                 {/* Map Panel with Day Filter Overlay */}
                 <div className="rounded-xl overflow-hidden border border-gray-200 h-[40vh] min-h-[300px] lg:h-auto relative">
-                  {/* Day Filter Pills - Overlay on Map */}
+                  {/* Day Filter - Dropdown on mobile, pills on desktop */}
                   {days.length > 1 && (
-                    <div className="absolute top-3 right-3" style={{ zIndex: 500 }}>
-                      <div className="flex flex-wrap gap-2 justify-end">
-                        <button
-                          onClick={() => setMapSelectedDay(undefined)}
-                          className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all shadow-md backdrop-blur-sm whitespace-nowrap ${
-                            mapSelectedDay === undefined
-                              ? 'bg-primary-500 text-white'
-                              : 'bg-white/90 text-gray-700 hover:bg-white'
-                          }`}
+                    <>
+                      {/* Mobile: Dropdown */}
+                      <div className="absolute top-3 right-3 sm:hidden" style={{ zIndex: 500 }}>
+                        <select
+                          value={mapSelectedDay === undefined ? 'all' : mapSelectedDay.toString()}
+                          onChange={(e) => {
+                            const value = e.target.value
+                            setMapSelectedDay(value === 'all' ? undefined : parseInt(value))
+                          }}
+                          className="px-3 py-1.5 text-sm bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500"
                         >
-                          All Days
-                        </button>
-                        {days.map(day => (
+                          <option value="all">All Days</option>
+                          {days.map(day => (
+                            <option key={day} value={day}>Day {day}</option>
+                          ))}
+                        </select>
+                      </div>
+                      
+                      {/* Desktop: Pills positioned to avoid zoom controls */}
+                      <div className="hidden sm:block absolute top-3 right-3" style={{ zIndex: 500 }}>
+                        <div className="flex flex-wrap gap-2 justify-end">
                           <button
-                            key={day}
-                            onClick={() => setMapSelectedDay(day)}
+                            onClick={() => setMapSelectedDay(undefined)}
                             className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all shadow-md backdrop-blur-sm whitespace-nowrap ${
-                              mapSelectedDay === day
+                              mapSelectedDay === undefined
                                 ? 'bg-primary-500 text-white'
                                 : 'bg-white/90 text-gray-700 hover:bg-white'
                             }`}
                           >
-                            Day {day}
+                            All Days
                           </button>
-                        ))}
+                          {days.map(day => (
+                            <button
+                              key={day}
+                              onClick={() => setMapSelectedDay(day)}
+                              className={`px-3 py-1.5 text-xs sm:text-sm rounded-full transition-all shadow-md backdrop-blur-sm whitespace-nowrap ${
+                                mapSelectedDay === day
+                                  ? 'bg-primary-500 text-white'
+                                  : 'bg-white/90 text-gray-700 hover:bg-white'
+                              }`}
+                            >
+                              Day {day}
+                            </button>
+                          ))}
+                        </div>
                       </div>
-                    </div>
+                    </>
                   )}
                   <TripMap
                     places={places}
