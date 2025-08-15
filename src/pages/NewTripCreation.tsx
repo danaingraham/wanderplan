@@ -1,17 +1,12 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TripPlanningForm, type TripFormData } from '../components/forms/TripPlanningForm'
-import { TripReviewScreen } from '../components/forms/TripReviewScreen'
 import { useTrips } from '../contexts/TripContext'
 import { realApiService } from '../services/realApi'
-
-type TripCreationStep = 'form' | 'review'
 
 export function NewTripCreation() {
   const navigate = useNavigate()
   const { createTrip, createPlace } = useTrips()
-  
-  const [currentStep, setCurrentStep] = useState<TripCreationStep>('form')
   const [formData, setFormData] = useState<TripFormData | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -22,9 +17,6 @@ export function NewTripCreation() {
     await handleGenerate(data)
   }
 
-  const handleEdit = () => {
-    setCurrentStep('form')
-  }
 
   const generatePlacesFromAI = async (tripData: TripFormData) => {
     try {

@@ -55,7 +55,7 @@ const interestOptions = [
 ]
 
 // Utility function to generate trip titles
-const generateTripTitle = (destination: string, startDate: string, endDate: string, tripType: string): string => {
+const generateTripTitle = (destination: string, _startDate: string, _endDate: string, tripType: string): string => {
   if (!destination) return ''
   
   // Get trip type label

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Session Persistence Test</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .status {
+            padding: 15px;
+            border-radius: 5px;
+            margin: 10px 0;
+            font-family: monospace;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeeba;
+        }
+        button {
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #ff5252;
+        }
+        .test-results {
+            margin-top: 20px;
+        }
+        .test-item {
+            padding: 10px;
+            margin: 5px 0;
+            border-left: 3px solid #ddd;
+            background: #fafafa;
+        }
+        .test-pass {
+            border-left-color: #28a745;
+            background: #f0fff4;
+        }
+        .test-fail {
+            border-left-color: #dc3545;
+            background: #fff5f5;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Session Persistence Test</h1>
+        
+        <div id="status" class="status info">
+            Initializing tests...
+        </div>
+
+        <div id="test-results" class="test-results"></div>
+
+        <div style="margin-top: 20px;">
+            <button onclick="runTests()">🔄 Run Tests Again</button>
+            <button onclick="window.location.reload()">🔃 Refresh Page</button>
+            <button onclick="clearSession()">🗑️ Clear Session</button>
+        </div>
+
+        <div id="storage-info" style="margin-top: 20px;"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+
+        const supabaseUrl = 'https://zhusodnwzmbpvvkxjtvn.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpodXNvZG53em1icHZ2a3hqdHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDQyOTUsImV4cCI6MjA3MDcyMDI5NX0.CcwEJ7FtVgVDXWS83A7ui8zMZSwTNn1UWivFVnPoh9g';
+        
+        let supabase;
+        const results = [];
+
+        function updateStatus(message, type = 'info') {
+            const status = document.getElementById('status');
+            status.className = `status ${type}`;
+            status.innerHTML = message;
+        }
+
+        function addTestResult(name, passed, details) {
+            results.push({ name, passed, details });
+            const resultsDiv = document.getElementById('test-results');
+            const testDiv = document.createElement('div');
+            testDiv.className = `test-item ${passed ? 'test-pass' : 'test-fail'}`;
+            testDiv.innerHTML = `
+                <strong>${passed ? '✅' : '❌'} ${name}</strong>
+                ${details ? `<br><small>${details}</small>` : ''}
+            `;
+            resultsDiv.appendChild(testDiv);
+        }
+
+        function showStorageInfo() {
+            const storageDiv = document.getElementById('storage-info');
+            const keys = [];
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key && key.includes('auth')) {
+                    keys.push(key);
+                }
+            }
+            
+            storageDiv.innerHTML = `
+                <div class="status info">
+                    <strong>📦 localStorage Auth Keys:</strong><br>
+                    ${keys.length > 0 ? keys.map(k => `• ${k}`).join('<br>') : '(none found)'}
+                </div>
+            `;
+        }
+
+        async function runTests() {
+            document.getElementById('test-results').innerHTML = '';
+            results.length = 0;
+            
+            updateStatus('🔧 Testing session persistence configuration...', 'info');
+
+            // Test 1: Check localStorage for auth token
+            const authToken = localStorage.getItem('sb-auth-token');
+            const wanderplanToken = localStorage.getItem('sb-wanderplan-auth-token');
+            const hasStoredSession = authToken || wanderplanToken;
+            
+            addTestResult(
+                'localStorage has auth token',
+                hasStoredSession,
+                hasStoredSession ? 'Token found in storage' : 'No token in storage (expected on first load)'
+            );
+
+            // Test 2: Initialize Supabase client
+            try {
+                supabase = createClient(supabaseUrl, supabaseKey, {
+                    auth: {
+                        persistSession: true,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false,
+                        storageKey: 'sb-auth-token',
+                        storage: window.localStorage
+                    }
+                });
+                addTestResult('Supabase client initialized', true, 'Client created successfully');
+            } catch (error) {
+                addTestResult('Supabase client initialized', false, error.message);
+                updateStatus('❌ Failed to initialize Supabase', 'error');
+                return;
+            }
+
+            // Test 3: Get current session with timeout
+            let sessionData = null;
+            try {
+                const timeoutPromise = new Promise((_, reject) => 
+                    setTimeout(() => reject(new Error('Timeout')), 3000)
+                );
+                
+                const sessionPromise = supabase.auth.getSession();
+                const result = await Promise.race([sessionPromise, timeoutPromise]);
+                
+                sessionData = result.data;
+                const hasSession = !!sessionData?.session;
+                
+                addTestResult(
+                    'getSession() responds quickly',
+                    true,
+                    'Response received within 3 seconds'
+                );
+                
+                addTestResult(
+                    'Session exists',
+                    hasSession,
+                    hasSession ? `User: ${sessionData.session.user.email}` : 'No active session'
+                );
+
+                if (hasSession) {
+                    // Store session info for comparison after refresh
+                    sessionStorage.setItem('test-session-id', sessionData.session.access_token.substring(0, 20));
+                    updateStatus('✅ Session found and persisted!', 'success');
+                } else {
+                    updateStatus('ℹ️ No session found (need to log in first)', 'warning');
+                }
+
+            } catch (error) {
+                if (error.message === 'Timeout') {
+                    addTestResult('getSession() responds quickly', false, 'Timed out after 3 seconds');
+                    updateStatus('⚠️ getSession() is hanging again!', 'error');
+                } else {
+                    addTestResult('getSession() responds quickly', false, error.message);
+                    updateStatus('❌ Error getting session', 'error');
+                }
+            }
+
+            // Test 4: Check if session persisted from before refresh
+            const previousSessionId = sessionStorage.getItem('test-session-id');
+            if (previousSessionId && sessionData?.session) {
+                const currentSessionId = sessionData.session.access_token.substring(0, 20);
+                const sessionPersisted = previousSessionId === currentSessionId;
+                
+                addTestResult(
+                    'Session persisted after refresh',
+                    sessionPersisted,
+                    sessionPersisted ? 'Same session as before' : 'Different session (re-authenticated)'
+                );
+            }
+
+            // Test 5: Check auth state change listener
+            try {
+                const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+                    console.log('Auth state changed:', event);
+                });
+                addTestResult('Auth listener registered', true, 'Listening for auth changes');
+                subscription.unsubscribe();
+            } catch (error) {
+                addTestResult('Auth listener registered', false, error.message);
+            }
+
+            showStorageInfo();
+
+            // Summary
+            const passed = results.filter(r => r.passed).length;
+            const total = results.length;
+            if (passed === total) {
+                updateStatus(`✅ All ${total} tests passed!`, 'success');
+            } else {
+                updateStatus(`⚠️ ${passed}/${total} tests passed`, 'warning');
+            }
+        }
+
+        window.clearSession = async function() {
+            if (supabase) {
+                await supabase.auth.signOut();
+            }
+            localStorage.clear();
+            sessionStorage.clear();
+            updateStatus('🗑️ Session cleared. Refresh to test persistence.', 'info');
+            showStorageInfo();
+        };
+
+        window.runTests = runTests;
+
+        // Auto-run tests
+        setTimeout(runTests, 100);
+    </script>
+</body>
+</html>
