@@ -97,7 +97,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     
     if (supabaseUrl && supabaseKey && supabaseUrl !== 'https://your-project-id.supabase.co') {
       // Use Supabase authentication
-      log('🔐 UserContext: Using Supabase authentication')
+      console.log('🔐 UserContext: Attempting to use Supabase authentication')
+      console.log('🔐 UserContext: Supabase URL:', supabaseUrl)
       setIsUsingSupabase(true)
       
       // Get initial session with timeout
@@ -105,10 +106,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.error('⚠️ UserContext: Supabase initialization timeout - falling back to localStorage')
         setIsUsingSupabase(false)
         setIsInitialized(true)
-      }, 5000) // 5 second timeout
+      }, 15000) // 15 second timeout - increased for mobile networks
       
+      console.log('🔐 UserContext: Calling getSession...')
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         clearTimeout(initTimeout)
+        console.log('🔐 UserContext: getSession responded, session:', !!session, 'error:', error)
         if (error) {
           console.error('❌ UserContext: Error getting session:', error)
           // If Supabase fails, fall back to localStorage
