@@ -22,19 +22,35 @@ export function Login() {
 
     try {
       // Add some debug logging for mobile issues
-      console.log('Login attempt for email:', email)
-      console.log('Password length:', password.length)
+      console.log('[Login] Attempting login for:', email)
+      console.log('[Login] Password length:', password.length)
       
-      const success = await login(email, password)
+      // Add a timeout to prevent infinite hanging
+      const timeoutPromise = new Promise<boolean>((_, reject) => {
+        setTimeout(() => reject(new Error('Login timeout')), 15000) // 15 second timeout
+      })
+      
+      const loginPromise = login(email, password)
+      
+      const success = await Promise.race([loginPromise, timeoutPromise])
+      
+      console.log('[Login] Login result:', success)
+      
       if (success) {
+        console.log('[Login] Success! Navigating to dashboard...')
         navigate('/')
       } else {
+        console.log('[Login] Failed - invalid credentials')
         setError('Invalid email or password. Please check your credentials and try again.')
+        setIsLoading(false)
       }
-    } catch (err) {
-      console.error('Login error:', err)
-      setError('An error occurred. Please try again.')
-    } finally {
+    } catch (err: any) {
+      console.error('[Login] Error:', err)
+      if (err.message === 'Login timeout') {
+        setError('Login is taking too long. Please try again.')
+      } else {
+        setError('An error occurred. Please try again.')
+      }
       setIsLoading(false)
     }
   }

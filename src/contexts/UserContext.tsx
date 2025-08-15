@@ -256,19 +256,33 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Use Supabase if configured
     if (isUsingSupabase) {
       setIsLoading(true)
-      log('🔐 UserContext: Attempting Supabase login for:', email)
+      console.log('🔐 UserContext: Attempting Supabase login for:', email)
       
-      const { error } = await supabaseAuth.signIn(email, password)
-      
-      if (error) {
-        log('❌ UserContext: Login failed:', error.message)
+      try {
+        const { error, data } = await supabaseAuth.signIn(email, password)
+        
+        if (error) {
+          console.error('❌ UserContext: Login failed:', error)
+          setIsLoading(false)
+          return false
+        }
+        
+        console.log('✅ UserContext: Login successful, data:', data)
+        
+        // Wait a moment for the auth state to update
+        await new Promise(resolve => setTimeout(resolve, 1000))
+        
+        // Check if user was set
+        const { data: sessionData } = await supabaseAuth.getSession()
+        console.log('✅ UserContext: Session after login:', sessionData)
+        
+        setIsLoading(false)
+        return true
+      } catch (err) {
+        console.error('❌ UserContext: Unexpected error during login:', err)
         setIsLoading(false)
         return false
       }
-      
-      log('✅ UserContext: Login successful for:', email)
-      setIsLoading(false)
-      return true
     }
     
     // Original localStorage implementation
