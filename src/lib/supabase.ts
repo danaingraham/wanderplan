@@ -25,15 +25,15 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Working configuration - gradually add features back
+// Stable configuration - only enable what doesn't cause hanging
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      persistSession: true, // Re-enable session persistence
-      autoRefreshToken: true, // Re-enable auto refresh
-      detectSessionInUrl: false, // Keep this disabled - it was causing hanging
+      persistSession: true, // Keep session persistence
+      autoRefreshToken: false, // DISABLE - might be causing hanging
+      detectSessionInUrl: false, // Keep disabled - was causing hanging
       storageKey: 'sb-wanderplan-auth-token', // Use different key to avoid conflicts
       storage: typeof window !== 'undefined' ? window.localStorage : undefined
     }

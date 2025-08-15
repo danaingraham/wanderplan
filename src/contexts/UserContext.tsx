@@ -274,7 +274,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const interval = setInterval(validateAuthState, 30000)
     
     return () => clearInterval(interval)
-  }, [isInitialized, user])
+  }, [isInitialized, user, isUsingSupabase])
 
   const login = async (email: string, password: string): Promise<boolean> => {
     // Use Supabase if configured
