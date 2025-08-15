@@ -74,6 +74,10 @@ export default {
           '100%': { transform: 'scale(1)', opacity: '1' },
         },
       },
+      padding: {
+        'safe': 'env(safe-area-inset-bottom)',
+        'safe-offset-4': 'calc(env(safe-area-inset-bottom) + 1rem)',
+      },
     },
   },
   plugins: [

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Trash2, Check, X, Plus, RefreshCw, Edit2 } from 'lucide-react'
+import { MapPin, Trash2, Check, X, Plus, RefreshCw, Edit2, MoreVertical } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { useUser } from '../contexts/UserContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
@@ -17,6 +17,7 @@ import { DragDropProvider } from '../components/dnd/DragDropProvider'
 import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
+import { EditPlaceModal } from '../components/places/EditPlaceModal'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -79,18 +80,20 @@ function getDayDate(startDate: string, dayNumber: number): Date {
 
 
 
-// SIMPLIFIED PlaceItem - No edit functionality
+// PlaceItem with edit functionality via modal
 interface PlaceItemProps {
   place: Place
   sequenceNumber?: number
+  onEdit: (place: Place) => void
 }
-
 
 function PlaceItem({ 
   place, 
-  sequenceNumber
+  sequenceNumber,
+  onEdit
 }: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [showMobileMenu, setShowMobileMenu] = useState(false)
   const { deletePlace } = useTrips()
 
   // Fetch photo from Google Places
@@ -99,6 +102,15 @@ function PlaceItem({
       setPhotoUrl(place.photo_url)
     }
   }, [place.photo_url])
+
+  // Close mobile menu when clicking outside
+  useEffect(() => {
+    if (showMobileMenu) {
+      const handleClickOutside = () => setShowMobileMenu(false)
+      document.addEventListener('click', handleClickOutside)
+      return () => document.removeEventListener('click', handleClickOutside)
+    }
+  }, [showMobileMenu])
 
 
   const endTime24 = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
@@ -114,7 +126,46 @@ function PlaceItem({
   return (
     <>
       {/* Mobile: Simple non-draggable card */}
-      <div className="sm:hidden bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+      <div className="sm:hidden relative bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+        {/* Mobile Menu Button */}
+        <div className="absolute top-2 right-2 z-10">
+          <button
+            onClick={(e) => {
+              e.stopPropagation()
+              setShowMobileMenu(!showMobileMenu)
+            }}
+            className="p-1.5 bg-white/90 backdrop-blur rounded-lg shadow-sm"
+          >
+            <MoreVertical className="w-4 h-4 text-gray-600" />
+          </button>
+          
+          {/* Mobile Menu Dropdown */}
+          {showMobileMenu && (
+            <div className="absolute right-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 py-1 min-w-[120px]">
+              <button
+                onClick={() => {
+                  onEdit(place)
+                  setShowMobileMenu(false)
+                }}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                Edit
+              </button>
+              <button
+                onClick={() => {
+                  handleDelete()
+                  setShowMobileMenu(false)
+                }}
+                className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 flex items-center gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                Delete
+              </button>
+            </div>
+          )}
+        </div>
+        
         <div className="flex gap-3 p-3">
           {/* LEFT: Thumbnail - fixed square */}
           <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
@@ -127,7 +178,7 @@ function PlaceItem({
           </div>
           
           {/* RIGHT: Text column */}
-          <div className="flex-1 min-w-0">
+          <div className="flex-1 min-w-0 pr-8">
             {/* Title */}
             <h3 className="text-base font-semibold leading-tight break-words text-gray-900">
               {place.name}
@@ -199,6 +250,18 @@ function PlaceItem({
             <div className="relative">
               {/* Hover Actions - positioned absolutely */}
               <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1 z-10">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    onEdit(place);
+                  }}
+                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-blue-50 transition-colors pointer-events-auto"
+                  aria-label="Edit place"
+                  type="button"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-blue-500" />
+                </button>
                 <button
                   onClick={(e) => {
                     e.stopPropagation();
@@ -278,6 +341,8 @@ export function TripDetail() {
   const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
   const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
+  const [editingPlace, setEditingPlace] = useState<Place | null>(null)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [newItemData, setNewItemData] = useState<{
     name: string
     address: string
@@ -303,6 +368,21 @@ export function TripDetail() {
   const trip = id ? getTrip(id) : undefined
   const places = id ? getPlacesByTrip(id) : []
   
+  // Edit modal handlers
+  const handleOpenEditModal = (place: Place) => {
+    setEditingPlace(place)
+    setShowEditModal(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setEditingPlace(null)
+    setShowEditModal(false)
+  }
+
+  const handleSaveEdit = (placeId: string, updates: Partial<Place>) => {
+    updatePlace(placeId, updates)
+    handleCloseEditModal()
+  }
 
   // Initialize collapsed days (start with all expanded)
   useEffect(() => {
@@ -1129,6 +1209,7 @@ export function TripDetail() {
                                       <PlaceItem
                                         place={place}
                                         sequenceNumber={daySequenceNumber}
+                                        onEdit={handleOpenEditModal}
                                       />
                                     </div>
                                   )
@@ -1285,6 +1366,7 @@ export function TripDetail() {
                                         <PlaceItem
                                           place={place}
                                           sequenceNumber={daySequenceNumber}
+                                          onEdit={handleOpenEditModal}
                                         />
                                       </div>
                                     )
@@ -1380,6 +1462,14 @@ export function TripDetail() {
         isOpen={showConflictModal}
         onClose={() => setShowConflictModal(false)}
         onResolve={handleConflictResolution}
+      />
+      
+      {/* Edit Place Modal */}
+      <EditPlaceModal
+        place={editingPlace}
+        isOpen={showEditModal}
+        onClose={handleCloseEditModal}
+        onSave={handleSaveEdit}
       />
     </DragDropProvider>
   )
