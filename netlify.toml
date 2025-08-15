@@ -5,6 +5,12 @@
 [build.environment]
   NODE_VERSION = "18"
 
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  force = false
+
 [dev]
   command = "npm run dev"
   port = 5173
