@@ -95,6 +95,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
     const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
     const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY
     
+    console.log('🔍 UserContext: Environment check:')
+    console.log('  - VITE_SUPABASE_URL:', supabaseUrl || 'NOT SET')
+    console.log('  - VITE_SUPABASE_ANON_KEY:', supabaseKey ? 'SET (hidden)' : 'NOT SET')
+    console.log('  - URL check passed:', supabaseUrl !== 'https://your-project-id.supabase.co')
+    
     if (supabaseUrl && supabaseKey && supabaseUrl !== 'https://your-project-id.supabase.co') {
       // Use Supabase authentication
       console.log('🔐 UserContext: Attempting to use Supabase authentication')
