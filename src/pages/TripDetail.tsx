@@ -953,11 +953,6 @@ export function TripDetail() {
             {/* Content - Itinerary View */}
             <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
                 {/* Mobile notification */}
-                <div className="lg:hidden bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4 lg:col-span-2">
-                  <p className="text-sm text-blue-800">
-                    💡 On mobile, the split view shows itinerary and map stacked vertically for better viewing
-                  </p>
-                </div>
                 {/* Itinerary Panel */}
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
                   {days.length === 0 ? (
