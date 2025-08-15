@@ -1052,7 +1052,7 @@ export function TripDetail() {
                 <div className="rounded-xl overflow-hidden border border-gray-200 h-[40vh] min-h-[300px] lg:h-auto relative">
                   {/* Day Filter Pills - Overlay on Map */}
                   {days.length > 1 && (
-                    <div className="absolute top-3 right-3" style={{ zIndex: 1000 }}>
+                    <div className="absolute top-3 right-3 z-10">
                       <div className="flex flex-wrap gap-2 justify-end">
                         <button
                           onClick={() => setMapSelectedDay(undefined)}
