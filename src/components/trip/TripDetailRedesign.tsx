@@ -14,7 +14,7 @@ export function PlaceCard({ place }: PlaceCardProps) {
     : place.start_time || ''
   
   return (
-    <div className="group relative bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-gray-100">
+    <div className="group relative bg-white rounded-xl p-4 hover:shadow-md transition-all duration-200 border border-gray-100 overflow-hidden">
       <div className="flex gap-4">
         {/* Photo */}
         <div className="flex-shrink-0">
@@ -22,14 +22,14 @@ export function PlaceCard({ place }: PlaceCardProps) {
             placeId={place.place_id}
             photoUrl={place.photo_url || undefined}
             placeName={place.name}
-            className="w-20 h-20 object-cover rounded-lg"
+            className="w-16 h-16 sm:w-20 sm:h-20 object-cover rounded-lg"
           />
         </div>
         
         {/* Content - All visible, no expand/collapse */}
-        <div className="flex-1 min-w-0">
+        <div className="flex-1 min-w-0 overflow-hidden">
           {/* Title */}
-          <h3 className="font-medium text-gray-900 text-base mb-2">
+          <h3 className="font-medium text-gray-900 text-base mb-2 break-words">
             {place.name}
           </h3>
           
@@ -37,15 +37,15 @@ export function PlaceCard({ place }: PlaceCardProps) {
           <div className="space-y-1 text-sm text-gray-500">
             {timeDisplay && (
               <div className="flex items-center gap-2">
-                <Clock className="w-3.5 h-3.5" />
-                <span>{timeDisplay}</span>
+                <Clock className="w-3.5 h-3.5 flex-shrink-0" />
+                <span className="break-words">{timeDisplay}</span>
               </div>
             )}
             
             {place.address && (
               <div className="flex items-start gap-2">
-                <MapPin className="w-3.5 h-3.5 mt-0.5" />
-                <span>{place.address}</span>
+                <MapPin className="w-3.5 h-3.5 mt-0.5 flex-shrink-0" />
+                <span className="break-words">{place.address}</span>
               </div>
             )}
           </div>
@@ -53,7 +53,7 @@ export function PlaceCard({ place }: PlaceCardProps) {
           {/* Full description - always visible */}
           {place.notes && (
             <div className="mt-2">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 break-words whitespace-pre-wrap">
                 {place.notes}
               </p>
             </div>

@@ -108,11 +108,11 @@ function PlaceItem({
   return (
     <DraggablePlace 
       place={place}
-      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow h-28 overflow-hidden"
+      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
       hideDefaultHandle={true}
       renderDragHandle={(listeners, attributes) => (
         /* Left Rail - Fixed 40px width */
-        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent h-full">
+        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
           {/* Numbered Stop Circle */}
           {sequenceNumber && (
             <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
@@ -143,41 +143,41 @@ function PlaceItem({
         </div>
       )}
     >
-      {/* Main Content - Fixed height container */}
-      <div className="flex-1 p-3 h-full overflow-hidden">
-        <div className="flex gap-3 h-full">
+      {/* Main Content - Auto height container */}
+      <div className="flex-1 p-3 min-w-0">
+        <div className="flex gap-3">
           {/* Photo */}
           <div className="flex-shrink-0">
             <PlacePhoto
               placeId={place.place_id}
               photoUrl={photoUrl || undefined}
               placeName={place.name}
-              className="w-16 h-16 object-cover rounded-md"
+              className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md"
             />
           </div>
 
-          {/* Content - Fixed height with overflow handling */}
-          <div className="flex-1 flex flex-col min-w-0">
-            {/* Title - truncate if too long */}
-            <h4 className="font-medium text-gray-900 text-sm pr-2 truncate" title={place.name}>
+          {/* Content - Auto height with proper text wrapping */}
+          <div className="flex-1 min-w-0">
+            {/* Title - wrap text properly */}
+            <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
               {place.name}
             </h4>
             
             {/* Time and duration - always visible */}
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 mt-1 break-words">
               {startTime12}–{endTime12} · {place.duration || 90} min
             </div>
             
-            {/* Address - truncate if too long */}
+            {/* Address - wrap text properly */}
             {place.address && (
-              <div className="text-xs text-gray-500 mt-1 truncate" title={place.address}>
+              <div className="text-xs text-gray-500 mt-1 break-words">
                 📍 {place.address}
               </div>
             )}
             
-            {/* Notes - truncate with ellipsis if too long */}
+            {/* Notes - show full text with proper wrapping */}
             {place.notes && (
-              <p className="text-xs text-gray-600 mt-1 line-clamp-2" title={place.notes}>
+              <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
                 {place.notes}
               </p>
             )}
