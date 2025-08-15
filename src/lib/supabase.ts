@@ -25,17 +25,16 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// Stable configuration - only enable what doesn't cause hanging
+// Most stable configuration - disable features that cause intermittent hanging
 export const supabase = createClient(
   supabaseUrl || 'https://placeholder.supabase.co', 
   supabaseAnonKey || 'placeholder-key',
   {
     auth: {
-      persistSession: true, // Keep session persistence
-      autoRefreshToken: false, // DISABLE - might be causing hanging
-      detectSessionInUrl: false, // Keep disabled - was causing hanging
-      storageKey: 'sb-wanderplan-auth-token', // Use different key to avoid conflicts
-      storage: typeof window !== 'undefined' ? window.localStorage : undefined
+      persistSession: false, // DISABLE - causes intermittent hanging
+      autoRefreshToken: false, // Keep disabled
+      detectSessionInUrl: false, // Keep disabled
+      // Remove storage completely when not persisting
     }
   }
 )
