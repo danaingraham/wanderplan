@@ -91,6 +91,15 @@ function PlaceItem({
   sequenceNumber
 }: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
+  const [isEditing, setIsEditing] = useState(false)
+  const [editData, setEditData] = useState({
+    name: place.name,
+    start_time: place.start_time || '09:00',
+    duration: place.duration || 90,
+    notes: place.notes || '',
+    address: place.address || ''
+  })
+  const { updatePlace, deletePlace } = useTrips()
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -100,9 +109,40 @@ function PlaceItem({
   }, [place.photo_url])
 
 
-  const endTime24 = place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90)
-  const startTime12 = formatTime12Hour(place.start_time || '09:00')
+  const endTime24 = isEditing 
+    ? calculateEndTime(editData.start_time, editData.duration)
+    : (place.end_time || calculateEndTime(place.start_time || '09:00', place.duration || 90))
+  const startTime12 = formatTime12Hour(isEditing ? editData.start_time : (place.start_time || '09:00'))
   const endTime12 = formatTime12Hour(endTime24)
+
+  const handleSaveEdit = () => {
+    updatePlace(place.id, {
+      name: editData.name,
+      start_time: editData.start_time,
+      duration: editData.duration,
+      notes: editData.notes,
+      address: editData.address,
+      end_time: calculateEndTime(editData.start_time, editData.duration)
+    })
+    setIsEditing(false)
+  }
+
+  const handleCancelEdit = () => {
+    setEditData({
+      name: place.name,
+      start_time: place.start_time || '09:00',
+      duration: place.duration || 90,
+      notes: place.notes || '',
+      address: place.address || ''
+    })
+    setIsEditing(false)
+  }
+
+  const handleDelete = () => {
+    if (confirm(`Are you sure you want to remove "${place.name}" from your itinerary?`)) {
+      deletePlace(place.id)
+    }
+  }
 
   return (
     <>
@@ -189,44 +229,127 @@ function PlaceItem({
       >
         {/* Main Content - Auto height container */}
         <div className="flex-1 p-3 min-w-0">
-          <div className="flex gap-3">
-            {/* Photo */}
-            <div className="flex-shrink-0">
-              <PlacePhoto
-                placeId={place.place_id}
-                photoUrl={photoUrl || undefined}
-                placeName={place.name}
-                className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md"
+          {isEditing ? (
+            /* Edit Mode */
+            <div className="space-y-3">
+              <input
+                type="text"
+                value={editData.name}
+                onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                className="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Place name"
               />
-            </div>
-
-            {/* Content - Auto height with proper text wrapping */}
-            <div className="flex-1 min-w-0">
-              {/* Title - wrap text properly */}
-              <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
-                {place.name}
-              </h4>
               
-              {/* Time and duration - always visible */}
-              <div className="text-xs text-gray-500 mt-1 break-words">
-                {startTime12}–{endTime12} · {place.duration || 90} min
+              <div className="flex gap-2">
+                <input
+                  type="time"
+                  value={editData.start_time}
+                  onChange={(e) => setEditData({ ...editData, start_time: e.target.value })}
+                  className="px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                />
+                <input
+                  type="number"
+                  value={editData.duration}
+                  onChange={(e) => setEditData({ ...editData, duration: parseInt(e.target.value) || 90 })}
+                  className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="Duration (min)"
+                />
               </div>
               
-              {/* Address - wrap text properly */}
-              {place.address && (
-                <div className="text-xs text-gray-500 mt-1 break-words">
-                  📍 {place.address}
-                </div>
-              )}
+              <input
+                type="text"
+                value={editData.address}
+                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500"
+                placeholder="Address"
+              />
               
-              {/* Notes - show full text with proper wrapping */}
-              {place.notes && (
-                <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
-                  {place.notes}
-                </p>
-              )}
+              <textarea
+                value={editData.notes}
+                onChange={(e) => setEditData({ ...editData, notes: e.target.value })}
+                className="w-full px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none"
+                rows={2}
+                placeholder="Notes"
+              />
+              
+              <div className="flex gap-2">
+                <button
+                  onClick={handleSaveEdit}
+                  className="flex items-center gap-1 px-2 py-1 bg-primary-500 text-white text-xs rounded hover:bg-primary-600"
+                >
+                  <Check className="w-3 h-3" />
+                  Save
+                </button>
+                <button
+                  onClick={handleCancelEdit}
+                  className="flex items-center gap-1 px-2 py-1 bg-gray-300 text-gray-700 text-xs rounded hover:bg-gray-400"
+                >
+                  <X className="w-3 h-3" />
+                  Cancel
+                </button>
+              </div>
             </div>
-          </div>
+          ) : (
+            /* Normal View Mode */
+            <div className="relative">
+              {/* Hover Actions - positioned absolutely */}
+              <div className="absolute top-0 right-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex gap-1">
+                <button
+                  onClick={() => setIsEditing(true)}
+                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-gray-50 transition-colors"
+                  aria-label="Edit place"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-gray-600" />
+                </button>
+                <button
+                  onClick={handleDelete}
+                  className="p-1.5 bg-white rounded-lg shadow-md hover:bg-red-50 transition-colors"
+                  aria-label="Delete place"
+                >
+                  <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                </button>
+              </div>
+
+              <div className="flex gap-3">
+                {/* Photo */}
+                <div className="flex-shrink-0">
+                  <PlacePhoto
+                    placeId={place.place_id}
+                    photoUrl={photoUrl || undefined}
+                    placeName={place.name}
+                    className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md"
+                  />
+                </div>
+
+                {/* Content - Auto height with proper text wrapping */}
+                <div className="flex-1 min-w-0">
+                  {/* Title - wrap text properly */}
+                  <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
+                    {place.name}
+                  </h4>
+                  
+                  {/* Time and duration - always visible */}
+                  <div className="text-xs text-gray-500 mt-1 break-words">
+                    {startTime12}–{endTime12} · {place.duration || 90} min
+                  </div>
+                  
+                  {/* Address - wrap text properly */}
+                  {place.address && (
+                    <div className="text-xs text-gray-500 mt-1 break-words">
+                      📍 {place.address}
+                    </div>
+                  )}
+                  
+                  {/* Notes - show full text with proper wrapping */}
+                  {place.notes && (
+                    <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
+                      {place.notes}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </DraggablePlace>
     </>
