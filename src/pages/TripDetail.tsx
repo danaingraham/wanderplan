@@ -91,7 +91,7 @@ function PlaceItem({
   sequenceNumber
 }: PlaceItemProps) {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
-
+  const [isExpanded, setIsExpanded] = useState(false)
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -108,11 +108,11 @@ function PlaceItem({
   return (
     <DraggablePlace 
       place={place}
-      className="group flex bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
+      className="group bg-white rounded-xl border border-gray-200 hover:shadow-md transition-shadow overflow-hidden"
       hideDefaultHandle={true}
       renderDragHandle={(listeners, attributes) => (
-        /* Left Rail - Fixed 40px width */
-        <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
+        /* Desktop: Left Rail with drag handle */
+        <div className="hidden sm:flex w-10 flex-shrink-0 flex-col items-center pt-3 bg-transparent">
           {/* Numbered Stop Circle */}
           {sequenceNumber && (
             <div className="w-6 h-6 bg-primary-500 rounded-full flex items-center justify-center">
@@ -120,7 +120,7 @@ function PlaceItem({
             </div>
           )}
           
-          {/* Drag Handle - 8-12px below circle, visible on hover */}
+          {/* Drag Handle - visible on hover */}
           <button
             {...listeners}
             {...attributes}
@@ -143,8 +143,59 @@ function PlaceItem({
         </div>
       )}
     >
-      {/* Main Content - Auto height container */}
-      <div className="flex-1 p-3 min-w-0">
+      {/* Mobile: Compact side-by-side layout */}
+      <div className="sm:hidden flex gap-3 p-3">
+        {/* Thumbnail - fixed square */}
+        <div className="flex-shrink-0">
+          <PlacePhoto
+            placeId={place.place_id}
+            photoUrl={photoUrl || undefined}
+            placeName={place.name}
+            className="w-16 h-16 object-cover rounded-lg"
+          />
+        </div>
+        
+        {/* Content area - prioritized hierarchy */}
+        <div className="flex-1 min-w-0">
+          {/* Title - most important, can take 2 lines */}
+          <h4 className="text-base font-semibold leading-tight line-clamp-2 text-gray-900">
+            {place.name}
+          </h4>
+          
+          {/* Time and duration */}
+          <div className="mt-0.5 text-sm text-slate-600">
+            {startTime12}–{endTime12} • {place.duration || 90} min
+          </div>
+          
+          {/* Location with pin icon */}
+          {place.address && (
+            <div className="mt-0.5 text-sm text-slate-600 flex items-center gap-1 line-clamp-1">
+              <MapPin className="w-3 h-3 flex-shrink-0" />
+              <span className="truncate">{place.address}</span>
+            </div>
+          )}
+          
+          {/* Notes - truncated with expansion option */}
+          {place.notes && (
+            <div className="mt-1">
+              <p className={`text-sm text-slate-700 ${!isExpanded ? 'line-clamp-2' : ''}`}>
+                {place.notes}
+              </p>
+              {place.notes.length > 100 && (
+                <button
+                  onClick={() => setIsExpanded(!isExpanded)}
+                  className="text-xs text-primary-600 hover:text-primary-700 mt-1"
+                >
+                  {isExpanded ? 'Show less' : 'Show more'}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Desktop: Original layout */}
+      <div className="hidden sm:flex flex-1 p-3 min-w-0">
         <div className="flex gap-3">
           {/* Photo */}
           <div className="flex-shrink-0">
@@ -152,30 +203,30 @@ function PlaceItem({
               placeId={place.place_id}
               photoUrl={photoUrl || undefined}
               placeName={place.name}
-              className="w-14 h-14 sm:w-16 sm:h-16 object-cover rounded-md"
+              className="w-16 h-16 object-cover rounded-md"
             />
           </div>
 
-          {/* Content - Auto height with proper text wrapping */}
+          {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Title - wrap text properly */}
+            {/* Title */}
             <h4 className="font-medium text-gray-900 text-sm pr-2 break-words">
               {place.name}
             </h4>
             
-            {/* Time and duration - always visible */}
+            {/* Time and duration */}
             <div className="text-xs text-gray-500 mt-1 break-words">
               {startTime12}–{endTime12} · {place.duration || 90} min
             </div>
             
-            {/* Address - wrap text properly */}
+            {/* Address */}
             {place.address && (
               <div className="text-xs text-gray-500 mt-1 break-words">
                 📍 {place.address}
               </div>
             )}
             
-            {/* Notes - show full text with proper wrapping */}
+            {/* Notes */}
             {place.notes && (
               <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
                 {place.notes}
@@ -196,6 +247,7 @@ export function TripDetail() {
   const [showProfileMenu, setShowProfileMenu] = useState(false)
   const [mapSelectedDay, setMapSelectedDay] = useState<number | undefined>(undefined)
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [mobileView, setMobileView] = useState<'itinerary' | 'map'>('itinerary')
   const [showConflictModal, setShowConflictModal] = useState(false)
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
@@ -770,14 +822,14 @@ export function TripDetail() {
                 </Button>
               </div>
               
-              {/* Refresh Photos Button - Only show if some places don't have photos */}
+              {/* Refresh Photos Button - Only show on desktop */}
               {isGoogleMapsConfigured() && places.some(p => !p.photo_url) && (
                 <Button
                   onClick={handleRefreshPhotos}
                   size="sm"
                   variant="ghost"
                   disabled={isRefreshingPhotos}
-                  className="flex items-center gap-2"
+                  className="hidden sm:flex items-center gap-2"
                 >
                   <RefreshCw className={`w-4 h-4 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
                   {isRefreshingPhotos 
@@ -950,24 +1002,55 @@ export function TripDetail() {
               </div>
             )}
 
-            {/* Content - Itinerary View */}
-            <div className="flex flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
-                {/* Mobile notification */}
-                {/* Itinerary Panel */}
-                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
+            {/* Mobile: Single view with toggle */}
+            <div className="sm:hidden">
+              {/* View Toggle Buttons - Centered at bottom */}
+              <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex rounded-full bg-white border border-gray-200 shadow-lg overflow-hidden" style={{ bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)' }}>
+                <button
+                  onClick={() => setMobileView('itinerary')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    mobileView === 'itinerary' 
+                      ? 'bg-slate-900 text-white' 
+                      : 'text-slate-700 hover:bg-gray-50'
+                  }`}
+                  role="tab"
+                  aria-selected={mobileView === 'itinerary'}
+                  aria-label="View itinerary"
+                >
+                  Itinerary
+                </button>
+                <button
+                  onClick={() => setMobileView('map')}
+                  className={`px-4 py-2 text-sm font-medium transition-colors ${
+                    mobileView === 'map' 
+                      ? 'bg-slate-900 text-white' 
+                      : 'text-slate-700 hover:bg-gray-50'
+                  }`}
+                  role="tab"
+                  aria-selected={mobileView === 'map'}
+                  aria-label="View map"
+                >
+                  Map
+                </button>
+              </div>
+
+              {/* Conditional rendering based on selected view */}
+              {mobileView === 'itinerary' ? (
+                /* Mobile Itinerary View */
+                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto" style={{ minHeight: 'calc(100vh - 200px)' }}>
                   {days.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
                     </div>
                   ) : (
-                    <div className="space-y-4">
+                    <div className="space-y-4 pb-20">
                       {days.map((day) => {
                         const isCollapsed = collapsedDays.has(day)
                         const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
                         
                         return (
                           <div key={day} className="relative">
-                            {/* Day Header */}
+                            {/* Day Header - Mobile compact version */}
                             <div 
                               className="cursor-pointer mb-3"
                               onClick={() => toggleDayCollapse(day)}
@@ -982,7 +1065,155 @@ export function TripDetail() {
                               aria-expanded={!isCollapsed}
                               aria-controls={`day-${day}-content`}
                             >
-                              <div className="bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition-colors duration-200">
+                              <div className="bg-slate-50 rounded-xl p-3 hover:bg-slate-100 transition-colors duration-200">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex-1 min-w-0">
+                                    <div className="text-base font-semibold text-gray-900">
+                                      Day {day}
+                                      {trip?.start_date && (
+                                        <span className="ml-2 font-normal text-sm text-slate-600">
+                                          {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM d')} • {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  
+                                  <div className={`ml-2 transform transition-transform duration-200 flex-shrink-0 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Collapsible Day Content */}
+                            <div 
+                              className={`overflow-hidden transition-all duration-500 ease-in-out ${
+                                isCollapsed ? 'max-h-0' : 'max-h-[5000px]'
+                              }`}
+                              id={`day-${day}-content`}
+                              aria-hidden={isCollapsed}
+                            >
+                              <div className="pt-3 space-y-2">
+                                <DroppableArea day={day} places={places}>
+                                  {dayPlaces.map((place, placeIndex) => {
+                                    const daySequenceNumber = placeIndex + 1
+                                    
+                                    return (
+                                      <div 
+                                        key={place.id}
+                                        className="animate-fade-in"
+                                        style={{ animationDelay: `${placeIndex * 0.1}s` }}
+                                      >
+                                        <PlaceItem
+                                          place={place}
+                                          sequenceNumber={daySequenceNumber}
+                                        />
+                                      </div>
+                                    )
+                                  })}
+                                </DroppableArea>
+                              </div>
+                            </div>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                /* Mobile Map View */
+                <div className="rounded-xl overflow-hidden border border-gray-200 relative" style={{ height: 'calc(100vh - 200px)' }}>
+                  {/* Day Filter Dropdown */}
+                  {days.length > 1 && (
+                    <div className="absolute top-3 right-3" style={{ zIndex: 500 }}>
+                      <select
+                        value={mapSelectedDay === undefined ? 'all' : mapSelectedDay.toString()}
+                        onChange={(e) => {
+                          const value = e.target.value
+                          setMapSelectedDay(value === 'all' ? undefined : parseInt(value))
+                        }}
+                        className="px-3 py-1.5 text-sm bg-white/90 backdrop-blur-sm border border-gray-200 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-primary-500"
+                      >
+                        <option value="all">All Days</option>
+                        {days.map(day => (
+                          <option key={day} value={day}>Day {day}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  <TripMap
+                    places={places}
+                    selectedDay={mapSelectedDay}
+                    className="h-full"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Desktop: Side-by-side layout */}
+            <div className="hidden sm:flex sm:flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
+                {/* Itinerary Panel */}
+                <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
+                  {days.length === 0 ? (
+                    <div className="text-center py-8">
+                      <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      {days.map((day) => {
+                        const isCollapsed = collapsedDays.has(day)
+                        const dayPlaces = placesByDay[day]?.sort((a, b) => a.order - b.order) || []
+                        
+                        return (
+                          <div key={day} className="relative">
+                            {/* Day Header - Compact on mobile */}
+                            <div 
+                              className="cursor-pointer mb-3"
+                              onClick={() => toggleDayCollapse(day)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter' || e.key === ' ') {
+                                  e.preventDefault()
+                                  toggleDayCollapse(day)
+                                }
+                              }}
+                              tabIndex={0}
+                              role="button"
+                              aria-expanded={!isCollapsed}
+                              aria-controls={`day-${day}-content`}
+                            >
+                              {/* Mobile: Single-line compact header */}
+                              <div className="sm:hidden bg-slate-50 rounded-xl p-3 hover:bg-slate-100 transition-colors duration-200">
+                                <div className="flex items-center justify-between">
+                                  {/* Left: Combined day info */}
+                                  <div className="flex items-center gap-2 text-lg font-semibold">
+                                    <span>Day {day}</span>
+                                    {trip?.start_date && (
+                                      <>
+                                        <span className="text-slate-400">•</span>
+                                        <span className="text-base font-normal text-slate-600">
+                                          {formatDate(getDayDate(trip.start_date, day), 'EEE, MMM d')}
+                                        </span>
+                                      </>
+                                    )}
+                                    <span className="text-slate-400">•</span>
+                                    <span className="text-base font-normal text-slate-600">
+                                      {dayPlaces.length} {dayPlaces.length === 1 ? 'place' : 'places'}
+                                    </span>
+                                  </div>
+                                  
+                                  {/* Right: Collapse indicator */}
+                                  <div className={`transform transition-transform duration-200 ${isCollapsed ? '' : 'rotate-180'}`}>
+                                    <svg className="w-5 h-5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                                    </svg>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Desktop: Original two-line header */}
+                              <div className="hidden sm:block bg-gray-100 rounded-lg p-3 hover:bg-gray-200 transition-colors duration-200">
                                 <div className="flex items-center justify-between">
                                   {/* Day title and date */}
                                   <div className="flex flex-col">

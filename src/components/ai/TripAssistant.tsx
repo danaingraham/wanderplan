@@ -266,20 +266,32 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
 
   if (!isOpen) {
     return (
-      <div className="fixed bottom-6 right-6" style={{ zIndex: 9999 }}>
+      <div 
+        className="fixed right-4 sm:right-6" 
+        style={{ 
+          zIndex: 9999,
+          bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
+        }}
+      >
         <button
           onClick={() => setIsOpen(true)}
-          className="bg-primary-600 hover:bg-primary-700 text-white rounded-full p-4 shadow-lg transition-all duration-200 hover:scale-105 animate-bounce-gentle"
+          className="bg-primary-600 hover:bg-primary-700 text-white rounded-full p-3 sm:p-4 shadow-lg transition-all duration-200 hover:scale-105 animate-bounce-gentle"
           title="Ask AI Assistant"
+          aria-label="Open AI assistant"
         >
-          <Sparkles className="w-6 h-6" />
+          <Sparkles className="w-5 h-5 sm:w-6 sm:h-6" />
         </button>
       </div>
     )
   }
 
   return (
-    <div className="fixed bottom-6 right-6 w-96 h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col animate-scale-in" style={{ zIndex: 9999 }}>
+    <div 
+      className="fixed right-4 sm:right-6 w-[calc(100vw-2rem)] sm:w-96 max-w-[24rem] h-[500px] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col animate-scale-in" 
+      style={{ 
+        zIndex: 9999,
+        bottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)'
+      }}>
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-gray-200 bg-gradient-to-r from-primary-500 to-primary-600 rounded-t-2xl">
         <div className="flex items-center space-x-2 text-white">
