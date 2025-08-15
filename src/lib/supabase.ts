@@ -17,16 +17,18 @@ if (typeof window !== 'undefined') {
   })
 }
 
-export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: false, // Disable URL detection to prevent hanging
-    flowType: 'pkce', // Try PKCE instead
-    storage: typeof window !== 'undefined' ? window.localStorage : undefined,
-    storageKey: 'wanderplan-auth'
+// Try minimal configuration to avoid hanging
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co', 
+  supabaseAnonKey || 'placeholder-key',
+  {
+    auth: {
+      persistSession: false, // Disable session persistence temporarily
+      autoRefreshToken: false, // Disable auto refresh
+      detectSessionInUrl: false // Disable URL detection
+    }
   }
-})
+)
 
 // Test the client immediately with a timeout
 if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
