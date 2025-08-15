@@ -21,22 +21,28 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
   auth: {
     persistSession: true,
     autoRefreshToken: true,
-    detectSessionInUrl: true,
-    flowType: 'implicit', // Using implicit for better mobile compatibility
+    detectSessionInUrl: false, // Disable URL detection to prevent hanging
+    flowType: 'pkce', // Try PKCE instead
     storage: typeof window !== 'undefined' ? window.localStorage : undefined,
     storageKey: 'wanderplan-auth'
   }
 })
 
-// Test the client immediately
+// Test the client immediately with a timeout
 if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+  const testTimeout = setTimeout(() => {
+    console.error('🔧 Supabase client test timeout - getSession not responding')
+  }, 3000)
+  
   supabase.auth.getSession().then(({ data, error }) => {
+    clearTimeout(testTimeout)
     if (error) {
       console.error('🔧 Supabase client test failed:', error)
     } else {
       console.log('🔧 Supabase client test successful, session:', !!data.session)
     }
   }).catch(err => {
+    clearTimeout(testTimeout)
     console.error('🔧 Supabase client test error:', err)
   })
 }
