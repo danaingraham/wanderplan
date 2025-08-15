@@ -114,6 +114,19 @@ export function UserProvider({ children }: { children: ReactNode }) {
       }, 15000) // 15 second timeout - increased for mobile networks
       
       console.log('🔐 UserContext: Calling getSession...')
+      
+      // First, try a simple health check
+      fetch(`${supabaseUrl}/rest/v1/`, {
+        headers: {
+          'apikey': supabaseKey,
+          'Content-Type': 'application/json'
+        }
+      }).then(response => {
+        console.log('🔐 UserContext: Supabase health check response:', response.status)
+      }).catch(err => {
+        console.error('🔐 UserContext: Supabase health check failed:', err)
+      })
+      
       supabase.auth.getSession().then(({ data: { session }, error }) => {
         clearTimeout(initTimeout)
         console.log('🔐 UserContext: getSession responded, session:', !!session, 'error:', error)

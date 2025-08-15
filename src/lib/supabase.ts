@@ -8,6 +8,15 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('Supabase credentials not configured. Please add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to your .env file')
 }
 
+// Log what we're initializing with
+if (typeof window !== 'undefined') {
+  console.log('🔧 Supabase client initialization:', {
+    url: supabaseUrl ? 'configured' : 'missing',
+    key: supabaseAnonKey ? 'configured' : 'missing',
+    storageKey: 'wanderplan-auth'
+  })
+}
+
 export const supabase = createClient(supabaseUrl || 'https://placeholder.supabase.co', supabaseAnonKey || 'placeholder-key', {
   auth: {
     persistSession: true,
@@ -18,6 +27,19 @@ export const supabase = createClient(supabaseUrl || 'https://placeholder.supabas
     storageKey: 'wanderplan-auth'
   }
 })
+
+// Test the client immediately
+if (typeof window !== 'undefined' && supabaseUrl && supabaseAnonKey) {
+  supabase.auth.getSession().then(({ data, error }) => {
+    if (error) {
+      console.error('🔧 Supabase client test failed:', error)
+    } else {
+      console.log('🔧 Supabase client test successful, session:', !!data.session)
+    }
+  }).catch(err => {
+    console.error('🔧 Supabase client test error:', err)
+  })
+}
 
 // Database types (will be generated from your Supabase schema)
 export interface Profile {
