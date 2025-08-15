@@ -143,31 +143,19 @@ function PlaceItem({
             </button>
           </div>
 
-          {/* Mobile: Drag Handle - visible on left side */}
-          <button
+          {/* Mobile: Invisible drag area that covers the card except interactive elements */}
+          <div
             {...listeners}
             {...attributes}
-            className="sm:hidden flex-shrink-0 cursor-grab active:cursor-grabbing p-1 touch-none"
+            className="sm:hidden absolute inset-0 z-0"
             aria-label="Drag to reorder"
-            type="button"
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" className="text-slate-400">
-              <g fill="currentColor">
-                <circle cx="5" cy="3" r="1.5"/>
-                <circle cx="11" cy="3" r="1.5"/>
-                <circle cx="5" cy="8" r="1.5"/>
-                <circle cx="11" cy="8" r="1.5"/>
-                <circle cx="5" cy="13" r="1.5"/>
-                <circle cx="11" cy="13" r="1.5"/>
-              </g>
-            </svg>
-          </button>
+            style={{ touchAction: 'none' }}
+          />
         </>
       )}
     >
       {/* Mobile: Compact side-by-side layout */}
-      <div className="sm:hidden flex gap-2 p-3">
-        {/* Note: Drag handle is rendered above via renderDragHandle */}
+      <div className="sm:hidden flex gap-3 p-3 relative">{/* Added relative for z-index context */}
         
         {/* LEFT: Thumbnail - fixed square */}
         <div className="w-16 h-16 rounded-lg overflow-hidden shrink-0 bg-slate-100">
@@ -212,10 +200,13 @@ function PlaceItem({
                   type="button"
                   aria-expanded={isExpanded}
                   onClick={(e) => {
+                    e.preventDefault();
                     e.stopPropagation();
                     setIsExpanded(!isExpanded);
                   }}
-                  className="mt-1 text-sm font-medium text-slate-900 hover:text-primary-600"
+                  className="relative z-10 mt-1 text-sm font-medium text-slate-900 hover:text-primary-600 active:text-primary-700"
+                  onPointerDown={(e) => e.stopPropagation()}
+                  onTouchStart={(e) => e.stopPropagation()}
                 >
                   {isExpanded ? 'Show less' : 'More'}
                 </button>
