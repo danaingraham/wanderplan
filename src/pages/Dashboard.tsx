@@ -12,14 +12,9 @@ export function Dashboard() {
   console.log('📊 Dashboard: Trips loaded:', trips.length)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
 
-  const upcomingTrips = trips.filter(trip => 
-    trip.start_date && isDateInFuture(trip.start_date)
-  ).slice(0, 3)
-
-  const recentTrips = trips
-    .filter(trip => !trip.start_date || isDateInPast(trip.start_date))
+  // Sort all trips by updated date (most recent first)
+  const allTrips = trips
     .sort((a, b) => new Date(b.updated_date).getTime() - new Date(a.updated_date).getTime())
-    .slice(0, 6)
 
   if (loading) {
     return (
@@ -48,62 +43,12 @@ export function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {upcomingTrips.length > 0 && (
-        <section className="mb-12">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-semibold text-gray-900">Upcoming Adventures</h2>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {upcomingTrips.map((trip, index) => (
-              <Link
-                key={trip.id}
-                to={`/trip/${trip.id}`}
-                className="card card-hover group animate-slide-up"
-                style={{animationDelay: `${index * 0.1}s`}}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                    {trip.title}
-                  </h3>
-                  <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                    Upcoming
-                  </span>
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {trip.destination}
-                  </div>
-                  {trip.start_date && (
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {formatDate(trip.start_date)}
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
       <section>
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">
-            {recentTrips.length > 0 ? 'Recent Trips' : 'Your Trips'}
-          </h2>
-          {recentTrips.length > 6 && (
-            <Link to="/trips" className="text-primary-600 hover:text-primary-700 font-medium">
-              View all trips
-            </Link>
-          )}
+          <h2 className="text-2xl font-semibold text-gray-900">My Trips</h2>
         </div>
 
-        {recentTrips.length === 0 ? (
+        {allTrips.length === 0 ? (
           <div className="text-center py-12 animate-fade-in">
             <div className="max-w-md mx-auto">
               <div className="bg-gray-100 rounded-full w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6 animate-float">
@@ -119,56 +64,64 @@ export function Dashboard() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {recentTrips.map((trip, index) => (
-              <Link
-                key={trip.id}
-                to={`/trip/${trip.id}`}
-                className="card card-hover group animate-slide-up"
-                style={{animationDelay: `${index * 0.1}s`}}
-              >
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                    {trip.title}
-                  </h3>
-                  {trip.is_public && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                      Public
-                    </span>
-                  )}
-                </div>
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2" />
-                    {trip.destination}
+            {allTrips.map((trip, index) => {
+              const isUpcoming = trip.start_date && isDateInFuture(trip.start_date)
+              
+              return (
+                <Link
+                  key={trip.id}
+                  to={`/trip/${trip.id}`}
+                  className="card card-hover group animate-slide-up"
+                  style={{animationDelay: `${index * 0.1}s`}}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
+                      {trip.title}
+                    </h3>
+                    {isUpcoming ? (
+                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        Upcoming
+                      </span>
+                    ) : trip.is_public ? (
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        Public
+                      </span>
+                    ) : null}
                   </div>
-                  {trip.start_date && (
+                  <div className="space-y-2 text-sm text-gray-600">
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      {formatDate(trip.start_date)}
+                      <MapPin className="h-4 w-4 mr-2" />
+                      {trip.destination}
                     </div>
-                  )}
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2" />
-                    {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
+                    {trip.start_date && (
+                      <div className="flex items-center">
+                        <Calendar className="h-4 w-4 mr-2" />
+                        {formatDate(trip.start_date)}
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <Users className="h-4 w-4 mr-2" />
+                      {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 flex flex-wrap gap-1">
-                  {trip.preferences.slice(0, 3).map(pref => (
-                    <span
-                      key={pref}
-                      className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
-                    >
-                      {pref}
-                    </span>
-                  ))}
-                  {trip.preferences.length > 3 && (
-                    <span className="text-xs text-gray-400">
-                      +{trip.preferences.length - 3} more
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
+                  <div className="mt-4 flex flex-wrap gap-1">
+                    {trip.preferences.slice(0, 3).map(pref => (
+                      <span
+                        key={pref}
+                        className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
+                      >
+                        {pref}
+                      </span>
+                    ))}
+                    {trip.preferences.length > 3 && (
+                      <span className="text-xs text-gray-400">
+                        +{trip.preferences.length - 3} more
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         )}
       </section>
