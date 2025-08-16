@@ -207,8 +207,8 @@ const PlaceItem = ({
                   {place.notes}
                 </p>
                 
-                {/* Show more/less button - only if text is long enough */}
-                {place.notes.length > 50 && (
+                {/* Show more/less button - show if text is long or contains line breaks */}
+                {(place.notes.length > 80 || place.notes.includes('\n')) && (
                   <button
                     onClick={() => setExpandedState(!expandedState)}
                     className="mt-1 text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2 decoration-dotted"
@@ -329,20 +329,14 @@ const PlaceItem = ({
                   {/* Notes - collapsible with show more/less */}
                   {place.notes && (
                     <>
-                      {expandedState ? (
-                        <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
-                          {place.notes}
-                        </p>
-                      ) : (
-                        <p 
-                          className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap line-clamp-1"
-                        >
-                          {place.notes}
-                        </p>
-                      )}
+                      <p className={`text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap ${
+                        !expandedState ? 'line-clamp-1' : ''
+                      }`}>
+                        {place.notes}
+                      </p>
                       
-                      {/* Show more/less button - only if text is long enough */}
-                      {place.notes.length > 150 && (
+                      {/* Show more/less button - show if text is long or contains line breaks */}
+                      {(place.notes.length > 80 || place.notes.includes('\n')) && (
                         <div className="mt-1">
                           <button
                             type="button"
