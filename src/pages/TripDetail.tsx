@@ -202,16 +202,16 @@ const PlaceItem = ({
             {place.notes && (
               <>
                 <p className={`mt-1 text-sm text-slate-700 break-words ${
-                  !expandedState ? 'line-clamp-2' : ''
+                  !expandedState ? 'line-clamp-1' : ''
                 }`}>
                   {place.notes}
                 </p>
                 
                 {/* Show more/less button - only if text is long enough */}
-                {place.notes.length > 100 && (
+                {place.notes.length > 50 && (
                   <button
                     onClick={() => setExpandedState(!expandedState)}
-                    className="mt-1 text-sm font-medium text-primary-600 hover:text-primary-700"
+                    className="mt-1 text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2 decoration-dotted"
                   >
                     {expandedState ? 'Show less' : 'Show more'}
                   </button>
@@ -335,7 +335,7 @@ const PlaceItem = ({
                         </p>
                       ) : (
                         <p 
-                          className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap line-clamp-3"
+                          className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap line-clamp-1"
                         >
                           {place.notes}
                         </p>
@@ -355,7 +355,7 @@ const PlaceItem = ({
                               e.stopPropagation();
                               e.preventDefault();
                             }}
-                            className="text-xs font-medium text-primary-600 hover:text-primary-700 inline-block relative z-[100] pointer-events-auto"
+                            className="text-xs text-gray-500 hover:text-gray-700 inline-block relative z-[100] pointer-events-auto underline underline-offset-2 decoration-dotted"
                             style={{ 
                               touchAction: 'none',
                               userSelect: 'none',
