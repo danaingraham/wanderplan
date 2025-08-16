@@ -54,8 +54,8 @@ export function Explore() {
             }}
           >
             <Geographies geography={geoUrl}>
-              {({ geographies }) =>
-                geographies.map((geo) => (
+              {({ geographies }: { geographies: any[] }) =>
+                geographies.map((geo: any) => (
                   <Geography
                     key={geo.rsmKey}
                     geography={geo}
@@ -95,11 +95,8 @@ export function Explore() {
                   onMouseEnter={() => setHoveredGuideId(guide.id)}
                   onMouseLeave={() => setHoveredGuideId(null)}
                   onClick={() => setSelectedGuide(guide)}
-                  style={{
-                    cursor: 'pointer'
-                  }}
                 >
-                  <g transform={isHovered ? 'scale(1.2) translate(0, -2)' : 'scale(1)'}>
+                  <g transform={isHovered ? 'scale(1.2) translate(0, -2)' : 'scale(1)'} style={{ cursor: 'pointer' }}>
                     {/* Pin shape */}
                     <path 
                       d="M0,-20 C-6,-20 -11,-15 -11,-9 C-11,0 0,20 0,20 C0,20 11,0 11,-9 C11,-15 6,-20 0,-20"
