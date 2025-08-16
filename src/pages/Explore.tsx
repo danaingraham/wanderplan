@@ -161,39 +161,33 @@ export function Explore() {
 
   return (
     <div 
-      className="min-h-screen" 
+      className="min-h-screen flex flex-col" 
       style={{ 
-        backgroundColor: '#F5EDE4',
-        paddingBottom: isMobile ? '80px' : '0' // Space for bottom nav on mobile
+        backgroundColor: '#9BCCC3', // Map background color for seamless appearance
+        margin: 0,
+        padding: 0
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
-      {/* Map Container */}
-      <div className={`${isMobile ? 'px-3 py-3' : 'max-w-7xl mx-auto px-6 py-12'}`}>
-        <div 
-          style={{
-            backgroundColor: '#9BCCC3',
-            borderRadius: '20px',
-            overflow: 'hidden',
-            boxShadow: '0 4px 20px rgba(0, 0, 0, 0.08)',
-            padding: '0',
-            height: isMobile ? 'calc(100vh - 200px)' : '70vh',
-            minHeight: isMobile ? '400px' : '500px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            position: 'relative',
-            cursor: isDragging ? 'grabbing' : 'grab',
-            userSelect: 'none'
-          }}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          onTouchStart={handleTouchStart}
-          onTouchMove={handleTouchMove}
-          onTouchEnd={handleTouchEnd}
-        >
+      {/* Full bleed map container */}
+      <div 
+        style={{
+          backgroundColor: '#9BCCC3',
+          width: '100vw',
+          height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 80px)', // Account for header and mobile bottom nav
+          position: 'relative',
+          overflow: 'hidden',
+          cursor: isDragging ? 'grabbing' : 'grab',
+          userSelect: 'none'
+        }}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+      >
           <ComposableMap
             projection="geoMercator"
             projectionConfig={{
@@ -327,8 +321,8 @@ export function Explore() {
           {/* Zoom controls */}
           <div style={{
             position: 'absolute',
-            bottom: '20px',
-            right: '20px',
+            bottom: isMobile ? '20px' : '40px',
+            right: isMobile ? '20px' : '40px',
             zIndex: 10,
             display: 'flex',
             flexDirection: 'column',
@@ -388,7 +382,6 @@ export function Explore() {
               ⟲
             </button>
           </div>
-        </div>
       </div>
 
       {/* Selected Guide Modal */}
