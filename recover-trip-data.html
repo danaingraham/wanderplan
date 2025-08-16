@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Recover Trip Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; max-height: 300px; }
+        .error { color: red; }
+        .success { color: green; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+        .backup-item { 
+            border: 1px solid #ccc; 
+            padding: 10px; 
+            margin: 10px 0;
+            border-radius: 5px;
+        }
+        .backup-item.selected { 
+            background: #e0f0ff; 
+            border-color: #0066cc;
+        }
+    </style>
+</head>
+<body>
+    <h1>Trip Data Recovery Tool</h1>
+    
+    <div id="current-data">
+        <h2>Current Data Status</h2>
+        <div id="current-status"></div>
+    </div>
+    
+    <div id="backups">
+        <h2>Available Backups</h2>
+        <div id="backup-list"></div>
+    </div>
+    
+    <div id="actions">
+        <button onclick="refreshData()">Refresh</button>
+        <button onclick="recoverLatest()" class="success">Recover Latest Backup</button>
+    </div>
+    
+    <div id="results"></div>
+    
+    <script>
+        function formatDate(timestamp) {
+            return new Date(parseInt(timestamp)).toLocaleString();
+        }
+        
+        function checkCurrentData() {
+            const status = document.getElementById('current-status');
+            
+            // Check current trips
+            const trips = localStorage.getItem('wanderplan_trips');
+            const places = localStorage.getItem('wanderplan_places');
+            
+            let html = '';
+            
+            if (trips) {
+                try {
+                    const tripsData = JSON.parse(trips);
+                    html += `<p>Current trips: <strong>${tripsData.length}</strong></p>`;
+                    
+                    // Look for Paris trip
+                    const parisTrip = tripsData.find(t => 
+                        t.destination?.toLowerCase().includes('paris') ||
+                        t.title?.toLowerCase().includes('paris')
+                    );
+                    
+                    if (parisTrip) {
+                        html += '<p class="success">✅ Paris trip found in current data!</p>';
+                        html += `<pre>${JSON.stringify(parisTrip, null, 2)}</pre>`;
+                    } else {
+                        html += '<p class="warning">⚠️ Paris trip NOT found in current data</p>';
+                        if (tripsData.length > 0) {
+                            html += '<p>Current trips:</p>';
+                            tripsData.forEach(trip => {
+                                html += `<p>- ${trip.title} (${trip.destination})</p>`;
+                            });
+                        }
+                    }
+                } catch (e) {
+                    html += '<p class="error">Error parsing current trips data</p>';
+                }
+            } else {
+                html += '<p class="error">No trips data found</p>';
+            }
+            
+            if (places) {
+                try {
+                    const placesData = JSON.parse(places);
+                    html += `<p>Current places: <strong>${placesData.length}</strong></p>`;
+                } catch (e) {
+                    html += '<p class="error">Error parsing places data</p>';
+                }
+            }
+            
+            status.innerHTML = html;
+        }
+        
+        function checkBackups() {
+            const backupList = document.getElementById('backup-list');
+            const allKeys = Object.keys(localStorage);
+            
+            // Find trip backups
+            const tripBackups = allKeys.filter(k => k.startsWith('wanderplan_trips_backup_')).sort().reverse();
+            
+            if (tripBackups.length === 0) {
+                backupList.innerHTML = '<p class="warning">No backups found</p>';
+                return;
+            }
+            
+            let html = `<p>Found ${tripBackups.length} backup(s):</p>`;
+            
+            tripBackups.forEach((backupKey, index) => {
+                const timestamp = backupKey.replace('wanderplan_trips_backup_', '');
+                const backupData = localStorage.getItem(backupKey);
+                
+                try {
+                    const data = JSON.parse(backupData);
+                    const parisTrip = data.find(t => 
+                        t.destination?.toLowerCase().includes('paris') ||
+                        t.title?.toLowerCase().includes('paris')
+                    );
+                    
+                    html += `
+                        <div class="backup-item" id="backup-${index}">
+                            <h3>Backup from ${formatDate(timestamp)}</h3>
+                            <p>Trips: ${data.length}</p>
+                            ${parisTrip ? '<p class="success">✅ Contains Paris trip!</p>' : '<p class="warning">⚠️ No Paris trip</p>'}
+                            <button onclick="recoverBackup('${backupKey}')">Restore This Backup</button>
+                            <button onclick="viewBackup('${backupKey}')">View Details</button>
+                        </div>
+                    `;
+                } catch (e) {
+                    html += `
+                        <div class="backup-item error">
+                            <h3>Backup from ${formatDate(timestamp)}</h3>
+                            <p>Error reading backup</p>
+                        </div>
+                    `;
+                }
+            });
+            
+            backupList.innerHTML = html;
+        }
+        
+        function viewBackup(backupKey) {
+            const data = localStorage.getItem(backupKey);
+            const results = document.getElementById('results');
+            
+            try {
+                const parsed = JSON.parse(data);
+                results.innerHTML = `
+                    <h3>Backup Contents (${backupKey})</h3>
+                    <pre>${JSON.stringify(parsed, null, 2)}</pre>
+                `;
+            } catch (e) {
+                results.innerHTML = '<p class="error">Error viewing backup</p>';
+            }
+        }
+        
+        function recoverBackup(backupKey) {
+            if (!confirm('Are you sure you want to restore this backup? Current data will be overwritten.')) {
+                return;
+            }
+            
+            const backupData = localStorage.getItem(backupKey);
+            if (backupData) {
+                // Save current as new backup first
+                const current = localStorage.getItem('wanderplan_trips');
+                if (current) {
+                    localStorage.setItem(`wanderplan_trips_backup_${Date.now()}`, current);
+                }
+                
+                // Restore the backup
+                localStorage.setItem('wanderplan_trips', backupData);
+                
+                document.getElementById('results').innerHTML = '<p class="success">✅ Backup restored successfully! Please refresh the app.</p>';
+                refreshData();
+            }
+        }
+        
+        function recoverLatest() {
+            const allKeys = Object.keys(localStorage);
+            const tripBackups = allKeys.filter(k => k.startsWith('wanderplan_trips_backup_')).sort().reverse();
+            
+            if (tripBackups.length > 0) {
+                recoverBackup(tripBackups[0]);
+            } else {
+                alert('No backups found');
+            }
+        }
+        
+        function refreshData() {
+            checkCurrentData();
+            checkBackups();
+        }
+        
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>

@@ -26,7 +26,6 @@ export function Explore() {
   const [mapCenter, setMapCenter] = useState<[number, number]>([0, 20])
   const [isDragging, setIsDragging] = useState(false)
   const [dragStart, setDragStart] = useState<{ x: number; y: number } | null>(null)
-  const [dragOffset, setDragOffset] = useState<[number, number]>([0, 0])
 
   // Add animation styles
   const animationStyles = `

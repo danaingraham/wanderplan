@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Check Supabase Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 10px; overflow: auto; }
+        .error { color: red; }
+        .success { color: green; }
+        button { padding: 10px 20px; margin: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>Check Supabase Trip Data</h1>
+    <button onclick="checkSupabase()">Check Supabase Data</button>
+    <div id="results"></div>
+    
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        const supabaseUrl = 'https://wanderplan.supabase.co';
+        const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndhbmRlcnBsYW4iLCJyb2xlIjoiYW5vbiIsImlhdCI6MTcyODkxNzkyNCwiZXhwIjoyMDQ0NDkzOTI0fQ.bIi87EQGqkQIMGdw17dVrFWlHGQMA8s5MwVmLxYiLLo';
+        
+        const supabase = createClient(supabaseUrl, supabaseKey);
+        
+        window.checkSupabase = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<p>Checking Supabase...</p>';
+            
+            try {
+                // Check auth status
+                const { data: { user } } = await supabase.auth.getUser();
+                
+                if (!user) {
+                    results.innerHTML = '<p class="error">Not logged in to Supabase. Please log in first.</p>';
+                    return;
+                }
+                
+                results.innerHTML += `<p class="success">Logged in as: ${user.email}</p>`;
+                
+                // Get trips
+                const { data: trips, error: tripsError } = await supabase
+                    .from('trips')
+                    .select('*')
+                    .eq('user_id', user.id);
+                
+                if (tripsError) {
+                    results.innerHTML += `<p class="error">Error fetching trips: ${tripsError.message}</p>`;
+                } else {
+                    results.innerHTML += `<h2>Trips found: ${trips.length}</h2>`;
+                    
+                    // Look for Paris trip
+                    const parisTrip = trips.find(t => 
+                        t.destination?.toLowerCase().includes('paris') ||
+                        t.title?.toLowerCase().includes('paris')
+                    );
+                    
+                    if (parisTrip) {
+                        results.innerHTML += '<h3 class="success">Paris trip found!</h3>';
+                        results.innerHTML += `<pre>${JSON.stringify(parisTrip, null, 2)}</pre>`;
+                        
+                        // Get places for Paris trip
+                        const { data: places, error: placesError } = await supabase
+                            .from('places')
+                            .select('*')
+                            .eq('trip_id', parisTrip.id)
+                            .order('day', { ascending: true })
+                            .order('order_in_day', { ascending: true });
+                        
+                        if (placesError) {
+                            results.innerHTML += `<p class="error">Error fetching places: ${placesError.message}</p>`;
+                        } else {
+                            results.innerHTML += `<h3>Places in Paris trip: ${places.length}</h3>`;
+                            results.innerHTML += `<pre>${JSON.stringify(places, null, 2)}</pre>`;
+                        }
+                    } else {
+                        results.innerHTML += '<p class="error">No Paris trip found in Supabase!</p>';
+                        
+                        // Show all trips
+                        results.innerHTML += '<h3>All trips:</h3>';
+                        trips.forEach(trip => {
+                            results.innerHTML += `<p>- ${trip.title} (${trip.destination})</p>`;
+                        });
+                    }
+                }
+                
+            } catch (error) {
+                results.innerHTML += `<p class="error">Error: ${error.message}</p>`;
+            }
+        };
+    </script>
+</body>
+</html>
