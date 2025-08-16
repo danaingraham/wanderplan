@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { MapPin, Trash2, Check, X, Plus, RefreshCw, Edit2, MoreVertical } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
@@ -87,13 +87,14 @@ interface PlaceItemProps {
   onEdit: (place: Place) => void
 }
 
-function PlaceItem({ 
+const PlaceItem = ({ 
   place, 
   sequenceNumber,
   onEdit
-}: PlaceItemProps) {
+}: PlaceItemProps) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
+  const [expandedState, setExpandedState] = useState(false)  // Local state for expand/collapse
   const { deletePlace } = useTrips()
 
   // Fetch photo from Google Places
@@ -197,11 +198,25 @@ function PlaceItem({
               </div>
             )}
             
-            {/* Notes - show full text */}
+            {/* Notes - collapsible */}
             {place.notes && (
-              <p className="mt-1 text-sm text-slate-700 break-words">
-                {place.notes}
-              </p>
+              <>
+                <p className={`mt-1 text-sm text-slate-700 break-words ${
+                  !expandedState ? 'line-clamp-2' : ''
+                }`}>
+                  {place.notes}
+                </p>
+                
+                {/* Show more/less button - only if text is long enough */}
+                {place.notes.length > 100 && (
+                  <button
+                    onClick={() => setExpandedState(!expandedState)}
+                    className="mt-1 text-sm font-medium text-primary-600 hover:text-primary-700"
+                  >
+                    {expandedState ? 'Show less' : 'Show more'}
+                  </button>
+                )}
+              </>
             )}
           </div>
         </div>
@@ -212,6 +227,7 @@ function PlaceItem({
         place={place}
         className="hidden sm:block bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden group"
         hideDefaultHandle={true}
+        key={`${place.id}-${expandedState}`} // Force re-render when state changes
         renderDragHandle={(listeners, attributes) => (
             /* Left Rail - Fixed 40px width */
             <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
@@ -310,11 +326,48 @@ function PlaceItem({
                     </div>
                   )}
                   
-                  {/* Notes - show full text with proper wrapping */}
+                  {/* Notes - collapsible with show more/less */}
                   {place.notes && (
-                    <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
-                      {place.notes}
-                    </p>
+                    <>
+                      {expandedState ? (
+                        <p className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap">
+                          {place.notes}
+                        </p>
+                      ) : (
+                        <p 
+                          className="text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap line-clamp-3"
+                        >
+                          {place.notes}
+                        </p>
+                      )}
+                      
+                      {/* Show more/less button - only if text is long enough */}
+                      {place.notes.length > 150 && (
+                        <div className="mt-1">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                              setExpandedState(!expandedState);
+                            }}
+                            onMouseDown={(e) => {
+                              e.stopPropagation();
+                              e.preventDefault();
+                            }}
+                            className="text-xs font-medium text-primary-600 hover:text-primary-700 inline-block relative z-[100] pointer-events-auto"
+                            style={{ 
+                              touchAction: 'none',
+                              userSelect: 'none',
+                              position: 'relative',
+                              zIndex: 100
+                            }}
+                          >
+                            {expandedState ? 'Show less' : 'Show more'}
+                          </button>
+                        </div>
+                      )}
+                    </>
                   )}
                 </div>
               </div>
