@@ -1,6 +1,8 @@
-import { useLocation } from 'react-router-dom'
-import { Header } from './Header'
+import { useLocation, useNavigate } from 'react-router-dom'
+import { Header as OldHeader } from './Header'
+import NewHeader from '../Header'
 import { MobileNav } from './MobileNav'
+import { useUser } from '../../contexts/UserContext'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -8,6 +10,8 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation()
+  const navigate = useNavigate()
+  const { user, logout } = useUser()
   
   // Check if we're on the Trip Detail page
   const isTripDetail = location.pathname.startsWith('/trip/')
@@ -15,14 +19,35 @@ export function Layout({ children }: LayoutProps) {
   // Check if we're on a settings page
   const isSettings = /^\/(profile|settings|api-status)/.test(location.pathname)
   
+  // Convert user data to Header format
+  const headerUser = user ? {
+    name: user.full_name || user.email || 'User',
+    avatarUrl: user.avatar_url
+  } : undefined
+  
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Conditionally render header - hide on Trip Detail, show on Settings with context */}
+      {/* Use new Header on desktop, old header on mobile */}
       {!isTripDetail && (
-        <Header 
-          context={{ isSettings }}
-          showCreateTrip={!isSettings}
-        />
+        <>
+          {/* Desktop: New Header */}
+          <div className="hidden md:block">
+            <NewHeader 
+              activePath={location.pathname}
+              onNavigate={(path) => navigate(path)}
+              onSignOut={logout}
+              user={headerUser}
+            />
+          </div>
+          
+          {/* Mobile: Keep existing header */}
+          <div className="md:hidden">
+            <OldHeader 
+              context={{ isSettings }}
+              showCreateTrip={!isSettings}
+            />
+          </div>
+        </>
       )}
       
       <main className={isTripDetail ? "" : "pb-16 md:pb-0"}>

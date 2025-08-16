@@ -55,9 +55,14 @@ function AppContent() {
         {/* Protected routes */}
         <Route path="/" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/guides" element={<ProtectedRoute><Layout><div className="p-6 text-center text-gray-500">Guides coming soon</div></Layout></ProtectedRoute>} />
+        <Route path="/community" element={<ProtectedRoute><Layout><div className="p-6 text-center text-gray-500">Community coming soon</div></Layout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
+        <Route path="/create/trip" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
+        <Route path="/create/guide" element={<ProtectedRoute><Layout><div className="p-6 text-center text-gray-500">Guide creation coming soon</div></Layout></ProtectedRoute>} />
         <Route path="/trip/:id" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
+        <Route path="/settings" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
         <Route path="/api-status" element={<ProtectedRoute><Layout><ApiStatus /></Layout></ProtectedRoute>} />
       </Routes>
     </Router>
