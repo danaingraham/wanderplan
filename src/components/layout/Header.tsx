@@ -15,8 +15,8 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
   const location = useLocation()
   const navigate = useNavigate()
 
-  const isExplore = location.pathname === '/explore'
-  const isMyTrips = location.pathname === '/' || location.pathname === '/create' || location.pathname.startsWith('/trip/')
+  const isExplore = location.pathname === '/'
+  const isMyTrips = location.pathname === '/dashboard' || location.pathname === '/create' || location.pathname.startsWith('/trip/')
   const isSettings = context?.isSettings || false
   
   // Handle back navigation for settings
@@ -169,7 +169,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
           {!isSettings && (
             <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1">
               <Link
-                to="/explore"
+                to="/"
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   isExplore
@@ -180,7 +180,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                 Explore
               </Link>
               <Link
-                to="/"
+                to="/dashboard"
                 className={cn(
                   "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                   isMyTrips

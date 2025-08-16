@@ -53,8 +53,8 @@ function AppContent() {
         <Route path="/mobile-auth" element={<MobileAuthTest />} />
         
         {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-        <Route path="/explore" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
+        <Route path="/" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
         <Route path="/trip/:id" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />

@@ -6,9 +6,9 @@ export function MobileNav() {
   const location = useLocation()
 
   const navItems = [
-    { to: '/', icon: Home, label: 'Home' },
+    { to: '/dashboard', icon: Home, label: 'My Trips' },
     { to: '/create', icon: Plus, label: 'Create', isCreate: true },
-    { to: '/explore', icon: Compass, label: 'Explore' }
+    { to: '/', icon: Compass, label: 'Explore' }
   ]
 
   return (
