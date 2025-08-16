@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { MapPin, Calendar, Users } from 'lucide-react'
 import { useUser } from '../contexts/UserContext'
 import { useTrips } from '../contexts/TripContext'
-import { formatDate, isDateInFuture, isDateInPast } from '../utils/date'
+import { formatDate, isDateInFuture } from '../utils/date'
 
 export function Dashboard() {
   const { user } = useUser()
