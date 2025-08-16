@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Header as OldHeader } from './Header'
+import { useState, useEffect } from 'react'
 import NewHeader from '../Header'
-import { MobileNav } from './MobileNav'
+import MobileNav from '../MobileNav'
 import { useUser } from '../../contexts/UserContext'
 
 interface LayoutProps {
@@ -12,6 +12,19 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation()
   const navigate = useNavigate()
   const { user, logout } = useUser()
+  const [isMobile, setIsMobile] = useState(false)
+  
+  // Check viewport size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
   
   // Check if we're on the Trip Detail page
   const isTripDetail = location.pathname.startsWith('/trip/')
@@ -27,35 +40,36 @@ export function Layout({ children }: LayoutProps) {
   
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Use new Header on desktop, old header on mobile */}
-      {!isTripDetail && (
-        <>
-          {/* Desktop: New Header */}
-          <div className="hidden md:block">
-            <NewHeader 
-              activePath={location.pathname}
-              onNavigate={(path) => navigate(path)}
-              onSignOut={logout}
-              user={headerUser}
-            />
-          </div>
-          
-          {/* Mobile: Keep existing header */}
-          <div className="md:hidden">
-            <OldHeader 
-              context={{ isSettings }}
-              showCreateTrip={!isSettings}
-            />
-          </div>
-        </>
+      {/* Desktop: Show NewHeader on all pages except Trip Detail */}
+      {!isMobile && !isTripDetail && (
+        <NewHeader 
+          activePath={location.pathname}
+          onNavigate={(path) => navigate(path)}
+          onSignOut={logout}
+          user={headerUser}
+        />
       )}
       
-      <main className={isTripDetail ? "" : "pb-16 md:pb-0"}>
+      {/* Mobile: Show MobileNav on all pages except Trip Detail and Settings */}
+      {isMobile && !isTripDetail && !isSettings && (
+        <MobileNav
+          activePath={location.pathname}
+          onNavigate={(path) => navigate(path)}
+          onSignOut={logout}
+          user={headerUser}
+        />
+      )}
+      
+      {/* Main content with appropriate padding */}
+      <main className={
+        isTripDetail 
+          ? "" 
+          : isMobile 
+            ? "pt-12 pb-24" // Top padding for mobile header, bottom for tab bar + FAB
+            : ""
+      }>
         {children}
       </main>
-      
-      {/* Conditionally render mobile nav - hide on Trip Detail and Settings */}
-      {!isTripDetail && !isSettings && <MobileNav />}
     </div>
   )
 }

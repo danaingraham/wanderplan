@@ -161,11 +161,13 @@ export function Explore() {
 
   return (
     <div 
-      className="min-h-screen flex flex-col" 
+      className="flex flex-col" 
       style={{ 
         backgroundColor: '#9BCCC3', // Map background color for seamless appearance
         margin: 0,
-        padding: 0
+        padding: 0,
+        height: isMobile ? 'calc(100vh - 48px - 56px - env(safe-area-inset-bottom))' : '100vh', // 48px top bar + 56px bottom nav + safe area on mobile
+        marginTop: isMobile ? '-48px' : '0' // Offset the mobile header padding
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: animationStyles }} />
@@ -174,7 +176,7 @@ export function Explore() {
         style={{
           backgroundColor: '#9BCCC3',
           width: '100vw',
-          height: isMobile ? 'calc(100vh - 140px)' : 'calc(100vh - 80px)', // Account for header and mobile bottom nav
+          height: '100%',
           position: 'relative',
           overflow: 'hidden',
           cursor: isDragging ? 'grabbing' : 'grab',
