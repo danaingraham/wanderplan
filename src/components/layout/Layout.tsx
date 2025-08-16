@@ -22,7 +22,7 @@ export function Layout({ children }: LayoutProps) {
   // Convert user data to Header format
   const headerUser = user ? {
     name: user.full_name || user.email || 'User',
-    avatarUrl: user.avatar_url
+    avatarUrl: user.profile_picture_url
   } : undefined
   
   return (

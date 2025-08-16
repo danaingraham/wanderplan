@@ -1,14 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { ChevronDown, MapPin, User, Settings, LogOut, Plus } from 'lucide-react'
-
-// Brand colors
-const colors = {
-  primary: '#FFC300',
-  secondary: '#FF6F61',
-  accent: '#4ECDC4',
-  background: '#FDFDFD',
-  text: '#333333'
-}
 
 type HeaderProps = {
   activePath: string
@@ -20,12 +11,10 @@ type HeaderProps = {
 // Individual Tab Component
 function NavTab({ 
   label, 
-  path, 
   isActive, 
   onClick 
 }: { 
   label: string
-  path: string
   isActive: boolean
   onClick: () => void 
 }) {
@@ -328,25 +317,21 @@ export default function Header({ activePath, onNavigate, onSignOut, user }: Head
           >
             <NavTab
               label="Explore"
-              path="/explore"
               isActive={activeTab === 'explore'}
               onClick={() => onNavigate('/')}
             />
             <NavTab
               label="Trips"
-              path="/trips"
               isActive={activeTab === 'trips'}
               onClick={() => onNavigate('/dashboard')}
             />
             <NavTab
               label="Guides"
-              path="/guides"
               isActive={activeTab === 'guides'}
               onClick={() => onNavigate('/guides')}
             />
             <NavTab
               label="Community"
-              path="/community"
               isActive={activeTab === 'community'}
               onClick={() => onNavigate('/community')}
             />
