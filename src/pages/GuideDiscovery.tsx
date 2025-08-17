@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { 
   Search, Filter, MapPin, Calendar, Users, DollarSign, 
-  Star, Bookmark, TrendingUp, Globe, Plus 
+  Bookmark, TrendingUp, Globe, Plus 
 } from 'lucide-react'
 import { TripGuideService } from '../services/tripGuideService'
 import type { TripGuide, GuideSearchFilters, TripType, PriceRange } from '../types/guide'

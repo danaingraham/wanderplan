@@ -1,9 +1,5 @@
 import type {
   TripGuide,
-  AccommodationRecommendation,
-  ActivityRecommendation,
-  DiningRecommendation,
-  TransportationTip,
   TripType,
   PriceRange,
   MealType,

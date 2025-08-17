@@ -369,7 +369,7 @@ export class TripGuideConverter {
 
   private categorizeActivity(place: Place): ActivityCategory {
     const name = place.name.toLowerCase()
-    const notes = (place.notes || '').toLowerCase()
+    // const notes = (place.notes || '').toLowerCase() // Not currently used
     
     if (name.includes('museum') || name.includes('gallery')) return 'cultural'
     if (name.includes('park') || name.includes('garden')) return 'nature'

@@ -53,7 +53,7 @@ const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, class
 
       const guide = await guideService.createFromItinerary(
         trip.id,
-        user.id,
+        user!.id,
         cleanedInfo
       )
       

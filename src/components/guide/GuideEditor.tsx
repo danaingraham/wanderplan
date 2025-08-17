@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { 
-  Save, X, Plus, Trash2, Image, Globe, Lock, 
+  Save, X, Plus, Trash2, Globe, Lock, 
   ChevronDown, ChevronUp, Loader2 
 } from 'lucide-react'
 import { TripGuideService } from '../../services/tripGuideService'
@@ -10,9 +10,6 @@ import type {
   TripGuide, 
   GuideUpdateRequest,
   AccommodationRecommendation,
-  ActivityRecommendation,
-  DiningRecommendation,
-  TransportationTip,
   TripType,
   PriceRange
 } from '../../types/guide'
@@ -211,78 +208,8 @@ const GuideEditor: React.FC = () => {
     })
   }
 
-  const addActivity = () => {
-    if (!guide) return
-    const newActivity: ActivityRecommendation = {
-      id: crypto.randomUUID(),
-      name: '',
-      category: 'sightseeing',
-      description: '',
-      location: '',
-      duration: '',
-      images: [],
-      bookingRequired: false
-    }
-    setGuide({
-      ...guide,
-      activities: [...guide.activities, newActivity]
-    })
-  }
-
-  const removeActivity = (id: string) => {
-    if (!guide) return
-    setGuide({
-      ...guide,
-      activities: guide.activities.filter(a => a.id !== id)
-    })
-  }
-
-  const updateActivity = (id: string, updates: Partial<ActivityRecommendation>) => {
-    if (!guide) return
-    setGuide({
-      ...guide,
-      activities: guide.activities.map(a => 
-        a.id === id ? { ...a, ...updates } : a
-      )
-    })
-  }
-
-  const addDining = () => {
-    if (!guide) return
-    const newDining: DiningRecommendation = {
-      id: crypto.randomUUID(),
-      name: '',
-      cuisine: '',
-      mealTypes: ['lunch', 'dinner'],
-      neighborhood: '',
-      priceRange: '$$',
-      description: '',
-      images: [],
-      reservationRequired: false
-    }
-    setGuide({
-      ...guide,
-      dining: [...guide.dining, newDining]
-    })
-  }
-
-  const removeDining = (id: string) => {
-    if (!guide) return
-    setGuide({
-      ...guide,
-      dining: guide.dining.filter(d => d.id !== id)
-    })
-  }
-
-  const updateDining = (id: string, updates: Partial<DiningRecommendation>) => {
-    if (!guide) return
-    setGuide({
-      ...guide,
-      dining: guide.dining.map(d => 
-        d.id === id ? { ...d, ...updates } : d
-      )
-    })
-  }
+  // Note: Activity and Dining management functions removed as they're not currently used
+  // These can be re-added when the full editor functionality is implemented
 
   if (loading) {
     return (

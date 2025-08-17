@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import { MapPin, DollarSign, Star, Clock, AlertCircle, ExternalLink } from 'lucide-react'
+import { MapPin, DollarSign, Star, AlertCircle, ExternalLink } from 'lucide-react'
 import type { DiningRecommendation, MealType } from '../../types/guide'
 
 interface DiningSectionProps {
@@ -154,7 +154,7 @@ const DiningSection: React.FC<DiningSectionProps> = ({ dining }) => {
                 <div className="flex flex-wrap gap-2">
                   {restaurant.mustTryDishes.map((dish, index) => (
                     <span key={index} className="text-sm text-amber-800">
-                      {dish}{index < restaurant.mustTryDishes.length - 1 ? ',' : ''}
+                      {dish}{index < restaurant.mustTryDishes!.length - 1 ? ',' : ''}
                     </span>
                   ))}
                 </div>

@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, Clock, Users, DollarSign, MapPin, Star, Share2, Bookmark, Edit } from 'lucide-react'
+import { Calendar, Clock, Users, DollarSign, MapPin, Share2, Bookmark, Edit } from 'lucide-react'
 import { TripGuideService } from '../../services/tripGuideService'
 import type { TripGuide } from '../../types/guide'
-import GuideHeader from './GuideHeader'
+// import GuideHeader from './GuideHeader' // Not currently used
 import AccommodationsSection from './AccommodationsSection'
 import ActivitiesSection from './ActivitiesSection'
 import DiningSection from './DiningSection'

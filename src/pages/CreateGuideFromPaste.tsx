@@ -6,8 +6,8 @@ import {
   Hotel, MapPin, Utensils, Calendar, DollarSign, Info
 } from 'lucide-react'
 import { GuideExtractorService } from '../services/guideExtractorService'
-import { TripGuideService } from '../services/tripGuideService'
-import { DataEnrichmentService } from '../services/dataEnrichmentService'
+// import { TripGuideService } from '../services/tripGuideService'
+// import { DataEnrichmentService } from '../services/dataEnrichmentService'
 import { useUser } from '../contexts/UserContext'
 import type { TripGuide } from '../types/guide'
 
@@ -20,7 +20,7 @@ const CreateGuideFromPaste: React.FC = () => {
   const [pastedText, setPastedText] = useState('')
   const [extractedGuide, setExtractedGuide] = useState<Partial<TripGuide> | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [processing, setProcessing] = useState(false)
+  const [_processing, setProcessing] = useState(false)
   const [progressMessage, setProgressMessage] = useState('')
   const [expandedSections, setExpandedSections] = useState({
     accommodations: true,
@@ -30,8 +30,9 @@ const CreateGuideFromPaste: React.FC = () => {
   })
 
   const extractorService = new GuideExtractorService()
-  const guideService = new TripGuideService()
-  const enrichmentService = new DataEnrichmentService()
+  // Services removed as they're not used in the current localStorage implementation
+  // const guideService = new TripGuideService()
+  // const enrichmentService = new DataEnrichmentService()
 
   const handleExtract = async () => {
     if (!pastedText.trim()) {

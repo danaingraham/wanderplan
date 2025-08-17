@@ -177,7 +177,7 @@ export class DataEnrichmentService {
   private async searchPlace(
     name: string,
     location: string,
-    types?: string[]
+    _types?: string[]
   ): Promise<PlaceDetails | null> {
     if (!this.googleApiKey) {
       console.warn('Google Maps API key not configured')

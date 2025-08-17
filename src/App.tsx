@@ -5,7 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { TripDetail } from './pages/TripDetail'
 import { NewTripCreation } from './pages/NewTripCreation'
 import { Explore } from './pages/Explore'
-import { Guides } from './pages/Guides'
+// import { Guides } from './pages/Guides' // Removed - using GuideDiscovery instead
 import { Community } from './pages/Community'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
