@@ -18,6 +18,7 @@ import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
+import ConvertToGuideButton from '../components/guide/ConvertToGuideButton'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -913,8 +914,13 @@ export function TripDetail() {
             </div>
           </div>
           
-          {/* Delete Trip Button */}
-          <div className="relative">
+          {/* Action Buttons */}
+          <div className="flex items-center gap-2">
+            {/* Convert to Guide Button */}
+            {trip && <ConvertToGuideButton trip={trip} className="!py-1.5 !px-3 text-sm" />}
+            
+            {/* Delete Trip Button */}
+            <div className="relative">
               <Button
                 variant="ghost"
                 size="sm"
@@ -946,6 +952,7 @@ export function TripDetail() {
                 </div>
               </div>
             )}
+            </div>
           </div>
         </div>
       </div>

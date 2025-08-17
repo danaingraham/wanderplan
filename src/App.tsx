@@ -23,6 +23,10 @@ import { DirectLoginTest } from './pages/DirectLoginTest'
 import { MobileAuthTest } from './pages/MobileAuthTest'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
+import GuideDiscovery from './pages/GuideDiscovery'
+import TripGuideView from './components/guide/TripGuideView'
+import GuideEditor from './components/guide/GuideEditor'
+import CreateGuideFromPaste from './pages/CreateGuideFromPaste'
 
 function AppContent() {
   const { isInitialized } = useUser()
@@ -59,11 +63,14 @@ function AppContent() {
         <Route path="/" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
         <Route path="/explore" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-        <Route path="/guides" element={<ProtectedRoute><Layout><Guides /></Layout></ProtectedRoute>} />
+        <Route path="/guides" element={<ProtectedRoute><Layout><GuideDiscovery /></Layout></ProtectedRoute>} />
+        <Route path="/guides/new" element={<ProtectedRoute><Layout><CreateGuideFromPaste /></Layout></ProtectedRoute>} />
+        <Route path="/guides/:guideId" element={<ProtectedRoute><Layout><TripGuideView /></Layout></ProtectedRoute>} />
+        <Route path="/guides/:guideId/edit" element={<ProtectedRoute><Layout><GuideEditor /></Layout></ProtectedRoute>} />
         <Route path="/community" element={<ProtectedRoute><Layout><Community /></Layout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
         <Route path="/create/trip" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
-        <Route path="/create/guide" element={<ProtectedRoute><Layout><div className="p-6 text-center text-gray-500">Guide creation coming soon</div></Layout></ProtectedRoute>} />
+        <Route path="/create/guide" element={<ProtectedRoute><Layout><CreateGuideFromPaste /></Layout></ProtectedRoute>} />
         <Route path="/trip/:id" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
