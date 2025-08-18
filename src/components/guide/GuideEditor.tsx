@@ -141,7 +141,6 @@ const GuideEditor: React.FC = () => {
                 country: trip.destination?.split(',')[1]?.trim() || 'Unknown'
               },
               tripType: 'solo',
-              duration: trip.duration,
               travelDates: {
                 start: trip.start_date,
                 end: trip.end_date
@@ -200,7 +199,6 @@ const GuideEditor: React.FC = () => {
         await updateTrip(guide.id, {
           title: guide.metadata.title,
           destination: `${guide.metadata.destination.city}, ${guide.metadata.destination.country}`,
-          duration: guide.metadata.duration,
           is_public: guide.metadata.isPublished,
           cover_image: guide.metadata.coverImage,
           updated_date: new Date().toISOString()

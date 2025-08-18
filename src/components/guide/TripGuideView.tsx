@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Calendar, Clock, Users, DollarSign, MapPin, Share2, Bookmark, Edit } from 'lucide-react'
-import { TripGuideService } from '../../services/tripGuideService'
 import type { TripGuide } from '../../types/guide'
 // import GuideHeader from './GuideHeader' // Not currently used
 import AccommodationsSection from './AccommodationsSection'
@@ -20,8 +19,6 @@ const TripGuideView: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(false)
-
-  const guideService = new TripGuideService()
 
   useEffect(() => {
     if (guideId) {
@@ -76,7 +73,7 @@ const TripGuideView: React.FC = () => {
                 id: tripGuide.created_by || 'unknown',
                 name: user?.full_name || 'Travel Expert'
               },
-              tripType: 'solo',
+              tripType: 'solo' as const,
               travelDate: {
                 month: tripGuide.start_date ? new Date(tripGuide.start_date).getMonth() + 1 : 1,
                 year: tripGuide.start_date ? new Date(tripGuide.start_date).getFullYear() : new Date().getFullYear()
