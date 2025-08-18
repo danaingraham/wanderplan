@@ -3,13 +3,29 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Design System Tokens */
+:root {
+  /* Brand Colors */
+  --color-primary: #FFC300; /* Golden Yellow */
+  --color-secondary: #FF6F61; /* Coral */
+  --color-accent: #4ECDC4; /* Turquoise */
+  --color-bg: #FDFDFD; /* Off-white */
+  --color-text: #333333;
+  
+  /* Semantic Colors */
+  --color-muted: #6B7280;
+  --color-border: #F3F4F6;
+  --color-surface: #FFFFFF;
+}
+
 @layer base {
   * {
     @apply border-gray-200;
   }
   
   body {
-    @apply bg-gray-50 text-gray-900;
+    @apply text-gray-900;
+    background-color: var(--color-bg);
     font-feature-settings: "rlig" 1, "calt" 1;
     margin: 0;
     min-height: 100vh;
@@ -22,32 +38,79 @@
 }
 
 @layer components {
+  /* New Design System Components */
+  .btn-primary {
+    @apply rounded-2xl px-4 py-2 font-medium shadow-sm transition-all duration-200;
+    background-color: var(--color-primary);
+    color: var(--color-text);
+  }
+  
+  .btn-primary:hover {
+    filter: brightness(0.95);
+  }
+  
+  .btn-primary:active {
+    transform: translateY(1px);
+  }
+  
+  .btn-secondary {
+    @apply rounded-2xl px-4 py-2 font-medium shadow-sm transition-all duration-200;
+    background-color: var(--color-secondary);
+    color: white;
+  }
+  
+  .btn-secondary:hover {
+    filter: brightness(0.95);
+  }
+  
+  .btn-secondary:active {
+    transform: translateY(1px);
+  }
+  
+  .card {
+    @apply rounded-2xl border border-zinc-100 bg-white shadow-sm transition-shadow duration-200;
+  }
+  
+  .card:hover {
+    @apply shadow-md;
+  }
+  
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm;
+  }
+  
+  .page {
+    @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+  }
+  
+  .search-input {
+    @apply w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm placeholder-zinc-400;
+    @apply focus:border-transparent focus:outline-none focus:ring-2;
+    --tw-ring-color: var(--color-accent);
+  }
+  
+  .filter-badge {
+    @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium;
+    background-color: color-mix(in srgb, var(--color-accent) 10%, white);
+    color: var(--color-text);
+    border: 1px solid color-mix(in srgb, var(--color-accent) 20%, white);
+  }
+  
+  /* Legacy components for backwards compatibility */
+  .btn-ghost {
+    @apply bg-transparent hover:bg-gray-100 text-gray-700 font-medium px-4 py-2 rounded-xl transition-all duration-200;
+  }
+  
+  .card-hover {
+    @apply hover:shadow-xl hover:-translate-y-1 transform transition-all duration-300;
+  }
+  
   .glass {
     @apply bg-white/10 backdrop-blur-md border border-white/20;
   }
   
   .glass-dark {
     @apply bg-black/10 backdrop-blur-md border border-black/20;
-  }
-  
-  .btn-primary {
-    @apply bg-primary-500 hover:bg-primary-600 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5;
-  }
-  
-  .btn-secondary {
-    @apply bg-secondary-500 hover:bg-secondary-600 text-white font-medium px-4 py-2 rounded-xl transition-all duration-200 hover:shadow-lg transform hover:-translate-y-0.5;
-  }
-  
-  .btn-ghost {
-    @apply bg-transparent hover:bg-gray-100 text-gray-700 font-medium px-4 py-2 rounded-xl transition-all duration-200;
-  }
-  
-  .card {
-    @apply bg-white rounded-2xl shadow-sm border border-gray-200 p-6 transition-all duration-300;
-  }
-  
-  .card-hover {
-    @apply hover:shadow-xl hover:-translate-y-1 transform transition-all duration-300;
   }
   
   .input-field {

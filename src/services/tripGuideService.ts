@@ -55,6 +55,15 @@ export class TripGuideService {
       // Save to database
       await this.saveGuide(guide, userId)
 
+      // Update the original trip to mark it as a guide and make it public
+      await supabase
+        .from('trips')
+        .update({ 
+          is_guide: true,
+          is_public: true 
+        })
+        .eq('id', itineraryId)
+
       return guide
     } catch (error) {
       console.error('Error creating guide from itinerary:', error)

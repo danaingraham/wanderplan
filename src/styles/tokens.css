@@ -1,0 +1,91 @@
+/* Design System Tokens */
+:root {
+  /* Brand Colors */
+  --color-primary: #FFC300; /* Golden Yellow */
+  --color-secondary: #FF6F61; /* Coral */
+  --color-accent: #4ECDC4; /* Turquoise */
+  --color-bg: #FDFDFD; /* Off-white */
+  --color-text: #333333;
+  
+  /* Semantic Colors */
+  --color-muted: #6B7280;
+  --color-border: #F3F4F6;
+  --color-surface: #FFFFFF;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+}
+
+/* Utility Classes */
+.btn-primary {
+  @apply rounded-2xl px-4 py-2 font-medium shadow-sm;
+  background-color: var(--color-primary);
+  color: var(--color-text);
+  transition: all 0.2s ease;
+}
+
+.btn-primary:hover {
+  filter: brightness(0.95);
+}
+
+.btn-primary:active {
+  transform: translateY(1px);
+}
+
+.btn-secondary {
+  @apply rounded-2xl px-4 py-2 font-medium shadow-sm;
+  background-color: var(--color-secondary);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  filter: brightness(0.95);
+}
+
+.btn-secondary:active {
+  transform: translateY(1px);
+}
+
+.card {
+  @apply rounded-2xl border border-zinc-100 bg-white shadow-sm transition-shadow;
+}
+
+.card:hover {
+  @apply shadow-md;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-white px-3 py-1 text-sm;
+}
+
+.page {
+  @apply mx-auto w-full max-w-6xl px-4 sm:px-6 lg:px-8;
+}
+
+/* Focus Styles */
+.focus-ring {
+  @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2;
+  --tw-ring-color: var(--color-primary);
+}
+
+/* Search Input */
+.search-input {
+  @apply w-full rounded-xl border border-zinc-200 bg-white px-4 py-2 text-sm placeholder-zinc-400;
+  @apply focus:border-transparent focus:outline-none focus:ring-2;
+  --tw-ring-color: var(--color-accent);
+}
+
+/* Filter Badge */
+.filter-badge {
+  @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium;
+  background-color: color-mix(in srgb, var(--color-accent) 10%, white);
+  color: var(--color-text);
+  border: 1px solid color-mix(in srgb, var(--color-accent) 20%, white);
+}
+
+.filter-badge button {
+  @apply ml-1 text-zinc-500 hover:text-zinc-700;
+}

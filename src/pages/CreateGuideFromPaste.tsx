@@ -6,16 +6,20 @@ import {
   Hotel, MapPin, Utensils, Calendar, DollarSign, Info
 } from 'lucide-react'
 import { GuideExtractorService } from '../services/guideExtractorService'
+import { useTrips } from '../contexts/TripContext'
+import { getCoordinatesForLocation } from '../utils/geocoding'
 // import { TripGuideService } from '../services/tripGuideService'
 // import { DataEnrichmentService } from '../services/dataEnrichmentService'
 import { useUser } from '../contexts/UserContext'
 import type { TripGuide } from '../types/guide'
+import type { Trip } from '../types'
 
 type Step = 'paste' | 'processing' | 'preview' | 'saving'
 
 const CreateGuideFromPaste: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useUser()
+  const { createTrip, addPlace } = useTrips()
   const [step, setStep] = useState<Step>('paste')
   const [pastedText, setPastedText] = useState('')
   const [extractedGuide, setExtractedGuide] = useState<Partial<TripGuide> | null>(null)
@@ -84,15 +88,102 @@ const CreateGuideFromPaste: React.FC = () => {
 
     setStep('saving')
     setProcessing(true)
-    setProgressMessage('Preparing guide data...')
+    setProgressMessage('Creating travel guide...')
 
     try {
-      // For now, save the guide to localStorage as a temporary solution
-      // since the database tables aren't set up yet
+      // Get location string for geocoding
+      const locationString = extractedGuide.metadata?.destination ? 
+        `${extractedGuide.metadata.destination.city}, ${extractedGuide.metadata.destination.country}` : 
+        null
+      
+      // Get coordinates for the location
+      const coordinates = getCoordinatesForLocation(locationString)
+      
+      // Create a trip from the extracted guide data
+      const tripData: Omit<Trip, 'id' | 'created_by' | 'created_date' | 'updated_date'> = {
+        title: extractedGuide.metadata?.destination ? 
+          `${extractedGuide.metadata.destination.city} Travel Guide` : 
+          'Travel Guide',
+        destination: locationString || 'Unknown',
+        start_date: extractedGuide.metadata?.travelDate ? 
+          `${extractedGuide.metadata.travelDate.year}-${String(extractedGuide.metadata.travelDate.month).padStart(2, '0')}-01` : 
+          new Date().toISOString().split('T')[0],
+        end_date: extractedGuide.metadata?.travelDate ? 
+          `${extractedGuide.metadata.travelDate.year}-${String(extractedGuide.metadata.travelDate.month).padStart(2, '0')}-${extractedGuide.metadata.tripDuration || 7}` : 
+          new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        budget: extractedGuide.metadata?.budget || 'medium',
+        group_size: extractedGuide.metadata?.groupSize || 2,
+        preferences: extractedGuide.metadata?.tags || [],
+        is_public: true,
+        is_guide: true, // Mark this as a guide
+        latitude: coordinates.latitude,
+        longitude: coordinates.longitude,
+        currency: 'USD',
+        location: locationString
+      }
+
+      // Create the trip
+      const tripId = createTrip(tripData)
+      
+      setProgressMessage('Adding places to guide...')
+      
+      // Add places from the guide to the trip
+      let dayCounter = 1
+      
+      // Add accommodations as places
+      if (extractedGuide.accommodations) {
+        for (const accommodation of extractedGuide.accommodations) {
+          addPlace({
+            trip_id: tripId,
+            name: accommodation.name,
+            category: 'hotel',
+            address: accommodation.neighborhood || '',
+            description: accommodation.description,
+            day: dayCounter,
+            notes: accommodation.authorNotes,
+            price: accommodation.priceRange
+          })
+        }
+      }
+      
+      // Add activities as places
+      if (extractedGuide.activities) {
+        for (const activity of extractedGuide.activities) {
+          addPlace({
+            trip_id: tripId,
+            name: activity.name,
+            category: 'attraction',
+            address: activity.location || '',
+            description: activity.description,
+            day: Math.min(dayCounter++, 7), // Distribute across days
+            notes: activity.tips?.join(', '),
+            duration: activity.duration
+          })
+        }
+      }
+      
+      // Add dining as places
+      if (extractedGuide.dining) {
+        for (const dining of extractedGuide.dining) {
+          addPlace({
+            trip_id: tripId,
+            name: dining.name,
+            category: 'restaurant',
+            address: dining.neighborhood || '',
+            description: dining.description,
+            day: Math.min(Math.floor(dayCounter / 2), 7), // Distribute across days
+            notes: dining.authorNotes,
+            price: dining.priceRange
+          })
+        }
+      }
+      
+      // Also save the full guide to localStorage for reference
       const guideId = crypto.randomUUID()
       const fullGuide = {
         ...extractedGuide,
         id: guideId,
+        tripId: tripId, // Link to the created trip
         metadata: {
           ...extractedGuide.metadata,
           author: {
@@ -103,17 +194,15 @@ const CreateGuideFromPaste: React.FC = () => {
         }
       }
 
-      // Save to localStorage
       const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
       savedGuides[guideId] = fullGuide
       localStorage.setItem('savedGuides', JSON.stringify(savedGuides))
       
-      setProgressMessage('Guide saved successfully!')
+      setProgressMessage('Guide created successfully!')
       
-      // Show success message
+      // Navigate to the trip detail page
       setTimeout(() => {
-        alert('Guide saved successfully! (Note: Currently saved locally - database integration coming soon)')
-        navigate('/guides')
+        navigate(`/trip/${tripId}`)
       }, 1000)
 
     } catch (err: any) {

@@ -5,7 +5,7 @@ import { Dashboard } from './pages/Dashboard'
 import { TripDetail } from './pages/TripDetail'
 import { NewTripCreation } from './pages/NewTripCreation'
 import { Explore } from './pages/Explore'
-// import { Guides } from './pages/Guides' // Removed - using GuideDiscovery instead
+import { Guides } from './pages/Guides'
 import { Community } from './pages/Community'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
@@ -63,7 +63,7 @@ function AppContent() {
         <Route path="/" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
         <Route path="/explore" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
-        <Route path="/guides" element={<ProtectedRoute><Layout><GuideDiscovery /></Layout></ProtectedRoute>} />
+        <Route path="/guides" element={<ProtectedRoute><Layout><Guides /></Layout></ProtectedRoute>} />
         <Route path="/guides/new" element={<ProtectedRoute><Layout><CreateGuideFromPaste /></Layout></ProtectedRoute>} />
         <Route path="/guides/:guideId" element={<ProtectedRoute><Layout><TripGuideView /></Layout></ProtectedRoute>} />
         <Route path="/guides/:guideId/edit" element={<ProtectedRoute><Layout><GuideEditor /></Layout></ProtectedRoute>} />
