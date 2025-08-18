@@ -1,15 +1,19 @@
 import { googlePlacesService } from './googlePlaces'
 
 // Cache for destination images to avoid repeated API calls
-const imageCache = new Map<string, string>()
+// Separate caches for different sizes
+const imageCacheSmall = new Map<string, string>()
+const imageCacheLarge = new Map<string, string>()
 
-export async function getDestinationImage(destination: string): Promise<string | null> {
+export async function getDestinationImage(destination: string, size: 'small' | 'large' = 'small'): Promise<string | null> {
   if (!destination) return null
   
   // Check cache first
   const cacheKey = destination.toLowerCase().trim()
-  if (imageCache.has(cacheKey)) {
-    return imageCache.get(cacheKey) || null
+  const cache = size === 'large' ? imageCacheLarge : imageCacheSmall
+  
+  if (cache.has(cacheKey)) {
+    return cache.get(cacheKey) || null
   }
   
   try {
@@ -21,11 +25,11 @@ export async function getDestinationImage(destination: string): Promise<string |
       const placeDetails = await googlePlacesService.getPlaceDetails(predictions[0].place_id)
       
       if (placeDetails.photos && placeDetails.photos.length > 0) {
-        // The photo_reference is already a full URL from our service
+        // The photo_reference is already a full URL from our service at max resolution (2400px)
         const photoUrl = placeDetails.photos[0].photo_reference
         
         // Cache the result
-        imageCache.set(cacheKey, photoUrl)
+        cache.set(cacheKey, photoUrl)
         
         return photoUrl
       }

@@ -10,6 +10,7 @@ import TransportationSection from './TransportationSection'
 import GuideHighlights from './GuideHighlights'
 import PackingTips from './PackingTips'
 import { useUser } from '../../contexts/UserContext'
+import { getDestinationImage } from '../../services/destinationImageService'
 
 const TripGuideView: React.FC = () => {
   const { guideId } = useParams<{ guideId: string }>()
@@ -19,6 +20,7 @@ const TripGuideView: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(false)
+  const [destinationImage, setDestinationImage] = useState<string | null>(null)
 
   useEffect(() => {
     if (guideId) {
@@ -74,6 +76,16 @@ const TripGuideView: React.FC = () => {
         console.log('🔍 TripGuideView: Processed guide:', processedGuide)
         setGuide(processedGuide)
         setLoading(false)
+        
+        // Fetch destination image if no cover image exists
+        if (!processedGuide.metadata.coverImage && processedGuide.metadata.destination) {
+          const destString = `${processedGuide.metadata.destination.city}, ${processedGuide.metadata.destination.country}`
+          getDestinationImage(destString, 'large').then(imageUrl => {
+            if (imageUrl) {
+              setDestinationImage(imageUrl)
+            }
+          })
+        }
       } else {
         // If not in savedGuides, try to find it as a trip with is_guide flag
         const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]')
@@ -168,6 +180,16 @@ const TripGuideView: React.FC = () => {
           console.log('🔍 TripGuideView: Converted trip to guide:', convertedGuide)
           setGuide(convertedGuide)
           setLoading(false)
+          
+          // Fetch destination image if no cover image exists
+          if (!convertedGuide.metadata.coverImage && convertedGuide.metadata.destination) {
+            const destString = `${convertedGuide.metadata.destination.city}, ${convertedGuide.metadata.destination.country}`
+            getDestinationImage(destString, 'large').then(imageUrl => {
+              if (imageUrl) {
+                setDestinationImage(imageUrl)
+              }
+            })
+          }
         } else {
           // Guide not found anywhere
           console.error('Guide not found in localStorage or trips')
@@ -260,16 +282,16 @@ const TripGuideView: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section with Cover Image */}
-      <div className="relative h-96 bg-gradient-to-b from-blue-600 to-blue-800">
-        {guide.metadata.coverImage && (
+      <div className="relative h-96 bg-gray-900">
+        {(guide.metadata.coverImage || destinationImage) && (
           <img
-            src={guide.metadata.coverImage}
+            src={guide.metadata.coverImage || destinationImage || ''}
             alt={`${guide.metadata.destination.city} cover`}
-            className="absolute inset-0 w-full h-full object-cover mix-blend-overlay opacity-50"
+            className="absolute inset-0 w-full h-full object-cover"
           />
         )}
         
-        <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent" />
         
         <div className="relative max-w-7xl mx-auto px-4 h-full flex flex-col justify-end pb-8">
           <div className="text-white">

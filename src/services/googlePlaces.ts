@@ -141,8 +141,9 @@ class GooglePlacesService {
             price_level: place.price_level,
             photos: place.photos?.map(photo => {
               try {
-                // Generate a proper Google Places photo URL with larger size
-                const url = photo.getUrl({ maxWidth: 600, maxHeight: 400 })
+                // Generate a proper Google Places photo URL with maximum size
+                // Use 2400px which is typically the max Google allows
+                const url = photo.getUrl({ maxWidth: 2400, maxHeight: 2400 })
                 console.log('🌐 Google Places Photo URL generated:', url)
                 console.log('📐 Photo dimensions:', { width: photo.width, height: photo.height })
                 return {
@@ -206,8 +207,9 @@ class GooglePlacesService {
             price_level: place.price_level,
             photos: place.photos?.map(photo => {
               try {
-                // Generate a proper Google Places photo URL with larger size
-                const url = photo.getUrl({ maxWidth: 600, maxHeight: 400 })
+                // Generate a proper Google Places photo URL with maximum size
+                // Use 2400px which is typically the max Google allows
+                const url = photo.getUrl({ maxWidth: 2400, maxHeight: 2400 })
                 console.log('🌐 Google Places Photo URL generated:', url)
                 console.log('📐 Photo dimensions:', { width: photo.width, height: photo.height })
                 return {
