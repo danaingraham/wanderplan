@@ -31,6 +31,7 @@ export function useMyGuides(): { data?: Guide[]; isLoading: boolean; error?: Err
           isSaved: false
         }))
       
+      console.log('📚 useMyGuides: Found guides:', myGuides.length, myGuides)
       setData(myGuides)
     } catch (err) {
       setError(err as Error)
@@ -140,12 +141,22 @@ export function shareGuide(guideId: string) {
 }
 
 export function deleteGuide(guideId: string) {
-  // TODO: Implement delete functionality
-  if (confirm('Are you sure you want to delete this guide?')) {
-    console.log('Delete guide:', guideId)
-    // This would need to be implemented in TripContext
-    window.location.reload()
-  }
+  // Delete from localStorage trips
+  const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]')
+  const updatedTrips = trips.filter((trip: any) => trip.id !== guideId)
+  localStorage.setItem('wanderplan_trips', JSON.stringify(updatedTrips))
+  
+  // Delete from localStorage places
+  const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]')
+  const updatedPlaces = places.filter((place: any) => place.trip_id !== guideId)
+  localStorage.setItem('wanderplan_places', JSON.stringify(updatedPlaces))
+  
+  // Delete from savedGuides
+  const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
+  delete savedGuides[guideId]
+  localStorage.setItem('savedGuides', JSON.stringify(savedGuides))
+  
+  console.log('🗑️ Deleted guide:', guideId)
   
   // Track event
   if (typeof window !== 'undefined' && (window as any).track) {

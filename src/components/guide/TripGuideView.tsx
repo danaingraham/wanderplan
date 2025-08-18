@@ -32,13 +32,31 @@ const TripGuideView: React.FC = () => {
   const loadGuide = async () => {
     try {
       setLoading(true)
+      console.log('🔍 TripGuideView: Loading guide with ID:', guideId)
       
       // First try to load from localStorage
       const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
+      console.log('🔍 TripGuideView: Saved guides in localStorage:', Object.keys(savedGuides))
       const localGuide = savedGuides[guideId!]
+      console.log('🔍 TripGuideView: Found local guide:', !!localGuide, localGuide)
       
       if (localGuide) {
-        setGuide(localGuide)
+        // Ensure the guide has all required metadata fields
+        const processedGuide = {
+          ...localGuide,
+          metadata: {
+            ...localGuide.metadata,
+            destination: localGuide.metadata?.destination || { city: 'Unknown', country: 'Unknown' },
+            author: localGuide.metadata?.author || { id: 'unknown', name: 'Unknown Author' },
+            tripType: localGuide.metadata?.tripType || 'solo',
+            travelDate: localGuide.metadata?.travelDate || { month: 1, year: new Date().getFullYear() },
+            createdAt: localGuide.metadata?.createdAt || new Date(),
+            updatedAt: localGuide.metadata?.updatedAt || new Date(),
+            isPublished: localGuide.metadata?.isPublished !== undefined ? localGuide.metadata.isPublished : true
+          }
+        }
+        console.log('🔍 TripGuideView: Processed guide:', processedGuide)
+        setGuide(processedGuide)
       } else {
         // If not in localStorage, try database
         try {

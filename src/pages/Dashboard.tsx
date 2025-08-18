@@ -49,17 +49,23 @@ export function Dashboard() {
         </div>
 
         {allTrips.length === 0 ? (
-          <div className="text-center py-12 animate-fade-in">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
             <div className="max-w-md mx-auto">
-              <div className="bg-gray-100 rounded-full w-16 h-16 sm:w-24 sm:h-24 flex items-center justify-center mx-auto mb-6 animate-float">
-                <MapPin className="h-8 w-8 sm:h-12 sm:w-12 text-gray-400" />
+              <div className="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
+                <MapPin className="h-10 w-10 text-gray-400" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
                 No trips yet
               </h3>
-              <p className="text-gray-500 text-sm sm:text-base px-4">
-                Your trips will appear here once you create them.
+              <p className="text-gray-600 mb-6">
+                Start planning your next adventure with AI-powered trip generation
               </p>
+              <Link
+                to="/create/trip"
+                className="inline-flex items-center px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
+              >
+                Generate Trip with AI
+              </Link>
             </div>
           </div>
         ) : (

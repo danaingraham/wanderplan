@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { Globe2, MapPinned, BookOpenText, Users2, Plus, X, ChevronRight } from 'lucide-react'
+import { MapPinned, BookOpenText, Users2, Plus, X, ChevronRight } from 'lucide-react'
 
 type MobileNavProps = {
   activePath: string
@@ -10,7 +10,6 @@ type MobileNavProps = {
 
 // Tab configuration
 const tabs = [
-  { id: 'explore', label: 'Explore', icon: Globe2, path: '/explore' },
   { id: 'guides', label: 'Guides', icon: BookOpenText, path: '/guides' },
   { id: 'trips', label: 'Trips', icon: MapPinned, path: '/dashboard' },
   { id: 'community', label: 'Community', icon: Users2, path: '/community' },
@@ -25,11 +24,10 @@ export default function MobileNav({ activePath, onNavigate, onSignOut, user }: M
 
   // Determine active tab from path
   const getActiveTab = () => {
-    if (activePath.startsWith('/explore')) return 'explore'
     if (activePath.startsWith('/dashboard') || activePath.startsWith('/trip')) return 'trips'
     if (activePath.startsWith('/guides')) return 'guides'
     if (activePath.startsWith('/community')) return 'community'
-    return 'explore'
+    return 'guides'
   }
 
   const activeTab = getActiveTab()
@@ -77,9 +75,9 @@ export default function MobileNav({ activePath, onNavigate, onSignOut, user }: M
       >
         {/* Logo */}
         <button
-          onClick={() => handleNavigation('/explore')}
+          onClick={() => handleNavigation('/guides')}
           className="flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#4ECDC4] rounded"
-          aria-label="Go to explore"
+          aria-label="Go to guides"
         >
           <svg className="h-6 w-6 text-[#FF6F61]" viewBox="0 0 24 24" fill="currentColor">
             <path d="M12 2L2 7l10 5 10-5-10-5z"/>

@@ -194,10 +194,10 @@ const CreateGuideFromPaste: React.FC = () => {
       }
       
       // Also save the full guide to localStorage for reference
-      const guideId = crypto.randomUUID()
+      // Use the tripId as the guideId for consistency
       const fullGuide = {
         ...extractedGuide,
-        id: guideId,
+        id: tripId, // Use tripId as the guide ID
         tripId: tripId, // Link to the created trip
         metadata: {
           ...extractedGuide.metadata,
@@ -205,19 +205,35 @@ const CreateGuideFromPaste: React.FC = () => {
             id: user.id,
             name: user.full_name || user.email,
             profilePicture: user.profile_picture_url
-          }
+          },
+          // Ensure destination is properly structured
+          destination: extractedGuide.metadata?.destination || {
+            city: extractedGuide.metadata?.destination?.city || locationString?.split(',')[0]?.trim() || 'Unknown',
+            country: extractedGuide.metadata?.destination?.country || locationString?.split(',')[1]?.trim() || 'Unknown'
+          },
+          // Ensure other required fields exist
+          tripType: extractedGuide.metadata?.tripType || 'solo',
+          travelDate: extractedGuide.metadata?.travelDate || { month: new Date().getMonth() + 1, year: new Date().getFullYear() },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          isPublished: true
         }
       }
 
       const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
-      savedGuides[guideId] = fullGuide
+      savedGuides[tripId] = fullGuide
       localStorage.setItem('savedGuides', JSON.stringify(savedGuides))
+      
+      console.log('✅ CreateGuideFromPaste: Saved guide with ID:', tripId)
+      console.log('✅ CreateGuideFromPaste: Full guide data:', fullGuide)
+      console.log('✅ CreateGuideFromPaste: All saved guides:', Object.keys(savedGuides))
       
       setProgressMessage('Guide created successfully!')
       
-      // Navigate to the trip detail page
+      // Navigate to the guide view page (which will show the trip as a guide)
       setTimeout(() => {
-        navigate(`/trip/${tripId}`)
+        console.log('🚀 CreateGuideFromPaste: Navigating to:', `/guides/${tripId}`)
+        navigate(`/guides/${tripId}`)
       }, 1000)
 
     } catch (err: any) {

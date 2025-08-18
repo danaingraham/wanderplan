@@ -241,9 +241,8 @@ export default function Header({ activePath, onNavigate, onSignOut, user }: Head
 
   // Determine active tab based on path
   const getActiveTab = () => {
-    if (activePath === '/' || activePath.startsWith('/explore')) return 'explore'
     if (activePath === '/dashboard' || activePath.startsWith('/trips')) return 'trips'
-    if (activePath.startsWith('/guides')) return 'guides'
+    if (activePath === '/' || activePath.startsWith('/guides')) return 'guides'
     if (activePath.startsWith('/community')) return 'community'
     return null
   }
@@ -315,11 +314,6 @@ export default function Header({ activePath, onNavigate, onSignOut, user }: Head
             role="tablist" 
             className="flex items-center gap-2"
           >
-            <NavTab
-              label="Explore"
-              isActive={activeTab === 'explore'}
-              onClick={() => onNavigate('/')}
-            />
             <NavTab
               label="Guides"
               isActive={activeTab === 'guides'}

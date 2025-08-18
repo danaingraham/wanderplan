@@ -1,10 +1,9 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { Dashboard } from './pages/Dashboard'
 import { TripDetail } from './pages/TripDetail'
 import { NewTripCreation } from './pages/NewTripCreation'
-import { Explore } from './pages/Explore'
 import { Guides } from './pages/Guides'
 import { Community } from './pages/Community'
 import { Settings } from './pages/Settings'
@@ -59,8 +58,7 @@ function AppContent() {
         <Route path="/mobile-auth" element={<MobileAuthTest />} />
         
         {/* Protected routes */}
-        <Route path="/" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
-        <Route path="/explore" element={<ProtectedRoute><Layout><Explore /></Layout></ProtectedRoute>} />
+        <Route path="/" element={<Navigate to="/guides" replace />} />
         <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
         <Route path="/guides" element={<ProtectedRoute><Layout><Guides /></Layout></ProtectedRoute>} />
         <Route path="/guides/new" element={<ProtectedRoute><Layout><CreateGuideFromPaste /></Layout></ProtectedRoute>} />
