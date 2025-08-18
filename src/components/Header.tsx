@@ -321,14 +321,14 @@ export default function Header({ activePath, onNavigate, onSignOut, user }: Head
               onClick={() => onNavigate('/')}
             />
             <NavTab
-              label="Trips"
-              isActive={activeTab === 'trips'}
-              onClick={() => onNavigate('/dashboard')}
-            />
-            <NavTab
               label="Guides"
               isActive={activeTab === 'guides'}
               onClick={() => onNavigate('/guides')}
+            />
+            <NavTab
+              label="Trips"
+              isActive={activeTab === 'trips'}
+              onClick={() => onNavigate('/dashboard')}
             />
             <NavTab
               label="Community"

@@ -11,8 +11,8 @@ type MobileNavProps = {
 // Tab configuration
 const tabs = [
   { id: 'explore', label: 'Explore', icon: Globe2, path: '/explore' },
-  { id: 'trips', label: 'Trips', icon: MapPinned, path: '/dashboard' },
   { id: 'guides', label: 'Guides', icon: BookOpenText, path: '/guides' },
+  { id: 'trips', label: 'Trips', icon: MapPinned, path: '/dashboard' },
   { id: 'community', label: 'Community', icon: Users2, path: '/community' },
 ]
 
