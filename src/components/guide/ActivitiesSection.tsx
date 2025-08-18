@@ -90,10 +90,11 @@ const ActivitiesSection: React.FC<ActivitiesSectionProps> = ({ activities }) => 
                     {activity.cost}
                   </div>
                 )}
-                {activity.rating && (
+                {(activity.google_rating || activity.rating) && (
                   <div className="flex items-center">
-                    <Star className="w-4 h-4 text-yellow-500 mr-1" />
-                    {activity.rating}
+                    <Star className="w-4 h-4 text-yellow-500 fill-current mr-1" />
+                    <span>{activity.google_rating || activity.rating}</span>
+                    {activity.google_rating && <span className="text-gray-400 ml-1">(Google)</span>}
                   </div>
                 )}
               </div>

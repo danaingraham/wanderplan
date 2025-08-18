@@ -64,6 +64,19 @@ export interface AccommodationRecommendation {
   authorNotes?: string
   amenities?: string[]
   rating?: number
+  // Google Places integration
+  place_id?: string
+  google_rating?: number
+  google_photos?: string[]
+  verified_address?: string
+  latitude?: number
+  longitude?: number
+  phone?: string
+  website?: string
+  opening_hours?: {
+    open_now?: boolean
+    weekday_text?: string[]
+  }
 }
 
 export interface ActivityRecommendation {
@@ -82,6 +95,20 @@ export interface ActivityRecommendation {
   rating?: number
   difficulty?: 'easy' | 'moderate' | 'challenging'
   accessibility?: string
+  // Google Places integration
+  place_id?: string
+  google_rating?: number
+  google_photos?: string[]
+  verified_address?: string
+  latitude?: number
+  longitude?: number
+  phone?: string
+  website?: string
+  price_level?: number
+  opening_hours?: {
+    open_now?: boolean
+    weekday_text?: string[]
+  }
 }
 
 export interface DiningRecommendation {
@@ -100,6 +127,20 @@ export interface DiningRecommendation {
   atmosphere?: string
   dietaryOptions?: string[]
   rating?: number
+  // Google Places integration
+  place_id?: string
+  google_rating?: number
+  google_photos?: string[]
+  verified_address?: string
+  latitude?: number
+  longitude?: number
+  phone?: string
+  website?: string
+  price_level?: number
+  opening_hours?: {
+    open_now?: boolean
+    weekday_text?: string[]
+  }
 }
 
 export interface TripGuide {

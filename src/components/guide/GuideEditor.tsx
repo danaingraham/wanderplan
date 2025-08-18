@@ -3,10 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { 
   Save, X, Plus, Trash2, 
   ChevronDown, ChevronUp, Loader2,
-  Hotel, Utensils, Activity, Car, Lightbulb, Package
+  Hotel, Utensils, Activity, Car, Lightbulb, Package,
+  MapPin, Star, Globe, Phone
 } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { useTrips } from '../../contexts/TripContext'
+import { PlaceAutocomplete } from '../forms/PlaceAutocomplete'
+import { enrichAccommodation, enrichActivity, enrichDining } from '../../services/guideEnrichmentService'
+import type { PriceRange, ActivityCategory } from '../../types/guide'
 
 interface GuideData {
   id: string
@@ -34,6 +38,8 @@ interface GuideData {
     updatedAt: Date
     isPublished: boolean
     coverImage?: string
+    latitude?: number
+    longitude?: number
   }
   accommodations: Array<{
     id: string
@@ -41,18 +47,36 @@ interface GuideData {
     type: 'hotel' | 'airbnb' | 'hostel' | 'resort' | 'other'
     neighborhood?: string
     description?: string
-    priceRange?: string
+    priceRange?: PriceRange
     bookingLink?: string
+    // Google Places fields
+    place_id?: string
+    google_rating?: number
+    google_photos?: string[]
+    verified_address?: string
+    latitude?: number
+    longitude?: number
+    phone?: string
+    website?: string
   }>
   activities: Array<{
     id: string
     name: string
-    category: string
+    category: ActivityCategory
     description?: string
     duration?: string
     price?: string
     bookingRequired?: boolean
     bestTime?: string
+    // Google Places fields
+    place_id?: string
+    google_rating?: number
+    google_photos?: string[]
+    verified_address?: string
+    latitude?: number
+    longitude?: number
+    phone?: string
+    website?: string
   }>
   dining: Array<{
     id: string
@@ -61,8 +85,17 @@ interface GuideData {
     cuisine?: string
     neighborhood?: string
     description?: string
-    priceRange?: string
+    priceRange?: PriceRange
     mustTry?: string[]
+    // Google Places fields
+    place_id?: string
+    google_rating?: number
+    google_photos?: string[]
+    verified_address?: string
+    latitude?: number
+    longitude?: number
+    phone?: string
+    website?: string
   }>
   transportation: Array<{
     id: string
@@ -232,7 +265,7 @@ const GuideEditor: React.FC = () => {
       type: 'hotel' as const,
       neighborhood: '',
       description: '',
-      priceRange: '$$'
+      priceRange: '$$' as PriceRange
     }
     setGuide({
       ...guide,
@@ -264,7 +297,7 @@ const GuideEditor: React.FC = () => {
     const newActivity = {
       id: crypto.randomUUID(),
       name: '',
-      category: 'Sightseeing',
+      category: 'sightseeing' as ActivityCategory,
       description: '',
       duration: '',
       price: ''
@@ -303,7 +336,7 @@ const GuideEditor: React.FC = () => {
       cuisine: '',
       neighborhood: '',
       description: '',
-      priceRange: '$$'
+      priceRange: '$$' as PriceRange
     }
     setGuide({
       ...guide,
@@ -677,13 +710,46 @@ const GuideEditor: React.FC = () => {
                   {guide.accommodations.map((accommodation) => (
                     <div key={accommodation.id} className="border rounded-lg p-4">
                       <div className="flex justify-between mb-3">
-                        <input
-                          type="text"
-                          value={accommodation.name}
-                          onChange={(e) => updateAccommodation(accommodation.id, { name: e.target.value })}
-                          placeholder="Hotel name"
-                          className="text-lg font-medium bg-transparent border-b flex-1 mr-2"
-                        />
+                        <div className="flex-1 mr-2">
+                          <PlaceAutocomplete
+                            value={accommodation.name}
+                            onChange={(name) => updateAccommodation(accommodation.id, { name })}
+                            onPlaceSelect={(placeDetails) => {
+                              const enriched = enrichAccommodation(accommodation, placeDetails)
+                              updateAccommodation(accommodation.id, {
+                                name: enriched.name,
+                                neighborhood: enriched.neighborhood,
+                                priceRange: enriched.priceRange as PriceRange,
+                                place_id: enriched.place_id,
+                                google_rating: enriched.google_rating,
+                                google_photos: enriched.google_photos,
+                                verified_address: enriched.verified_address,
+                                latitude: enriched.latitude,
+                                longitude: enriched.longitude,
+                                phone: enriched.phone,
+                                website: enriched.website
+                              })
+                            }}
+                            destination={`${guide.metadata.destination.city}, ${guide.metadata.destination.country}`}
+                            destinationCoords={guide.metadata.latitude && guide.metadata.longitude ? {
+                              lat: guide.metadata.latitude,
+                              lng: guide.metadata.longitude
+                            } : undefined}
+                            placeholder="Search for hotels..."
+                          />
+                          {accommodation.google_rating && (
+                            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              <span>{accommodation.google_rating}</span>
+                              {accommodation.verified_address && (
+                                <>
+                                  <MapPin className="w-4 h-4 text-gray-400" />
+                                  <span className="text-xs truncate">{accommodation.verified_address}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <button
                           onClick={() => removeAccommodation(accommodation.id)}
                           className="text-red-600 hover:bg-red-50 p-1 rounded"
@@ -738,6 +804,31 @@ const GuideEditor: React.FC = () => {
                         className="w-full mt-3 px-3 py-2 border rounded"
                         rows={2}
                       />
+                      
+                      {(accommodation.website || accommodation.phone) && (
+                        <div className="flex gap-4 mt-3 text-sm">
+                          {accommodation.website && (
+                            <a
+                              href={accommodation.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Globe className="w-4 h-4" />
+                              Website
+                            </a>
+                          )}
+                          {accommodation.phone && (
+                            <a
+                              href={`tel:${accommodation.phone}`}
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {accommodation.phone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -772,13 +863,45 @@ const GuideEditor: React.FC = () => {
                   {guide.activities.map((activity) => (
                     <div key={activity.id} className="border rounded-lg p-4">
                       <div className="flex justify-between mb-3">
-                        <input
-                          type="text"
-                          value={activity.name}
-                          onChange={(e) => updateActivity(activity.id, { name: e.target.value })}
-                          placeholder="Activity name"
-                          className="text-lg font-medium bg-transparent border-b flex-1 mr-2"
-                        />
+                        <div className="flex-1 mr-2">
+                          <PlaceAutocomplete
+                            value={activity.name}
+                            onChange={(name) => updateActivity(activity.id, { name })}
+                            onPlaceSelect={(placeDetails) => {
+                              const enriched = enrichActivity(activity, placeDetails)
+                              updateActivity(activity.id, {
+                                name: enriched.name,
+                                category: enriched.category as ActivityCategory,
+                                place_id: enriched.place_id,
+                                google_rating: enriched.google_rating,
+                                google_photos: enriched.google_photos,
+                                verified_address: enriched.verified_address,
+                                latitude: enriched.latitude,
+                                longitude: enriched.longitude,
+                                phone: enriched.phone,
+                                website: enriched.website
+                              })
+                            }}
+                            destination={`${guide.metadata.destination.city}, ${guide.metadata.destination.country}`}
+                            destinationCoords={guide.metadata.latitude && guide.metadata.longitude ? {
+                              lat: guide.metadata.latitude,
+                              lng: guide.metadata.longitude
+                            } : undefined}
+                            placeholder="Search for attractions..."
+                          />
+                          {activity.google_rating && (
+                            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              <span>{activity.google_rating}</span>
+                              {activity.verified_address && (
+                                <>
+                                  <MapPin className="w-4 h-4 text-gray-400" />
+                                  <span className="text-xs truncate">{activity.verified_address}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <button
                           onClick={() => removeActivity(activity.id)}
                           className="text-red-600 hover:bg-red-50 p-1 rounded"
@@ -788,13 +911,20 @@ const GuideEditor: React.FC = () => {
                       </div>
                       
                       <div className="grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
+                        <select
                           value={activity.category}
-                          onChange={(e) => updateActivity(activity.id, { category: e.target.value })}
-                          placeholder="Category (e.g., Sightseeing)"
+                          onChange={(e) => updateActivity(activity.id, { category: e.target.value as ActivityCategory })}
                           className="px-3 py-2 border rounded"
-                        />
+                        >
+                          <option value="sightseeing">Sightseeing</option>
+                          <option value="adventure">Adventure</option>
+                          <option value="cultural">Cultural</option>
+                          <option value="shopping">Shopping</option>
+                          <option value="nightlife">Nightlife</option>
+                          <option value="relaxation">Relaxation</option>
+                          <option value="dining">Dining</option>
+                          <option value="nature">Nature</option>
+                        </select>
                         <input
                           type="text"
                           value={activity.duration || ''}
@@ -825,6 +955,31 @@ const GuideEditor: React.FC = () => {
                         className="w-full mt-3 px-3 py-2 border rounded"
                         rows={2}
                       />
+                      
+                      {(activity.website || activity.phone) && (
+                        <div className="flex gap-4 mt-3 text-sm">
+                          {activity.website && (
+                            <a
+                              href={activity.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Globe className="w-4 h-4" />
+                              Website
+                            </a>
+                          )}
+                          {activity.phone && (
+                            <a
+                              href={`tel:${activity.phone}`}
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {activity.phone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -859,13 +1014,47 @@ const GuideEditor: React.FC = () => {
                   {guide.dining.map((restaurant) => (
                     <div key={restaurant.id} className="border rounded-lg p-4">
                       <div className="flex justify-between mb-3">
-                        <input
-                          type="text"
-                          value={restaurant.name}
-                          onChange={(e) => updateDining(restaurant.id, { name: e.target.value })}
-                          placeholder="Restaurant name"
-                          className="text-lg font-medium bg-transparent border-b flex-1 mr-2"
-                        />
+                        <div className="flex-1 mr-2">
+                          <PlaceAutocomplete
+                            value={restaurant.name}
+                            onChange={(name) => updateDining(restaurant.id, { name })}
+                            onPlaceSelect={(placeDetails) => {
+                              const enriched = enrichDining(restaurant, placeDetails)
+                              updateDining(restaurant.id, {
+                                name: enriched.name,
+                                cuisine: enriched.cuisine,
+                                neighborhood: enriched.neighborhood,
+                                priceRange: enriched.priceRange as PriceRange,
+                                place_id: enriched.place_id,
+                                google_rating: enriched.google_rating,
+                                google_photos: enriched.google_photos,
+                                verified_address: enriched.verified_address,
+                                latitude: enriched.latitude,
+                                longitude: enriched.longitude,
+                                phone: enriched.phone,
+                                website: enriched.website
+                              })
+                            }}
+                            destination={`${guide.metadata.destination.city}, ${guide.metadata.destination.country}`}
+                            destinationCoords={guide.metadata.latitude && guide.metadata.longitude ? {
+                              lat: guide.metadata.latitude,
+                              lng: guide.metadata.longitude
+                            } : undefined}
+                            placeholder="Search for restaurants..."
+                          />
+                          {restaurant.google_rating && (
+                            <div className="flex items-center gap-2 mt-1 text-sm text-gray-600">
+                              <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                              <span>{restaurant.google_rating}</span>
+                              {restaurant.verified_address && (
+                                <>
+                                  <MapPin className="w-4 h-4 text-gray-400" />
+                                  <span className="text-xs truncate">{restaurant.verified_address}</span>
+                                </>
+                              )}
+                            </div>
+                          )}
+                        </div>
                         <button
                           onClick={() => removeDining(restaurant.id)}
                           className="text-red-600 hover:bg-red-50 p-1 rounded"
@@ -916,6 +1105,31 @@ const GuideEditor: React.FC = () => {
                         className="w-full mt-3 px-3 py-2 border rounded"
                         rows={2}
                       />
+                      
+                      {(restaurant.website || restaurant.phone) && (
+                        <div className="flex gap-4 mt-3 text-sm">
+                          {restaurant.website && (
+                            <a
+                              href={restaurant.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Globe className="w-4 h-4" />
+                              Website
+                            </a>
+                          )}
+                          {restaurant.phone && (
+                            <a
+                              href={`tel:${restaurant.phone}`}
+                              className="flex items-center gap-1 text-blue-600 hover:underline"
+                            >
+                              <Phone className="w-4 h-4" />
+                              {restaurant.phone}
+                            </a>
+                          )}
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>

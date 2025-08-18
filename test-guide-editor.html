@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Guide Editor</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+        .info {
+            color: blue;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>Guide Editor Integration Test</h1>
+    
+    <div class="test-section">
+        <h2>Test Instructions</h2>
+        <ol>
+            <li>Open your Wanderplan app at <a href="http://localhost:5173" target="_blank">http://localhost:5173</a></li>
+            <li>Navigate to a trip that is marked as a guide (or create a new guide)</li>
+            <li>Click the Edit button to open the Guide Editor</li>
+            <li>Look for these changes in the editor:</li>
+            <ul>
+                <li>When adding accommodations, activities, or dining - you should see input fields with a <strong>search icon</strong> on the left</li>
+                <li>When you type in these fields, you should get Google Places suggestions after 3 characters</li>
+                <li>When you select a place from suggestions, it should auto-fill information</li>
+                <li>You should see Google ratings and "Google Verified" badges for selected places</li>
+            </ul>
+        </ol>
+    </div>
+
+    <div class="test-section">
+        <h2>Quick Navigation</h2>
+        <button onclick="testCreateGuide()">Create New Test Guide</button>
+        <button onclick="testEditGuide()">Edit Existing Guide</button>
+        <button onclick="checkLocalStorage()">Check Local Storage</button>
+    </div>
+
+    <div class="test-section">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        function testCreateGuide() {
+            // Create a test guide in localStorage
+            const testGuide = {
+                id: 'test-guide-' + Date.now(),
+                metadata: {
+                    title: 'Test Guide for Google Places',
+                    destination: {
+                        city: 'San Francisco',
+                        country: 'USA'
+                    },
+                    author: {
+                        id: 'test-user',
+                        name: 'Test User'
+                    },
+                    createdAt: new Date(),
+                    updatedAt: new Date(),
+                    isPublished: false
+                },
+                accommodations: [],
+                activities: [],
+                dining: []
+            };
+            
+            const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}');
+            savedGuides[testGuide.id] = testGuide;
+            localStorage.setItem('savedGuides', JSON.stringify(savedGuides));
+            
+            document.getElementById('results').innerHTML = `
+                <p class="success">✓ Test guide created with ID: ${testGuide.id}</p>
+                <p class="info">Navigate to: /guides/${testGuide.id}/edit</p>
+            `;
+        }
+
+        function testEditGuide() {
+            const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}');
+            const guideIds = Object.keys(savedGuides);
+            
+            if (guideIds.length > 0) {
+                const firstGuideId = guideIds[0];
+                document.getElementById('results').innerHTML = `
+                    <p class="success">✓ Found ${guideIds.length} guides</p>
+                    <p class="info">First guide ID: ${firstGuideId}</p>
+                    <p class="info">Navigate to: /guides/${firstGuideId}/edit</p>
+                `;
+            } else {
+                document.getElementById('results').innerHTML = `
+                    <p class="error">✗ No guides found in localStorage</p>
+                    <p class="info">Create a guide first using the button above</p>
+                `;
+            }
+        }
+
+        function checkLocalStorage() {
+            const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}');
+            const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]');
+            const guidesWithGoogle = Object.values(savedGuides).filter(g => 
+                g.accommodations?.some(a => a.place_id) ||
+                g.activities?.some(a => a.place_id) ||
+                g.dining?.some(d => d.place_id)
+            );
+            
+            document.getElementById('results').innerHTML = `
+                <p class="info">Total guides: ${Object.keys(savedGuides).length}</p>
+                <p class="info">Total trips: ${trips.length}</p>
+                <p class="info">Guide trips: ${trips.filter(t => t.is_guide).length}</p>
+                <p class="${guidesWithGoogle.length > 0 ? 'success' : 'error'}">
+                    Guides with Google Places data: ${guidesWithGoogle.length}
+                </p>
+            `;
+        }
+    </script>
+</body>
+</html>
