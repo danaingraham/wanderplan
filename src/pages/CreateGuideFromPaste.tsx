@@ -19,7 +19,7 @@ type Step = 'paste' | 'processing' | 'preview' | 'saving'
 const CreateGuideFromPaste: React.FC = () => {
   const navigate = useNavigate()
   const { user } = useUser()
-  const { createTrip, addPlace } = useTrips()
+  const { createTrip, createPlace } = useTrips()
   const [step, setStep] = useState<Step>('paste')
   const [pastedText, setPastedText] = useState('')
   const [extractedGuide, setExtractedGuide] = useState<Partial<TripGuide> | null>(null)
@@ -111,13 +111,23 @@ const CreateGuideFromPaste: React.FC = () => {
         end_date: extractedGuide.metadata?.travelDate ? 
           `${extractedGuide.metadata.travelDate.year}-${String(extractedGuide.metadata.travelDate.month).padStart(2, '0')}-${extractedGuide.metadata.tripDuration || 7}` : 
           new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-        budget: extractedGuide.metadata?.budget || 'medium',
+        trip_type: extractedGuide.metadata?.tripType === 'group' ? 'friends' :
+                   extractedGuide.metadata?.tripType === 'adventure' ? 'friends' :
+                   extractedGuide.metadata?.tripType === 'relaxation' ? 'romantic' :
+                   extractedGuide.metadata?.tripType === 'cultural' ? 'friends' :
+                   (extractedGuide.metadata?.tripType as any) || 'solo',
         group_size: extractedGuide.metadata?.groupSize || 2,
+        has_kids: false,
+        pace: 'moderate',
+        budget: extractedGuide.metadata?.budget === '$' ? 'budget' : 
+                extractedGuide.metadata?.budget === '$$$' || extractedGuide.metadata?.budget === '$$$$' ? 'luxury' : 
+                'medium',
         preferences: extractedGuide.metadata?.tags || [],
         is_public: true,
         is_guide: true, // Mark this as a guide
-        latitude: coordinates.latitude,
-        longitude: coordinates.longitude,
+        collaborators: [],
+        latitude: coordinates.latitude || undefined,
+        longitude: coordinates.longitude || undefined,
         currency: 'USD',
         location: locationString
       }
@@ -129,19 +139,21 @@ const CreateGuideFromPaste: React.FC = () => {
       
       // Add places from the guide to the trip
       let dayCounter = 1
+      let orderCounter = 0
       
       // Add accommodations as places
       if (extractedGuide.accommodations) {
         for (const accommodation of extractedGuide.accommodations) {
-          addPlace({
+          createPlace({
             trip_id: tripId,
             name: accommodation.name,
             category: 'hotel',
             address: accommodation.neighborhood || '',
-            description: accommodation.description,
             day: dayCounter,
-            notes: accommodation.authorNotes,
-            price: accommodation.priceRange
+            order: orderCounter++,
+            notes: `${accommodation.description || ''}${accommodation.authorNotes ? '\n' + accommodation.authorNotes : ''}${accommodation.priceRange ? '\nPrice: ' + accommodation.priceRange : ''}`.trim(),
+            is_locked: false,
+            is_reservation: false
           })
         }
       }
@@ -149,15 +161,17 @@ const CreateGuideFromPaste: React.FC = () => {
       // Add activities as places
       if (extractedGuide.activities) {
         for (const activity of extractedGuide.activities) {
-          addPlace({
+          createPlace({
             trip_id: tripId,
             name: activity.name,
             category: 'attraction',
             address: activity.location || '',
-            description: activity.description,
             day: Math.min(dayCounter++, 7), // Distribute across days
-            notes: activity.tips?.join(', '),
-            duration: activity.duration
+            order: orderCounter++,
+            notes: `${activity.description || ''}${activity.tips?.length ? '\nTips: ' + activity.tips.join(', ') : ''}`.trim(),
+            duration: activity.duration ? parseInt(activity.duration) || undefined : undefined,
+            is_locked: false,
+            is_reservation: false
           })
         }
       }
@@ -165,15 +179,16 @@ const CreateGuideFromPaste: React.FC = () => {
       // Add dining as places
       if (extractedGuide.dining) {
         for (const dining of extractedGuide.dining) {
-          addPlace({
+          createPlace({
             trip_id: tripId,
             name: dining.name,
             category: 'restaurant',
             address: dining.neighborhood || '',
-            description: dining.description,
             day: Math.min(Math.floor(dayCounter / 2), 7), // Distribute across days
-            notes: dining.authorNotes,
-            price: dining.priceRange
+            order: orderCounter++,
+            notes: `${dining.description || ''}${dining.authorNotes ? '\n' + dining.authorNotes : ''}${dining.priceRange ? '\nPrice: ' + dining.priceRange : ''}`.trim(),
+            is_locked: false,
+            is_reservation: false
           })
         }
       }

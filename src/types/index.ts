@@ -29,6 +29,10 @@ export interface Trip {
   collaborators: string[]
   latitude?: number
   longitude?: number
+  budget?: 'budget' | 'medium' | 'luxury'
+  cover_image?: string
+  currency?: string
+  location?: string | null
   created_by: string
   created_date: string
   updated_date: string
