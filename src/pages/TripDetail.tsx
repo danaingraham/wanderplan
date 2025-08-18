@@ -18,7 +18,7 @@ import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
-import ConvertToGuideButton from '../components/guide/ConvertToGuideButton'
+import { TripActionsMenu } from '../components/guide/TripActionsMenu'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -914,46 +914,13 @@ export function TripDetail() {
             </div>
           </div>
           
-          {/* Action Buttons */}
-          <div className="flex items-center gap-2">
-            {/* Convert to Guide Button */}
-            {trip && <ConvertToGuideButton trip={trip} className="!py-1.5 !px-3 text-sm" />}
-            
-            {/* Delete Trip Button */}
-            <div className="relative">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(true)}
-                className="text-red-600 hover:text-red-700 hover:bg-red-50"
-              >
-                <Trash2 className="w-4 h-4" />
-              </Button>
-              
-              {showDeleteConfirm && (
-                <div className="absolute right-0 top-full mt-2 bg-white rounded-lg shadow-lg border border-gray-200 p-4 z-50 w-64">
-                <p className="text-sm text-gray-700 mb-3">Are you sure you want to delete this trip?</p>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    variant="primary"
-                    onClick={handleDeleteTrip}
-                    className="bg-red-600 hover:bg-red-700"
-                  >
-                    Delete
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowDeleteConfirm(false)}
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            )}
-            </div>
-          </div>
+          {/* Action Menu */}
+          <TripActionsMenu 
+            trip={trip}
+            showDeleteConfirm={showDeleteConfirm}
+            setShowDeleteConfirm={setShowDeleteConfirm}
+            handleDeleteTrip={handleDeleteTrip}
+          />
         </div>
       </div>
 

@@ -8,13 +8,30 @@ import type { Trip } from '../../types'
 interface ConvertToGuideButtonProps {
   trip: Trip
   className?: string
+  autoOpen?: boolean
+  onClose?: () => void
 }
 
-const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, className = '' }) => {
+const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, className = '', autoOpen = false, onClose }) => {
   const navigate = useNavigate()
   const { user } = useUser()
   const [converting, setConverting] = useState(false)
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(autoOpen)
+  
+  // Handle autoOpen effect
+  React.useEffect(() => {
+    if (autoOpen) {
+      setShowModal(true)
+    }
+  }, [autoOpen])
+  
+  // Handle close
+  const handleClose = () => {
+    setShowModal(false)
+    if (onClose) {
+      onClose()
+    }
+  }
   
   // Additional info for the guide
   const [additionalInfo, setAdditionalInfo] = useState({
@@ -64,7 +81,7 @@ const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, class
       alert('Failed to convert trip to guide')
     } finally {
       setConverting(false)
-      setShowModal(false)
+      handleClose()
     }
   }
 
@@ -111,8 +128,8 @@ const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, class
 
       {/* Conversion Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto z-[10000]">
             <div className="p-6">
               <h2 className="text-2xl font-bold mb-4">Convert Trip to Travel Guide</h2>
               <p className="text-gray-600 mb-6">
@@ -289,7 +306,7 @@ const ConvertToGuideButton: React.FC<ConvertToGuideButtonProps> = ({ trip, class
               {/* Actions */}
               <div className="flex justify-end space-x-3 mt-8">
                 <button
-                  onClick={() => setShowModal(false)}
+                  onClick={handleClose}
                   className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
                 >
                   Cancel
