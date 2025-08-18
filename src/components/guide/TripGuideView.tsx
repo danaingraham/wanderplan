@@ -101,20 +101,29 @@ const TripGuideView: React.FC = () => {
             if (place.category === 'restaurant' || place.category === 'cafe') {
               dining.push({
                 ...item,
-                type: place.category,
-                priceRange: place.price_level ? '$'.repeat(place.price_level) : undefined
+                cuisine: 'Local',
+                mealTypes: ['lunch', 'dinner'] as any[],
+                neighborhood: place.address?.split(',')[0] || '',
+                priceRange: place.price_level ? '$'.repeat(Math.min(place.price_level, 4)) as any : '$$',
+                images: [],
+                reservationRequired: false
               })
             } else if (place.category === 'hotel' || place.category === 'accommodation') {
               accommodations.push({
                 ...item,
-                type: 'hotel',
-                neighborhood: place.address?.split(',')[0]
+                type: 'hotel' as any,
+                neighborhood: place.address?.split(',')[0] || '',
+                priceRange: '$$' as any,
+                images: [],
+                bookingLinks: []
               })
             } else {
               activities.push({
                 ...item,
                 category: place.category || 'sightseeing',
-                duration: place.duration ? `${place.duration} hours` : undefined
+                duration: place.duration ? `${place.duration} hours` : '2-3 hours',
+                images: [],
+                bookingRequired: false
               })
             }
           })
