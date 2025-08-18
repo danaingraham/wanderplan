@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { Calendar, Clock, Users, DollarSign, MapPin, Share2, Bookmark, Edit } from 'lucide-react'
+import { Calendar, Clock, Users, DollarSign, MapPin, Share2, Bookmark, Edit, Trash2 } from 'lucide-react'
 import type { TripGuide } from '../../types/guide'
 // import GuideHeader from './GuideHeader' // Not currently used
 import AccommodationsSection from './AccommodationsSection'
@@ -21,6 +21,7 @@ const TripGuideView: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
   const [isSaved, setIsSaved] = useState(false)
   const [destinationImage, setDestinationImage] = useState<string | null>(null)
+  const [showDeleteModal, setShowDeleteModal] = useState(false)
 
   useEffect(() => {
     if (guideId) {
@@ -252,6 +253,27 @@ const TripGuideView: React.FC = () => {
     // Analytics tracking removed - would require database
   }
 
+  const handleDelete = () => {
+    setShowDeleteModal(true)
+  }
+
+  const confirmDelete = () => {
+    if (!guide) return
+    
+    // Delete from localStorage
+    const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]')
+    const updatedTrips = trips.filter((trip: any) => trip.id !== guide.id)
+    localStorage.setItem('wanderplan_trips', JSON.stringify(updatedTrips))
+    
+    // Delete associated places
+    const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]')
+    const updatedPlaces = places.filter((place: any) => place.trip_id !== guide.id)
+    localStorage.setItem('wanderplan_places', JSON.stringify(updatedPlaces))
+    
+    // Navigate back to guides page
+    navigate('/guides')
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -389,12 +411,22 @@ const TripGuideView: React.FC = () => {
               </button>
               
               {isOwner && (
-                <button
-                  onClick={handleEdit}
-                  className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
-                >
-                  <Edit className="w-5 h-5" />
-                </button>
+                <>
+                  <button
+                    onClick={handleEdit}
+                    className="p-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50"
+                    title="Edit guide"
+                  >
+                    <Edit className="w-5 h-5" />
+                  </button>
+                  <button
+                    onClick={handleDelete}
+                    className="p-2 rounded-lg border border-gray-300 text-red-600 hover:bg-red-50 hover:border-red-300"
+                    title="Delete guide"
+                  >
+                    <Trash2 className="w-5 h-5" />
+                  </button>
+                </>
               )}
             </div>
           </div>
@@ -524,6 +556,43 @@ const TripGuideView: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6">
+            <div className="flex items-center mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mr-3">
+                <Trash2 className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Delete Guide</h3>
+                <p className="text-sm text-gray-500">This action cannot be undone</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-600 mb-6">
+              Are you sure you want to delete the guide for <strong>{guide?.metadata.destination.city}, {guide?.metadata.destination.country}</strong>? 
+              All information and recommendations will be permanently removed.
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+              >
+                Delete Guide
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

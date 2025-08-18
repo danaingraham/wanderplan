@@ -17,7 +17,6 @@ interface GuideCardProps {
   guide: Guide;
   onEdit?: (id: string) => void;
   onShare?: (id: string) => void;
-  onDelete?: (id: string) => void;
   onToggleSave?: (id: string, next: boolean) => void;
   onOpen: (id: string) => void;
 }
@@ -26,7 +25,6 @@ export default function GuideCard({
   guide,
   onEdit,
   onShare,
-  onDelete,
   onToggleSave,
   onOpen,
 }: GuideCardProps) {
@@ -114,17 +112,6 @@ export default function GuideCard({
                   className="text-xs text-gray-600 hover:text-gray-900 underline"
                 >
                   Share
-                </button>
-              )}
-              {onDelete && (
-                <button 
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onDelete(guide.id);
-                  }} 
-                  className="text-xs text-red-600 hover:text-red-700"
-                >
-                  Delete
                 </button>
               )}
             </>
