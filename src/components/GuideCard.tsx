@@ -1,4 +1,6 @@
+import { useState, useEffect } from 'react'
 import { User } from 'lucide-react'
+import { getDestinationImage, getDestinationGradient } from '../services/destinationImageService'
 
 export interface Guide {
   id: string;
@@ -28,6 +30,24 @@ export default function GuideCard({
   onToggleSave,
   onOpen,
 }: GuideCardProps) {
+  const [destinationImage, setDestinationImage] = useState<string | null>(null)
+  const [imageLoading, setImageLoading] = useState(false)
+  
+  useEffect(() => {
+    // Only fetch image if no cover image and destination exists
+    if (!guide.coverImageUrl && guide.destination) {
+      setImageLoading(true)
+      getDestinationImage(guide.destination)
+        .then(imageUrl => {
+          if (imageUrl) {
+            setDestinationImage(imageUrl)
+          }
+        })
+        .finally(() => {
+          setImageLoading(false)
+        })
+    }
+  }, [guide.destination, guide.coverImageUrl])
   return (
     <div className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
       <button
@@ -42,8 +62,14 @@ export default function GuideCard({
               alt=""
               className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
             />
+          ) : destinationImage ? (
+            <img
+              src={destinationImage}
+              alt={guide.destination || ''}
+              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
           ) : (
-            <div className="h-full w-full bg-gradient-to-br from-red-100 to-red-200" />
+            <div className={`h-full w-full bg-gradient-to-br ${getDestinationGradient(guide.destination)} ${imageLoading ? 'animate-pulse' : ''}`} />
           )}
         </div>
         <div className="p-3">
