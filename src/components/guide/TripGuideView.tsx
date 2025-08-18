@@ -32,7 +32,26 @@ const TripGuideView: React.FC = () => {
       console.log('🔍 TripGuideView: Loading guide with ID:', guideId)
       
       // First try to load from localStorage savedGuides
-      const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
+      // Handle both array format (old) and object format (new)
+      const savedGuidesRaw = localStorage.getItem('savedGuides')
+      let savedGuides: any = {}
+      
+      if (savedGuidesRaw) {
+        try {
+          const parsed = JSON.parse(savedGuidesRaw)
+          // If it's an array (old format), convert to object
+          if (Array.isArray(parsed)) {
+            console.log('🔍 TripGuideView: savedGuides is array format:', parsed)
+            savedGuides = {}
+          } else {
+            savedGuides = parsed
+          }
+        } catch (e) {
+          console.error('Error parsing savedGuides:', e)
+          savedGuides = {}
+        }
+      }
+      
       console.log('🔍 TripGuideView: Saved guides in localStorage:', Object.keys(savedGuides))
       const localGuide = savedGuides[guideId!]
       console.log('🔍 TripGuideView: Found local guide:', !!localGuide, localGuide)
@@ -61,6 +80,45 @@ const TripGuideView: React.FC = () => {
         const tripGuide = trips.find((t: any) => t.id === guideId && t.is_guide)
         
         if (tripGuide) {
+          // Load places for this trip to convert to activities
+          const places = JSON.parse(localStorage.getItem('wanderplan_places') || '[]')
+          const tripPlaces = places.filter((p: any) => p.trip_id === tripGuide.id)
+          
+          // Convert places to guide sections
+          const activities: any[] = []
+          const dining: any[] = []
+          const accommodations: any[] = []
+          
+          tripPlaces.forEach((place: any) => {
+            const item = {
+              id: place.id,
+              name: place.name,
+              description: place.notes || '',
+              location: place.address,
+              category: place.category
+            }
+            
+            if (place.category === 'restaurant' || place.category === 'cafe') {
+              dining.push({
+                ...item,
+                type: place.category,
+                priceRange: place.price_level ? '$'.repeat(place.price_level) : undefined
+              })
+            } else if (place.category === 'hotel' || place.category === 'accommodation') {
+              accommodations.push({
+                ...item,
+                type: 'hotel',
+                neighborhood: place.address?.split(',')[0]
+              })
+            } else {
+              activities.push({
+                ...item,
+                category: place.category || 'sightseeing',
+                duration: place.duration ? `${place.duration} hours` : undefined
+              })
+            }
+          })
+          
           // Convert trip to guide format
           const convertedGuide = {
             id: tripGuide.id,
@@ -84,13 +142,18 @@ const TripGuideView: React.FC = () => {
               coverImage: tripGuide.cover_image,
               tripDuration: tripGuide.duration,
               groupSize: tripGuide.group_size,
-              budget: tripGuide.budget
+              budget: tripGuide.budget,
+              title: tripGuide.title || `${tripGuide.destination} Guide`
             },
-            accommodations: [],
-            activities: [],
-            dining: [],
+            accommodations,
+            activities,
+            dining,
             transportation: [],
-            itineraryId: tripGuide.id
+            itineraryId: tripGuide.id,
+            highlights: tripGuide.highlights || [],
+            packingTips: tripGuide.packing_tips || [],
+            localTips: tripGuide.local_tips || [],
+            bestTimeToVisit: tripGuide.best_time_to_visit
           }
           
           console.log('🔍 TripGuideView: Converted trip to guide:', convertedGuide)
@@ -312,29 +375,56 @@ const TripGuideView: React.FC = () => {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content Column */}
           <div className="lg:col-span-2 space-y-8">
-            {/* Highlights */}
-            {guide.highlights && guide.highlights.length > 0 && (
-              <GuideHighlights highlights={guide.highlights} />
-            )}
+            {/* Check if guide has any content */}
+            {guide.accommodations.length === 0 && 
+             guide.activities.length === 0 && 
+             guide.dining.length === 0 && 
+             (!guide.transportation || guide.transportation.length === 0) &&
+             (!guide.highlights || guide.highlights.length === 0) ? (
+              <div className="bg-white rounded-lg p-8 text-center">
+                <div className="text-gray-400 mb-4">
+                  <MapPin className="w-16 h-16 mx-auto" />
+                </div>
+                <h3 className="text-xl font-semibold mb-2">Guide Content Coming Soon</h3>
+                <p className="text-gray-600 mb-4">
+                  This guide is being prepared. Check back soon for recommendations on accommodations, activities, dining, and more!
+                </p>
+                {isOwner && (
+                  <button
+                    onClick={handleEdit}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    Add Content to Guide
+                  </button>
+                )}
+              </div>
+            ) : (
+              <>
+                {/* Highlights */}
+                {guide.highlights && guide.highlights.length > 0 && (
+                  <GuideHighlights highlights={guide.highlights} />
+                )}
 
-            {/* Accommodations */}
-            {guide.accommodations.length > 0 && (
-              <AccommodationsSection accommodations={guide.accommodations} />
-            )}
+                {/* Accommodations */}
+                {guide.accommodations.length > 0 && (
+                  <AccommodationsSection accommodations={guide.accommodations} />
+                )}
 
-            {/* Activities */}
-            {guide.activities.length > 0 && (
-              <ActivitiesSection activities={guide.activities} />
-            )}
+                {/* Activities */}
+                {guide.activities.length > 0 && (
+                  <ActivitiesSection activities={guide.activities} />
+                )}
 
-            {/* Dining */}
-            {guide.dining.length > 0 && (
-              <DiningSection dining={guide.dining} />
-            )}
+                {/* Dining */}
+                {guide.dining.length > 0 && (
+                  <DiningSection dining={guide.dining} />
+                )}
 
-            {/* Transportation */}
-            {guide.transportation && guide.transportation.length > 0 && (
-              <TransportationSection transportation={guide.transportation} />
+                {/* Transportation */}
+                {guide.transportation && guide.transportation.length > 0 && (
+                  <TransportationSection transportation={guide.transportation} />
+                )}
+              </>
             )}
           </div>
 
