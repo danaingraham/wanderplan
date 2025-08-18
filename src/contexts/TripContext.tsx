@@ -3,6 +3,14 @@ import type { ReactNode } from 'react'
 import type { Trip, Place, DraftTrip } from '../types'
 import { storage, STORAGE_KEYS } from '../utils/storage'
 import { useUser } from './UserContext'
+import { supabaseTrips } from '../services/supabaseTrips'
+
+// Check if Supabase is configured
+const isSupabaseConfigured = () => {
+  const url = import.meta.env.VITE_SUPABASE_URL
+  const key = import.meta.env.VITE_SUPABASE_ANON_KEY
+  return !!(url && key && url !== '' && key !== '')
+}
 
 // Create environment-aware logging
 const log = (...args: any[]) => {
@@ -57,8 +65,9 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }, [user])
 
   const refreshData = () => {
-    log('🔄 TripContext: Refreshing data from storage')
+    log('🔄 TripContext: Refreshing data')
     log('🔄 TripContext: Current user:', user?.id)
+    log('🔄 TripContext: Supabase configured:', isSupabaseConfigured())
     
     // Don't load data if user isn't ready yet - this prevents data loss
     if (!user) {
@@ -71,6 +80,78 @@ export function TripProvider({ children }: { children: ReactNode }) {
     }
     
     setLoading(true)
+    
+    // Try to load from Supabase first if configured
+    if (isSupabaseConfigured()) {
+      log('🔄 TripContext: Attempting to load from Supabase...')
+      
+      supabaseTrips.getUserTrips().then(({ data: tripsData, error: tripsError }) => {
+        if (tripsError) {
+          console.error('Error loading trips from Supabase:', tripsError)
+          // Fall back to localStorage
+          loadFromLocalStorage()
+        } else if (tripsData) {
+          log('🔄 TripContext: Loaded trips from Supabase:', tripsData.length)
+          
+          // Convert Supabase format to our format
+          const convertedTrips = tripsData.map(trip => ({
+            id: trip.id,
+            title: trip.title,
+            destination: trip.destination,
+            start_date: trip.start_date,
+            end_date: trip.end_date,
+            created_by: trip.user_id,
+            created_date: trip.created_at,
+            updated_date: trip.updated_at,
+            // Extract from itinerary JSON
+            trip_type: (trip.itinerary as any)?.trip_type || 'solo',
+            group_size: (trip.itinerary as any)?.group_size || 1,
+            has_kids: (trip.itinerary as any)?.has_kids || false,
+            pace: (trip.itinerary as any)?.pace || 'moderate',
+            preferences: (trip.itinerary as any)?.preferences || [],
+            is_guide: (trip.itinerary as any)?.is_guide || false,
+            is_public: (trip.itinerary as any)?.is_public || false,
+            collaborators: (trip.itinerary as any)?.collaborators || [],
+            latitude: (trip.itinerary as any)?.latitude,
+            longitude: (trip.itinerary as any)?.longitude,
+            budget: (trip.itinerary as any)?.budget,
+            cover_image: (trip.itinerary as any)?.cover_image,
+            currency: (trip.itinerary as any)?.currency,
+            location: (trip.itinerary as any)?.location,
+            original_input: (trip.itinerary as any)?.original_input
+          } as Trip))
+          
+          setTrips(convertedTrips)
+          
+          // Also save to localStorage as cache
+          const allTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+          const otherUserTrips = allTrips.filter(t => t.created_by !== user.id)
+          storage.set(STORAGE_KEYS.TRIPS, [...otherUserTrips, ...convertedTrips])
+          
+          // Load places (still from localStorage for now)
+          const savedPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
+          setPlaces(savedPlaces)
+          
+          // Draft trips are still in localStorage
+          const savedDraftTrips = storage.get<DraftTrip[]>(STORAGE_KEYS.DRAFT_TRIPS) || []
+          const userDrafts = savedDraftTrips.filter(draft => draft.created_by === user.id)
+          setDraftTrips(userDrafts)
+          
+          setLoading(false)
+        } else {
+          loadFromLocalStorage()
+        }
+      }).catch(error => {
+        console.error('Error loading from Supabase:', error)
+        loadFromLocalStorage()
+      })
+    } else {
+      loadFromLocalStorage()
+    }
+  }
+  
+  const loadFromLocalStorage = () => {
+    log('🔄 TripContext: Loading from localStorage...')
     try {
       const savedTrips = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
       const savedPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
@@ -83,8 +164,8 @@ export function TripProvider({ children }: { children: ReactNode }) {
       })
       
       // Filter trips by current user
-      const userTrips = savedTrips.filter(trip => trip.created_by === user.id)
-      const userDrafts = savedDraftTrips.filter(draft => draft.created_by === user.id)
+      const userTrips = savedTrips.filter(trip => trip.created_by === user?.id)
+      const userDrafts = savedDraftTrips.filter(draft => draft.created_by === user?.id)
       
       log('🔄 TripContext: Filtered for user:', {
         userTrips: userTrips.length,
@@ -133,6 +214,57 @@ export function TripProvider({ children }: { children: ReactNode }) {
     
     setTrips(updatedUserTrips)
     storage.set(STORAGE_KEYS.TRIPS, updatedAllTrips)
+    
+    // Async sync to Supabase if configured
+    if (isSupabaseConfigured()) {
+      log('🔄 TripContext: Syncing trip to Supabase...')
+      
+      // Prepare data for Supabase
+      const supabaseTrip = {
+        title: trip.title,
+        destination: trip.destination,
+        start_date: trip.start_date || '',
+        end_date: trip.end_date || '',
+        itinerary: {
+          trip_type: trip.trip_type,
+          group_size: trip.group_size,
+          has_kids: trip.has_kids,
+          pace: trip.pace,
+          preferences: trip.preferences,
+          is_guide: trip.is_guide,
+          is_public: trip.is_public,
+          collaborators: trip.collaborators,
+          latitude: trip.latitude,
+          longitude: trip.longitude,
+          budget: trip.budget,
+          cover_image: trip.cover_image,
+          currency: trip.currency,
+          location: trip.location,
+          original_input: trip.original_input
+        }
+      }
+      
+      supabaseTrips.createTrip(supabaseTrip).then(({ data, error }) => {
+        if (error) {
+          console.error('Failed to sync trip to Supabase:', error)
+        } else if (data) {
+          log('✅ Trip synced to Supabase with ID:', data.id)
+          // Update the trip ID to match Supabase ID
+          const allTripsUpdated = storage.get<Trip[]>(STORAGE_KEYS.TRIPS) || []
+          const updatedWithSupabaseId = allTripsUpdated.map(t => 
+            t.id === trip.id ? { ...t, id: data.id } : t
+          )
+          storage.set(STORAGE_KEYS.TRIPS, updatedWithSupabaseId)
+          
+          // Update state
+          setTrips(prev => prev.map(t => 
+            t.id === trip.id ? { ...t, id: data.id } : t
+          ))
+        }
+      }).catch(err => {
+        console.error('Error syncing trip to Supabase:', err)
+      })
+    }
     
     return trip.id
   }
