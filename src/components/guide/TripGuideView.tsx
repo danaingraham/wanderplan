@@ -34,7 +34,7 @@ const TripGuideView: React.FC = () => {
       setLoading(true)
       console.log('🔍 TripGuideView: Loading guide with ID:', guideId)
       
-      // First try to load from localStorage
+      // First try to load from localStorage savedGuides
       const savedGuides = JSON.parse(localStorage.getItem('savedGuides') || '{}')
       console.log('🔍 TripGuideView: Saved guides in localStorage:', Object.keys(savedGuides))
       const localGuide = savedGuides[guideId!]
@@ -57,24 +57,58 @@ const TripGuideView: React.FC = () => {
         }
         console.log('🔍 TripGuideView: Processed guide:', processedGuide)
         setGuide(processedGuide)
+        setLoading(false)
       } else {
-        // If not in localStorage, try database
-        try {
-          const guideData = await guideService.getGuide(guideId!)
-          setGuide(guideData)
-          
-          // Track view analytics
-          if (user) {
-            await guideService.trackAnalytics(guideId!, user.id, 'view')
+        // If not in savedGuides, try to find it as a trip with is_guide flag
+        const trips = JSON.parse(localStorage.getItem('wanderplan_trips') || '[]')
+        const tripGuide = trips.find((t: any) => t.id === guideId && t.is_guide)
+        
+        if (tripGuide) {
+          // Convert trip to guide format
+          const convertedGuide = {
+            id: tripGuide.id,
+            metadata: {
+              destination: {
+                city: tripGuide.destination?.split(',')[0]?.trim() || 'Unknown',
+                country: tripGuide.destination?.split(',')[1]?.trim() || 'Unknown'
+              },
+              author: {
+                id: tripGuide.created_by || 'unknown',
+                name: user?.full_name || 'Travel Expert'
+              },
+              tripType: 'solo',
+              travelDate: {
+                month: tripGuide.start_date ? new Date(tripGuide.start_date).getMonth() + 1 : 1,
+                year: tripGuide.start_date ? new Date(tripGuide.start_date).getFullYear() : new Date().getFullYear()
+              },
+              createdAt: new Date(tripGuide.created_date || Date.now()),
+              updatedAt: new Date(tripGuide.updated_date || Date.now()),
+              isPublished: tripGuide.is_public || false,
+              coverImage: tripGuide.cover_image,
+              tripDuration: tripGuide.duration,
+              groupSize: tripGuide.group_size,
+              budget: tripGuide.budget
+            },
+            accommodations: [],
+            activities: [],
+            dining: [],
+            transportation: [],
+            itineraryId: tripGuide.id
           }
-        } catch {
+          
+          console.log('🔍 TripGuideView: Converted trip to guide:', convertedGuide)
+          setGuide(convertedGuide)
+          setLoading(false)
+        } else {
+          // Guide not found anywhere
+          console.error('Guide not found in localStorage or trips')
           setError('Guide not found')
+          setLoading(false)
         }
       }
     } catch (err) {
       console.error('Error loading guide:', err)
       setError('Failed to load guide')
-    } finally {
       setLoading(false)
     }
   }
@@ -93,10 +127,7 @@ const TripGuideView: React.FC = () => {
           url: shareUrl
         })
         
-        // Track share analytics
-        if (user) {
-          await guideService.trackAnalytics(guide.id, user.id, 'share')
-        }
+        // Analytics tracking removed - would require database
       } catch (err) {
         console.error('Error sharing:', err)
       }
@@ -112,8 +143,7 @@ const TripGuideView: React.FC = () => {
 
     try {
       setIsSaved(!isSaved)
-      // Track save analytics
-      await guideService.trackAnalytics(guide.id, user.id, 'save')
+      // Analytics tracking removed - would require database
     } catch (err) {
       console.error('Error saving guide:', err)
     }
@@ -128,10 +158,7 @@ const TripGuideView: React.FC = () => {
     if (!guide) return
     navigate(`/trips/new?fromGuide=${guide.id}`)
     
-    // Track use for trip analytics
-    if (user) {
-      guideService.trackAnalytics(guide.id, user.id, 'use_for_trip')
-    }
+    // Analytics tracking removed - would require database
   }
 
   if (loading) {
