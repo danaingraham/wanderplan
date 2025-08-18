@@ -46,8 +46,7 @@ export function GuideCard({ guide }: GuideCardProps) {
   return (
     <Link 
       to={`/trip/${guide.id}`}
-      className="card block overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2"
-      style={{ '--tw-ring-color': 'var(--color-primary)' } as React.CSSProperties}
+      className="card block overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500"
     >
       {/* Image Section */}
       <div className="relative aspect-[16/10] w-full overflow-hidden">
@@ -63,8 +62,7 @@ export function GuideCard({ guide }: GuideCardProps) {
         
         {/* Location Badge */}
         <div 
-          className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white shadow-lg"
-          style={{ backgroundColor: 'var(--color-accent)' }}
+          className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white shadow-lg bg-accent-500"
         >
           <MapPin className="w-3 h-3" />
           {guide.destination || 'Unknown'}
@@ -74,8 +72,7 @@ export function GuideCard({ guide }: GuideCardProps) {
       {/* Content Section */}
       <div className="p-4">
         {/* Title */}
-        <h3 className="text-lg font-semibold line-clamp-2 group-hover:text-opacity-80 transition-colors"
-            style={{ color: 'var(--color-text)' }}>
+        <h3 className="text-lg font-semibold line-clamp-2 text-gray-900 group-hover:text-primary-600 transition-colors">
           {guide.title}
         </h3>
         
@@ -116,8 +113,7 @@ export function GuideCard({ guide }: GuideCardProps) {
           <div className="flex flex-wrap gap-2 mt-3">
             {guide.preferences.slice(0, 3).map((tag, idx) => (
               <span key={idx} className="chip text-xs">
-                <span className="w-1.5 h-1.5 rounded-full" 
-                      style={{ backgroundColor: 'var(--color-accent)' }} />
+                <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
                 {tag}
               </span>
             ))}

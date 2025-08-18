@@ -40,8 +40,7 @@ export function EmptyState({
         {action && (
           <button
             onClick={action.onClick}
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl font-medium transition-all text-white hover:brightness-95 active:translate-y-[1px]"
-            style={{ backgroundColor: '#FF6F61' }}
+            className="btn-primary inline-flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
             {action.label}
