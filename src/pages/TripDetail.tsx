@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { MapPin, Trash2, Check, X, Plus, RefreshCw, Edit2, MoreVertical } from 'lucide-react'
+import { MapPin, Trash2, Check, X, Plus, Edit2, MoreVertical } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { useUser } from '../contexts/UserContext'
 import { itineraryOptimizer } from '../services/itineraryOptimizer'
@@ -10,8 +10,6 @@ import { TripAssistant } from '../components/ai/TripAssistant'
 import { TripDetailTopChrome } from '../components/trips/TripDetailTopChrome'
 import { Button } from '../components/ui/Button'
 import { PlaceAutocomplete } from '../components/forms/PlaceAutocomplete'
-import { googlePlacesService } from '../services/googlePlaces'
-import { isGoogleMapsConfigured } from '../config/api'
 import { PlacePhoto } from '../components/places/PlacePhoto'
 import { DragDropProvider } from '../components/dnd/DragDropProvider'
 import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
@@ -386,8 +384,6 @@ export function TripDetail() {
   const [isEditingTitle, setIsEditingTitle] = useState(false)
   const [editedTitle, setEditedTitle] = useState('')
   const [showAddForm, setShowAddForm] = useState(false)
-  const [isRefreshingPhotos, setIsRefreshingPhotos] = useState(false)
-  const [refreshProgress, setRefreshProgress] = useState<{ current: number; total: number } | null>(null)
   const [collapsedDays, setCollapsedDays] = useState<Set<number>>(new Set())
   const [editingPlace, setEditingPlace] = useState<Place | null>(null)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -452,83 +448,6 @@ export function TripDetail() {
 
 
 
-  const handleRefreshPhotos = async () => {
-    if (!trip || !isGoogleMapsConfigured()) {
-      console.log('Cannot refresh photos: Google Maps not configured or no trip', {
-        hasTrip: !!trip,
-        apiConfigured: isGoogleMapsConfigured()
-      })
-      return
-    }
-
-    // Check if Google Maps API is actually loaded
-    if (typeof window.google === 'undefined' || !window.google.maps || !window.google.maps.places) {
-      console.error('❌ Google Maps API not loaded! Cannot refresh photos.')
-      alert('Google Maps API is not loaded. Please refresh the page and try again.')
-      return
-    }
-
-    console.log('🚀 Starting photo refresh for', places.length, 'places')
-
-    setIsRefreshingPhotos(true)
-    setRefreshProgress({ current: 0, total: places.length })
-
-    let updatedCount = 0
-    
-    for (let i = 0; i < places.length; i++) {
-      const place = places[i]
-      setRefreshProgress({ current: i + 1, total: places.length })
-      
-      // Skip if place already has a photo
-      if (place.photo_url) {
-        console.log(`⏭️ Skipping ${place.name} - already has photo`)
-        continue
-      }
-
-      try {
-        // Search for the place using Google Places
-        const searchQuery = `${place.name} ${trip.destination}`
-        console.log(`🔍 Searching for: ${searchQuery}`)
-        
-        const searchResults = await googlePlacesService.searchPlaces(searchQuery, {
-          lat: trip.latitude || 0,
-          lng: trip.longitude || 0
-        })
-        
-        if (searchResults.length > 0) {
-          const googlePlace = searchResults[0]
-          console.log(`✅ Found match for ${place.name}:`, googlePlace.name)
-          
-          // Update the place with Google data
-          const updates: Partial<Place> = {
-            place_id: googlePlace.place_id,
-            latitude: googlePlace.geometry.location.lat,
-            longitude: googlePlace.geometry.location.lng,
-          }
-          
-          // Add photo if available
-          if (googlePlace.photos && googlePlace.photos.length > 0) {
-            updates.photo_url = googlePlace.photos[0].photo_reference
-            console.log(`📸 Adding photo for ${place.name}`)
-            updatedCount++
-          }
-          
-          updatePlace(place.id, updates)
-        } else {
-          console.log(`❌ No match found for ${place.name}`)
-        }
-      } catch (error) {
-        console.error(`Error refreshing photo for ${place.name}:`, error)
-      }
-      
-      // Small delay to avoid hitting API rate limits
-      await new Promise(resolve => setTimeout(resolve, 500))
-    }
-    
-    setIsRefreshingPhotos(false)
-    setRefreshProgress(null)
-    console.log(`🎉 Photo refresh complete! Updated ${updatedCount} places`)
-  }
 
   // Smart initial planning - automatically optimize when places are added
   const applySmartPlanning = (placesToOptimize: Place[], dayNumber?: number) => {
@@ -942,25 +861,6 @@ export function TripDetail() {
                   Add Place
                 </Button>
               </div>
-              
-              {/* Refresh Photos Button - Only show on desktop */}
-              {isGoogleMapsConfigured() && places.some(p => !p.photo_url) && (
-                <Button
-                  onClick={handleRefreshPhotos}
-                  size="sm"
-                  variant="ghost"
-                  disabled={isRefreshingPhotos}
-                  className="hidden sm:flex items-center gap-2"
-                >
-                  <RefreshCw className={`w-4 h-4 ${isRefreshingPhotos ? 'animate-spin' : ''}`} />
-                  {isRefreshingPhotos 
-                    ? refreshProgress 
-                      ? `${refreshProgress.current}/${refreshProgress.total}`
-                      : 'Refreshing...'
-                    : 'Add Photos'
-                  }
-                </Button>
-              )}
             </div>
 
 
