@@ -1,129 +1,151 @@
-import { Link } from 'react-router-dom'
-import { MapPin, Calendar, Clock, DollarSign, User } from 'lucide-react'
-import type { Trip } from '../types'
+import { User } from 'lucide-react'
+
+export interface Guide {
+  id: string;
+  title: string;
+  coverImageUrl?: string;
+  destination?: string;
+  updatedAt: string; // ISO
+  author: { id: string; name: string; avatarUrl?: string };
+  isMine: boolean;   // true if created by current user
+  isSaved: boolean;  // true if user has saved it
+}
 
 interface GuideCardProps {
-  guide: Trip
+  guide: Guide;
+  onEdit?: (id: string) => void;
+  onShare?: (id: string) => void;
+  onDelete?: (id: string) => void;
+  onToggleSave?: (id: string, next: boolean) => void;
+  onOpen: (id: string) => void;
 }
 
-export function GuideCard({ guide }: GuideCardProps) {
-  // Generate gradient fallback if no image
-  const gradients = [
-    'from-yellow-400 to-orange-500',
-    'from-blue-400 to-purple-500',
-    'from-green-400 to-teal-500',
-    'from-pink-400 to-red-500',
-  ]
-  const gradientClass = gradients[guide.id.charCodeAt(0) % gradients.length]
-  
-  // Format date
-  const formatDate = (dateStr: string | undefined) => {
-    if (!dateStr) return 'Any time'
-    const date = new Date(dateStr)
-    return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
-  }
-  
-  // Get price symbol
-  const getPriceSymbol = (budget?: string) => {
-    switch(budget) {
-      case 'budget': return '$'
-      case 'medium': return '$$'
-      case 'luxury': return '$$$'
-      default: return '$$'
-    }
-  }
-  
-  // Calculate duration
-  const getDuration = () => {
-    if (!guide.start_date || !guide.end_date) return null
-    const start = new Date(guide.start_date)
-    const end = new Date(guide.end_date)
-    const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-    return days > 0 ? `${days} days` : null
-  }
+export default function GuideCard({
+  guide,
+  onEdit,
+  onShare,
+  onDelete,
+  onToggleSave,
+  onOpen,
+}: GuideCardProps) {
+  return (
+    <div className="group overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm hover:shadow-md transition-shadow">
+      <button
+        onClick={() => onOpen(guide.id)}
+        className="block w-full text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2"
+        aria-label={`Open guide ${guide.title}`}
+      >
+        <div className="aspect-[4/3] w-full overflow-hidden bg-gray-100">
+          {guide.coverImageUrl ? (
+            <img
+              src={guide.coverImageUrl}
+              alt=""
+              className="h-full w-full object-cover transition-transform duration-200 group-hover:scale-105"
+            />
+          ) : (
+            <div className="h-full w-full bg-gradient-to-br from-red-100 to-red-200" />
+          )}
+        </div>
+        <div className="p-3">
+          <div className="text-sm font-medium line-clamp-2">{guide.title}</div>
+          <div className="mt-1 text-xs text-gray-500">
+            {guide.destination ?? ''}{guide.destination ? ' • ' : ''}Updated {new Date(guide.updatedAt).toLocaleDateString()}
+          </div>
+        </div>
+      </button>
+
+      <div className="flex items-center justify-between px-3 pb-3">
+        <div className="flex items-center gap-2 text-xs text-gray-500">
+          {guide.author.avatarUrl ? (
+            <img src={guide.author.avatarUrl} className="h-5 w-5 rounded-full" alt="" />
+          ) : (
+            <div className="h-5 w-5 rounded-full bg-gray-200 flex items-center justify-center">
+              <User className="h-3 w-3 text-gray-500" />
+            </div>
+          )}
+          <span>{guide.author.name}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {guide.isMine ? (
+            <>
+              {onEdit && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onEdit(guide.id);
+                  }} 
+                  className="text-xs text-gray-600 hover:text-gray-900 underline"
+                >
+                  Edit
+                </button>
+              )}
+              {onShare && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onShare(guide.id);
+                  }} 
+                  className="text-xs text-gray-600 hover:text-gray-900 underline"
+                >
+                  Share
+                </button>
+              )}
+              {onDelete && (
+                <button 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDelete(guide.id);
+                  }} 
+                  className="text-xs text-red-600 hover:text-red-700"
+                >
+                  Delete
+                </button>
+              )}
+            </>
+          ) : (
+            onToggleSave && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSave(guide.id, !guide.isSaved);
+                }}
+                className="text-xs text-gray-600 hover:text-gray-900 underline"
+              >
+                {guide.isSaved ? 'Unsave' : 'Save'}
+              </button>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Also export as named export for backward compatibility with Trip type
+export const LegacyGuideCard = function({ guide }: { guide: any }) {
+  // Convert Trip to Guide format
+  const convertedGuide: Guide = {
+    id: guide.id,
+    title: guide.title || 'Untitled Guide',
+    coverImageUrl: guide.cover_image,
+    destination: guide.destination,
+    updatedAt: guide.updated_at || guide.updated_date || new Date().toISOString(),
+    author: {
+      id: guide.created_by || 'unknown',
+      name: 'Travel Guide',
+      avatarUrl: undefined
+    },
+    isMine: false,
+    isSaved: false
+  };
 
   return (
-    <Link 
-      to={`/trip/${guide.id}`}
-      className="card block overflow-hidden group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary-500"
-    >
-      {/* Image Section */}
-      <div className="relative aspect-[16/10] w-full overflow-hidden">
-        {guide.cover_image ? (
-          <img 
-            src={guide.cover_image} 
-            alt={guide.title}
-            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-          />
-        ) : (
-          <div className={`w-full h-full bg-gradient-to-br ${gradientClass}`} />
-        )}
-        
-        {/* Location Badge */}
-        <div 
-          className="absolute top-3 left-3 inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-medium text-white shadow-lg bg-accent-500"
-        >
-          <MapPin className="w-3 h-3" />
-          {guide.destination || 'Unknown'}
-        </div>
-      </div>
-      
-      {/* Content Section */}
-      <div className="p-4">
-        {/* Title */}
-        <h3 className="text-lg font-semibold line-clamp-2 text-gray-900 group-hover:text-primary-600 transition-colors">
-          {guide.title}
-        </h3>
-        
-        {/* Author Row - using created_by for now */}
-        <div className="flex items-center gap-2 mt-2">
-          <div className="w-6 h-6 rounded-full bg-zinc-200 flex items-center justify-center">
-            <User className="w-3 h-3 text-zinc-600" />
-          </div>
-          <span className="text-sm text-zinc-600">Travel Guide</span>
-        </div>
-        
-        {/* Meta Row */}
-        <div className="flex flex-wrap items-center gap-3 mt-3 text-sm text-zinc-600">
-          {formatDate(guide.start_date) && (
-            <div className="flex items-center gap-1">
-              <Calendar className="w-3.5 h-3.5" />
-              {formatDate(guide.start_date)}
-            </div>
-          )}
-          
-          {getDuration() && (
-            <div className="flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5" />
-              {getDuration()}
-            </div>
-          )}
-          
-          {guide.budget && (
-            <div className="flex items-center gap-1">
-              <DollarSign className="w-3.5 h-3.5" />
-              {getPriceSymbol(guide.budget)}
-            </div>
-          )}
-        </div>
-        
-        {/* Tags */}
-        {guide.preferences && guide.preferences.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3">
-            {guide.preferences.slice(0, 3).map((tag, idx) => (
-              <span key={idx} className="chip text-xs">
-                <span className="w-1.5 h-1.5 rounded-full bg-accent-500" />
-                {tag}
-              </span>
-            ))}
-            {guide.preferences.length > 3 && (
-              <span className="text-xs text-zinc-500">
-                +{guide.preferences.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-    </Link>
-  )
+    <GuideCard
+      guide={convertedGuide}
+      onOpen={(id) => window.location.href = `/trip/${id}`}
+    />
+  );
 }
+
+// Export named export GuideCard pointing to LegacyGuideCard for backward compatibility
+export { LegacyGuideCard as GuideCard };

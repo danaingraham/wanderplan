@@ -1,260 +1,140 @@
-import { useState, useEffect, useMemo } from 'react'
-import { Search } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { useTrips } from '../contexts/TripContext'
-import { GuideCard } from '../components/GuideCard'
-import { GuideFilters, type FilterState } from '../components/GuideFilters'
-import { EmptyState } from '../components/EmptyState'
+import { useMyGuides, useSavedGuides, toggleSaveGuide, shareGuide, deleteGuide } from '../hooks/useGuides'
+import GuideCard from '../components/GuideCard'
+import EmptyState from '../components/EmptyState'
 
-const STORAGE_KEY = 'guides:filters:v1'
-
-export function Guides() {
-  const navigate = useNavigate()
-  const { trips } = useTrips()
-  const [searchQuery, setSearchQuery] = useState('')
-  const [filters, setFilters] = useState<FilterState>({})
-  const [debouncedSearch, setDebouncedSearch] = useState('')
-  const [isMobile, setIsMobile] = useState(false)
-
-  // Check if mobile
-  useEffect(() => {
-    const checkMobile = () => setIsMobile(window.innerWidth < 640)
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
-  
-  // Load saved filters from localStorage
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        const parsed = JSON.parse(saved)
-        setFilters(parsed.filters || {})
-        setSearchQuery(parsed.search || '')
-      } catch (e) {
-        console.error('Failed to load saved filters', e)
-      }
-    }
-  }, [])
-  
-  // Save filters to localStorage
-  useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ 
-      filters, 
-      search: searchQuery 
-    }))
-  }, [filters, searchQuery])
-  
-  // Debounce search
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setDebouncedSearch(searchQuery)
-    }, 250)
-    return () => clearTimeout(timer)
-  }, [searchQuery])
-  
-  // Keyboard shortcuts
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Focus search on '/'
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault()
-        document.getElementById('guide-search')?.focus()
-      }
-      // Clear search on Escape
-      if (e.key === 'Escape') {
-        const searchInput = document.getElementById('guide-search') as HTMLInputElement
-        if (searchInput === document.activeElement) {
-          searchInput.blur()
-          setSearchQuery('')
-        }
-      }
-    }
-    
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [])
-  
-  // Filter guides
-  const filteredGuides = useMemo(() => {
-    return trips.filter(trip => {
-      // Only show guides
-      if (!trip.is_guide) return false
-      
-      // Search filter
-      if (debouncedSearch) {
-        const search = debouncedSearch.toLowerCase()
-        const matchesSearch = 
-          trip.title?.toLowerCase().includes(search) ||
-          trip.destination?.toLowerCase().includes(search) ||
-          trip.preferences?.some(p => p.toLowerCase().includes(search))
-        if (!matchesSearch) return false
-      }
-      
-      // Destination filter
-      if (filters.destination) {
-        const dest = filters.destination.toLowerCase()
-        if (!trip.destination?.toLowerCase().includes(dest)) return false
-      }
-      
-      // Month filter
-      if (filters.month && trip.start_date) {
-        const tripMonth = new Date(trip.start_date).toLocaleDateString('en-US', { month: 'short' })
-        if (tripMonth !== filters.month) return false
-      }
-      
-      // Duration filter
-      if (filters.duration && trip.start_date && trip.end_date) {
-        const start = new Date(trip.start_date)
-        const end = new Date(trip.end_date)
-        const days = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
-        if (filters.duration.min && days < filters.duration.min) return false
-        if (filters.duration.max && days > filters.duration.max) return false
-      }
-      
-      // Cost filter
-      if (filters.cost) {
-        const costMap: Record<string, string> = { '$': 'budget', '$$': 'medium', '$$$': 'luxury' }
-        if (trip.budget !== costMap[filters.cost]) return false
-      }
-      
-      // Theme filter
-      if (filters.theme) {
-        const theme = filters.theme.toLowerCase()
-        if (!trip.preferences?.some(p => p.toLowerCase().includes(theme))) return false
-      }
-      
-      return true
-    })
-  }, [trips, debouncedSearch, filters])
-  
-  // Build active filters for display
-  const activeFilters = useMemo(() => {
-    const active: Array<{ key: string; label: string; value: any }> = []
-    
-    if (filters.destination) {
-      active.push({ key: 'destination', label: `Destination: ${filters.destination}`, value: filters.destination })
-    }
-    if (filters.month) {
-      active.push({ key: 'month', label: `Month: ${filters.month}`, value: filters.month })
-    }
-    if (filters.duration?.min || filters.duration?.max) {
-      const label = filters.duration.min && filters.duration.max 
-        ? `Duration: ${filters.duration.min}-${filters.duration.max} days`
-        : filters.duration.min 
-          ? `Duration: ${filters.duration.min}+ days`
-          : `Duration: up to ${filters.duration.max} days`
-      active.push({ key: 'duration', label, value: filters.duration })
-    }
-    if (filters.cost) {
-      active.push({ key: 'cost', label: `Cost: ${filters.cost}`, value: filters.cost })
-    }
-    if (filters.theme) {
-      active.push({ key: 'theme', label: `Theme: ${filters.theme}`, value: filters.theme })
-    }
-    if (filters.worldwide) {
-      active.push({ key: 'worldwide', label: 'Worldwide', value: true })
-    }
-    
-    return active
-  }, [filters])
-  
-  const handleCreateGuide = () => {
-    navigate('/guides/new')
-  }
-  
+function SkeletonGrid() {
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Hero Header */}
-      <div>
-        <div className="mb-6">
-          <h1 className="text-2xl font-semibold text-gray-900 mb-2">
-            Discover Travel Guides
-          </h1>
-          <p className="text-gray-600">
-            Find inspiration for your next adventure
-          </p>
-        </div>
-        
-        {/* Search + Filter Bar */}
-        <div className="card p-4 mb-6">
-          <div className="flex flex-col sm:flex-row gap-3">
-            {/* Search Input */}
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
-              <input
-                id="guide-search"
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search by destination, country, or tags…"
-                className="search-input pl-10 w-full"
-              />
-            </div>
-            
-            {/* Filter Button */}
-            <div className="relative">
-              <GuideFilters
-                value={filters}
-                onChange={setFilters}
-                activeFilters={activeFilters}
-                isMobile={isMobile}
-              />
-            </div>
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <div className="aspect-[4/3] w-full bg-gray-200 animate-pulse" />
+          <div className="p-3">
+            <div className="h-4 bg-gray-200 rounded animate-pulse mb-2" />
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3" />
           </div>
-          
-          {/* Active Filters */}
-          {activeFilters.length > 0 && (
-            <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-zinc-100">
-              {activeFilters.map((filter, idx) => (
-                <div key={idx} className="filter-badge">
-                  <span>{filter.label}</span>
-                  <button
-                    onClick={() => {
-                      const newFilters = { ...filters }
-                      delete newFilters[filter.key as keyof FilterState]
-                      setFilters(newFilters)
-                    }}
-                    className="ml-1.5 text-zinc-500 hover:text-zinc-700"
-                  >
-                    <span>×</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-        
-        {/* Results Count */}
-        {filteredGuides.length > 0 && (
-          <p className="text-sm text-zinc-600 mb-4">
-            {filteredGuides.length} {filteredGuides.length === 1 ? 'guide' : 'guides'} found
-          </p>
-        )}
-        
-        {/* Guides Grid or Empty State */}
-        {filteredGuides.length > 0 ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredGuides.map((guide) => (
-              <GuideCard key={guide.id} guide={guide} />
-            ))}
+          <div className="px-3 pb-3">
+            <div className="h-3 bg-gray-200 rounded animate-pulse w-1/2" />
           </div>
-        ) : (
-          <EmptyState
-            title={debouncedSearch || activeFilters.length > 0 ? "No guides found" : "No guides yet"}
-            description={
-              debouncedSearch || activeFilters.length > 0 
-                ? "Try adjusting your search or filters"
-                : "Create your first guide to get started"
-            }
-            action={{
-              label: "Create Guide",
-              onClick: handleCreateGuide
-            }}
-          />
-        )}
-      </div>
+        </div>
+      ))}
     </div>
   )
+}
+
+function InlineError({ onRetry }: { onRetry?: () => void }) {
+  return (
+    <div className="border border-red-200 rounded-2xl p-4 bg-red-50">
+      <p className="text-sm text-red-600">Failed to load guides. Please try again.</p>
+      {onRetry && (
+        <button
+          onClick={onRetry}
+          className="mt-2 text-sm text-red-600 underline hover:text-red-700"
+        >
+          Retry
+        </button>
+      )}
+    </div>
+  )
+}
+
+export default function GuidesPage() {
+  const my = useMyGuides()
+  const saved = useSavedGuides()
+  const navigate = useNavigate()
+
+  const handleCreateGuide = () => {
+    navigate('/guides/new')
+    // Track event
+    if (typeof window !== 'undefined' && (window as any).track) {
+      (window as any).track('guides_click_create')
+    }
+  }
+
+  const handleOpenGuide = (id: string) => {
+    navigate(`/trip/${id}`)
+    // Track event
+    if (typeof window !== 'undefined' && (window as any).track) {
+      (window as any).track('guides_open_guide', { id })
+    }
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <h1 className="text-2xl font-semibold">Guides</h1>
+      <p className="mt-1 text-sm text-gray-500">Create and collect travel guides.</p>
+
+      {/* My Guides */}
+      <section className="mt-6">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-medium">My Guides</h2>
+          {(my.data?.length ?? 0) > 0 && (
+            <button
+              onClick={handleCreateGuide}
+              className="rounded-xl bg-red-500 px-3 py-2 text-sm text-white hover:bg-red-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+            >
+              + Create Guide
+            </button>
+          )}
+        </div>
+
+        {my.isLoading ? (
+          <SkeletonGrid />
+        ) : my.error ? (
+          <InlineError onRetry={() => my.refetch?.()} />
+        ) : (my.data?.length ?? 0) === 0 ? (
+          <EmptyState
+            title="No guides yet"
+            body="Create your first guide to get started."
+            primaryAction={{ label: 'Create Guide', onClick: handleCreateGuide }}
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {my.data!.map(g => (
+              <GuideCard
+                key={g.id}
+                guide={g}
+                onEdit={(id) => navigate(`/guides/${id}/edit`)}
+                onShare={(id) => shareGuide(id)}
+                onDelete={(id) => deleteGuide(id)}
+                onOpen={handleOpenGuide}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* Saved Guides */}
+      <section className="mt-10 pt-8 border-t">
+        <h2 className="mb-3 text-lg font-medium">Saved Guides</h2>
+
+        {saved.isLoading ? (
+          <SkeletonGrid />
+        ) : saved.error ? (
+          <InlineError onRetry={() => saved.refetch?.()} />
+        ) : (saved.data?.length ?? 0) === 0 ? (
+          <EmptyState
+            title="No saved guides yet"
+            body="When you save guides from others, they'll appear here."
+          />
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {saved.data!.map(g => (
+              <GuideCard
+                key={g.id}
+                guide={g}
+                onToggleSave={(id, next) => toggleSaveGuide(id, next)}
+                onOpen={handleOpenGuide}
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
+  )
+}
+
+// Also export with named export for backward compatibility
+export function Guides() {
+  return <GuidesPage />
 }
