@@ -1,4 +1,3 @@
-import React from 'react'
 import { Link } from 'react-router-dom'
 import { MapPin, Calendar, Clock, DollarSign, User } from 'lucide-react'
 import type { Trip } from '../types'
