@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
 import './utils/productionCleanup' // Production cleanup utility
+import './utils/quickProductionCheck' // Quick production check
 
 // Initialize Google Places service early for global availability
 if (import.meta.env.DEV) {
