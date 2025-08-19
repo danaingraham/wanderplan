@@ -9,7 +9,7 @@ export async function cleanupProductionGuides() {
   
   try {
     // Get current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const { data: { user } } = await supabase.auth.getUser()
     
     if (!user) {
       console.error('❌ You must be logged in to clean up guides')
