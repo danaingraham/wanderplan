@@ -104,9 +104,9 @@ export async function deleteGuideById(tripId: string) {
 }
 
 if (typeof window !== 'undefined') {
-  (window as any).quickProductionCheck = quickProductionCheck
-  (window as any).deleteGuideById = deleteGuideById
-  console.log('🔧 Debug tools loaded:')
-  console.log('  - window.quickProductionCheck() : Check what trips exist')
-  console.log('  - window.deleteGuideById(id) : Delete a specific trip')
+  (window as any).quickProductionCheck = quickProductionCheck;
+  (window as any).deleteGuideById = deleteGuideById;
+  console.log('🔧 Debug tools loaded:');
+  console.log('  - window.quickProductionCheck() : Check what trips exist');
+  console.log('  - window.deleteGuideById(id) : Delete a specific trip');
 }
