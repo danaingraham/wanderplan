@@ -5,6 +5,7 @@ import App from './App.tsx'
 import './utils/productionCleanup' // Production cleanup utility
 import './utils/quickProductionCheck' // Quick production check
 import './utils/directRemove' // Direct localStorage removal
+import './utils/supabaseDirectDelete' // Direct Supabase deletion
 
 // Initialize Google Places service early for global availability
 if (import.meta.env.DEV) {
