@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Plus, User, ChevronLeft } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { cn } from '../../utils/cn'
@@ -12,11 +12,8 @@ interface HeaderProps {
 export function Header({ context, showCreateTrip = true }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
   const { user, logout } = useUser()
-  const location = useLocation()
   const navigate = useNavigate()
 
-  const isExplore = location.pathname === '/'
-  const isMyTrips = location.pathname === '/dashboard' || location.pathname === '/create' || location.pathname.startsWith('/trip/')
   const isSettings = context?.isSettings || false
   
   // Handle back navigation for settings
@@ -165,33 +162,6 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
             <span>Wanderplan</span>
           </Link>
 
-          {/* Only show nav toggle when not on settings pages */}
-          {!isSettings && (
-            <div className="flex items-center space-x-1 bg-gray-100 rounded-xl p-1">
-              <Link
-                to="/"
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isExplore
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                )}
-              >
-                Explore
-              </Link>
-              <Link
-                to="/dashboard"
-                className={cn(
-                  "px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                  isMyTrips
-                    ? "bg-white text-gray-900 shadow-sm"
-                    : "text-gray-600 hover:text-gray-900"
-                )}
-              >
-                My Trips
-              </Link>
-            </div>
-          )}
 
           <div className="flex items-center space-x-4">
             {showCreateTrip && (

@@ -23,7 +23,6 @@ export interface Trip {
   has_kids: boolean
   pace: 'relaxed' | 'moderate' | 'packed'
   preferences: string[]
-  is_guide: boolean
   is_public: boolean
   original_input?: string
   collaborators: string[]
@@ -77,7 +76,6 @@ export interface DraftTrip {
   preferences: string[]
   generation_mode: 'paste' | 'ai'
   original_input?: string
-  is_guide: boolean
   step: number
   last_updated: string
   created_by: string

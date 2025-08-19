@@ -160,7 +160,6 @@ export function NewTripCreation() {
         has_kids: tripData.tripType === 'family',
         pace: (tripData.travelPace || 'moderate') as 'relaxed' | 'moderate' | 'packed',
         preferences: tripData.interests,
-        is_guide: false,
         is_public: true, // All trips are now public by default
         original_input: `Generated trip with custom items: ${tripData.customItems.join(', ')}`,
         collaborators: [],

@@ -72,7 +72,6 @@ export class MockApiService {
         has_kids: request.has_kids,
         pace: request.pace as Trip['pace'],
         preferences: request.preferences,
-        is_guide: false,
         is_public: false,
         original_input: request.original_input,
         collaborators: [],

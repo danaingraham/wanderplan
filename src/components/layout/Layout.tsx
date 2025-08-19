@@ -1,8 +1,7 @@
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
-import NewHeader from '../Header'
-import MobileNav from '../MobileNav'
-import { useUser } from '../../contexts/UserContext'
+import { Header } from './Header'
+import { MobileNav } from './MobileNav'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -10,8 +9,6 @@ interface LayoutProps {
 
 export function Layout({ children }: LayoutProps) {
   const location = useLocation()
-  const navigate = useNavigate()
-  const { user, logout } = useUser()
   const [isMobile, setIsMobile] = useState(false)
   
   // Check viewport size
@@ -32,32 +29,19 @@ export function Layout({ children }: LayoutProps) {
   // Check if we're on a settings page
   const isSettings = /^\/(profile|settings|api-status)/.test(location.pathname)
   
-  // Convert user data to Header format
-  const headerUser = user ? {
-    name: user.full_name || user.email || 'User',
-    avatarUrl: user.profile_picture_url
-  } : undefined
-  
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Desktop: Show NewHeader on all pages except Trip Detail */}
+      {/* Desktop: Show Header on all pages except Trip Detail */}
       {!isMobile && !isTripDetail && (
-        <NewHeader 
-          activePath={location.pathname}
-          onNavigate={(path) => navigate(path)}
-          onSignOut={logout}
-          user={headerUser}
+        <Header 
+          context={{ isSettings }}
+          showCreateTrip={!isSettings}
         />
       )}
       
       {/* Mobile: Show MobileNav on all pages except Trip Detail and Settings */}
       {isMobile && !isTripDetail && !isSettings && (
-        <MobileNav
-          activePath={location.pathname}
-          onNavigate={(path) => navigate(path)}
-          onSignOut={logout}
-          user={headerUser}
-        />
+        <MobileNav />
       )}
       
       {/* Main content with appropriate padding */}

@@ -16,7 +16,6 @@ import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
-import { TripActionsMenu } from '../components/guide/TripActionsMenu'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -833,13 +832,14 @@ export function TripDetail() {
             </div>
           </div>
           
-          {/* Action Menu */}
-          <TripActionsMenu 
-            trip={trip}
-            showDeleteConfirm={showDeleteConfirm}
-            setShowDeleteConfirm={setShowDeleteConfirm}
-            handleDeleteTrip={handleDeleteTrip}
-          />
+          {/* Delete Button */}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-2 text-gray-400 hover:text-red-600 hover:bg-gray-100 rounded-lg transition-colors"
+            title="Delete trip"
+          >
+            <Trash2 className="w-5 h-5" />
+          </button>
         </div>
       </div>
 
@@ -1392,6 +1392,32 @@ export function TripDetail() {
         onClose={handleCloseEditModal}
         onSave={handleSaveEdit}
       />
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999] p-4">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-2">Delete Trip?</h3>
+            <p className="text-gray-600 mb-4">This action cannot be undone. All trip data and places will be permanently deleted.</p>
+            <div className="flex gap-3">
+              <Button
+                variant="primary"
+                onClick={handleDeleteTrip}
+                className="bg-red-600 hover:bg-red-700 flex-1"
+              >
+                Delete
+              </Button>
+              <Button
+                variant="ghost"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </DragDropProvider>
   )
 }

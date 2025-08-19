@@ -12,9 +12,8 @@ export function Dashboard() {
   console.log('📊 Dashboard: Trips loaded:', trips.length)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
 
-  // Filter out guides and sort regular trips by updated date (most recent first)
+  // Sort trips by updated date (most recent first)
   const allTrips = trips
-    .filter(trip => !trip.is_guide) // Only show itineraries, not guides
     .sort((a, b) => new Date(b.updated_date).getTime() - new Date(a.updated_date).getTime())
 
   if (loading) {
@@ -62,7 +61,7 @@ export function Dashboard() {
                 Start planning your next adventure with AI-powered trip generation
               </p>
               <Link
-                to="/create/trip"
+                to="/create"
                 className="inline-flex items-center px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
               >
                 Generate Trip with AI

@@ -132,7 +132,6 @@ class RealApiService {
         pace: request.pace as 'relaxed' | 'moderate' | 'packed',
         preferences: request.preferences,
         is_public: false,
-        is_guide: false,
         collaborators: [],
         latitude: destinationCoords?.lat,
         longitude: destinationCoords?.lng,
