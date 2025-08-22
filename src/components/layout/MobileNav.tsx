@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom'
-import { Home, Plus } from 'lucide-react'
+import { Home, Plus, User } from 'lucide-react'
 import { cn } from '../../utils/cn'
 
 export function MobileNav() {
@@ -7,7 +7,8 @@ export function MobileNav() {
 
   const navItems = [
     { to: '/dashboard', icon: Home, label: 'My Trips' },
-    { to: '/create', icon: Plus, label: 'Create', isCreate: true }
+    { to: '/create', icon: Plus, label: 'Create', isCreate: true },
+    { to: '/profile', icon: User, label: 'Profile' }
   ]
 
   return (

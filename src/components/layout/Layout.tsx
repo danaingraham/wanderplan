@@ -27,20 +27,20 @@ export function Layout({ children }: LayoutProps) {
   const isTripDetail = location.pathname.startsWith('/trip/')
   
   // Check if we're on a settings page
-  const isSettings = /^\/(profile|settings|api-status)/.test(location.pathname)
+  const isSettings = /^\/(settings|api-status)/.test(location.pathname)
   
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Desktop: Show Header on all pages except Trip Detail */}
       {!isMobile && !isTripDetail && (
         <Header 
-          context={{ isSettings }}
-          showCreateTrip={!isSettings}
+          context={{ isSettings: isSettings || location.pathname === '/profile' }}
+          showCreateTrip={!isSettings && location.pathname !== '/profile'}
         />
       )}
       
-      {/* Mobile: Show MobileNav on all pages except Trip Detail and Settings */}
-      {isMobile && !isTripDetail && !isSettings && (
+      {/* Mobile: Show MobileNav on all pages except Trip Detail */}
+      {isMobile && !isTripDetail && (
         <MobileNav />
       )}
       

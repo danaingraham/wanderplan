@@ -74,15 +74,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    ✈️ Travel Preferences
-                  </Link>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    Profile Settings
+                    Profile
                   </Link>
                   <Link
                     to="/api-status"
@@ -143,15 +135,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                       className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
                     >
-                      ✈️ Travel Preferences
-                    </Link>
-                    <div className="border-t border-gray-200 my-1"></div>
-                    <Link
-                      to="/profile"
-                      className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                      onClick={() => setShowUserMenu(false)}
-                    >
-                      Profile Settings
+                      Profile
                     </Link>
                     <Link
                       to="/api-status"
@@ -223,15 +207,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
                     onClick={() => setShowUserMenu(false)}
                   >
-                    ✈️ Travel Preferences
-                  </Link>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    Profile Settings
+                    Profile
                   </Link>
                   <Link
                     to="/api-status"
