@@ -32,3 +32,15 @@ dist-ssr
 
 # Netlify
 .netlify
+
+# Test and development files
+test-*.html
+check-*.html
+verify-*.html
+cleanup-*.html
+delete-*.html
+personalization-tracker*.html
+*-tracker*.html
+PERSONALIZATION_*.md
+delete-*.js
+docs/test-*
