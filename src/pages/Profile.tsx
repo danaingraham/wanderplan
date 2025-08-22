@@ -2,12 +2,18 @@ import { useState } from 'react'
 import { useUser } from '../contexts/UserContext'
 import { User, Bell, Shield, CreditCard } from 'lucide-react'
 import { cn } from '../utils/cn'
+import { PreferencesDisplay } from '../components/preferences/PreferencesDisplay'
+import { PreferencesFetchTest } from '../components/preferences/PreferencesFetchTest'
+import { PreferencesForm } from '../components/preferences/PreferencesForm'
+import { useUserPreferences } from '../hooks/useUserPreferences'
 
 type SettingsTab = 'profile' | 'notifications' | 'security' | 'billing'
 
 export function Profile() {
   const { user } = useUser()
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
+  const [showEditForm, setShowEditForm] = useState(false)
+  const { preferences, loading, savePreferences } = useUserPreferences()
 
   const tabs = [
     { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
@@ -91,6 +97,43 @@ export function Profile() {
                   name, add a profile photo, and manage your personal information.
                 </p>
               </div>
+            </div>
+          )}
+
+          {/* Add preferences section at the bottom of profile tab */}
+          {activeTab === 'profile' && (
+            <div className="mt-6">
+              {!showEditForm ? (
+                <>
+                  <PreferencesDisplay />
+                  <button
+                    onClick={() => setShowEditForm(true)}
+                    className="mt-4 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
+                  >
+                    Edit Preferences
+                  </button>
+                </>
+              ) : (
+                <>
+                  <PreferencesForm
+                    preferences={preferences}
+                    onSave={async (newPrefs) => {
+                      await savePreferences(newPrefs);
+                      setShowEditForm(false);
+                    }}
+                    loading={loading}
+                  />
+                  <button
+                    onClick={() => setShowEditForm(false)}
+                    className="mt-4 text-gray-600 hover:text-gray-800"
+                  >
+                    Cancel
+                  </button>
+                </>
+              )}
+              
+              {/* Temporary test component - remove in production */}
+              {process.env.NODE_ENV === 'development' && <PreferencesFetchTest />}
             </div>
           )}
 
