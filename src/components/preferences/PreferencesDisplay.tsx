@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../../lib/supabase';
+import { supabaseDb } from '../../lib/supabaseDb';
 import { useUser } from '../../contexts/UserContext';
 
 export function PreferencesDisplay() {
@@ -19,40 +19,15 @@ export function PreferencesDisplay() {
       console.log('PreferencesDisplay: Fetching preferences for user', user.id);
       
       try {
-        // Add timeout to prevent hanging
-        const timeoutPromise = new Promise((_, reject) => {
-          setTimeout(() => reject(new Error('Query timeout')), 3000);
-        });
-
-        const queryPromise = supabase
+        // Use the working database client
+        const { data, error: fetchError } = await supabaseDb
           .from('user_preferences')
           .select('*')
           .eq('user_id', user.id)
           .single();
 
-        const { data, error: fetchError } = await Promise.race([
-          queryPromise,
-          timeoutPromise
-        ]).catch(err => ({ data: null, error: err })) as any;
-
         if (fetchError) {
-          if (fetchError.message === 'Query timeout') {
-            console.log('PreferencesDisplay: Query timed out, checking localStorage');
-            // Try localStorage as fallback
-            const localKey = `wanderplan_preferences_${user.id}`;
-            const localData = localStorage.getItem(localKey);
-            if (localData) {
-              try {
-                setPreferences(JSON.parse(localData));
-                console.log('PreferencesDisplay: Loaded from localStorage');
-              } catch (e) {
-                console.error('Failed to parse localStorage data');
-                setPreferences(null);
-              }
-            } else {
-              setPreferences(null);
-            }
-          } else if (fetchError.code === 'PGRST116') {
+          if (fetchError.code === 'PGRST116') {
             // No preferences found - this is ok
             console.log('PreferencesDisplay: No preferences found for user');
             setPreferences(null);

@@ -6,6 +6,7 @@ import { PreferencesDisplay } from '../components/preferences/PreferencesDisplay
 import { PreferencesFetchTest } from '../components/preferences/PreferencesFetchTest'
 import { PreferencesForm } from '../components/preferences/PreferencesForm'
 import { useUserPreferences } from '../hooks/useUserPreferences'
+import { supabaseDb } from '../lib/supabaseDb'
 
 type SettingsTab = 'profile' | 'notifications' | 'security' | 'billing'
 
@@ -14,6 +15,52 @@ export function Profile() {
   const [activeTab, setActiveTab] = useState<SettingsTab>('profile')
   const [showEditForm, setShowEditForm] = useState(false)
   const { preferences, loading, savePreferences } = useUserPreferences()
+  const [dbTestResult, setDbTestResult] = useState<any>(null)
+  const [dbTestLoading, setDbTestLoading] = useState(false)
+
+  const testDatabase = async () => {
+    if (!user) return;
+    
+    setDbTestLoading(true);
+    setDbTestResult(null);
+    
+    try {
+      console.log('Testing DB with user:', user.id);
+      
+      const testData = {
+        user_id: user.id,
+        travel_pace: 'moderate',
+        budget_range: { min: 100, max: 300 },
+        accommodation_type: ['hotel']
+      };
+      
+      // Test with timeout
+      const timeoutPromise = new Promise((_, reject) => {
+        setTimeout(() => reject(new Error('Timeout after 5 seconds')), 5000);
+      });
+      
+      const insertPromise = supabaseDb
+        .from('user_preferences')
+        .upsert(testData)
+        .select()
+        .single();
+      
+      const { data, error } = await Promise.race([
+        insertPromise,
+        timeoutPromise
+      ]).catch(err => ({ data: null, error: err })) as any;
+      
+      if (error) {
+        setDbTestResult({ success: false, error: error.message || error });
+      } else {
+        setDbTestResult({ success: true, data });
+      }
+    } catch (err: any) {
+      setDbTestResult({ success: false, error: err.message });
+    } finally {
+      setDbTestLoading(false);
+    }
+  };
 
   const tabs = [
     { id: 'profile' as SettingsTab, label: 'Profile', icon: User },
@@ -134,6 +181,25 @@ export function Profile() {
               
               {/* Temporary test component - remove in production */}
               {process.env.NODE_ENV === 'development' && <PreferencesFetchTest />}
+              
+              {/* Database test */}
+              <div className="mt-6 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <h3 className="font-semibold text-yellow-900 mb-2">Database Test (Temporary)</h3>
+                <button
+                  onClick={testDatabase}
+                  disabled={dbTestLoading}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:bg-gray-400"
+                >
+                  {dbTestLoading ? 'Testing...' : 'Test Database'}
+                </button>
+                {dbTestResult && (
+                  <div className={`mt-2 p-2 rounded ${dbTestResult.success ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <pre className="text-sm">
+                      {JSON.stringify(dbTestResult, null, 2)}
+                    </pre>
+                  </div>
+                )}
+              </div>
             </div>
           )}
 

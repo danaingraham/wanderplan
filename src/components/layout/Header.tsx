@@ -83,6 +83,13 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     API Status
                   </Link>
+                  <Link
+                    to="/test-database"
+                    className="block px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    Test DB (Temp)
+                  </Link>
                   <button
                     onClick={() => {
                       logout()
@@ -206,6 +213,13 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     onClick={() => setShowUserMenu(false)}
                   >
                     API Status
+                  </Link>
+                  <Link
+                    to="/test-database"
+                    className="block px-4 py-2 text-sm text-yellow-600 hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    Test DB (Temp)
                   </Link>
                   <button
                     onClick={() => {

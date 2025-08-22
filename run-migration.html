@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Run Migration - Simplify User Preferences</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 { color: #333; }
+        button {
+            background: #4F46E5;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 5px;
+        }
+        button:hover { background: #4338CA; }
+        button.danger {
+            background: #DC2626;
+        }
+        button.danger:hover {
+            background: #B91C1C;
+        }
+        pre {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+        .success {
+            background: #E8F5E9;
+            color: #2E7D32;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .error {
+            background: #FFEBEE;
+            color: #C62828;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .warning {
+            background: #FFF3CD;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .sql-code {
+            background: #263238;
+            color: #AABBC3;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔄 Run Migration: Simplify User Preferences Table</h1>
+        
+        <div class="warning">
+            <strong>⚠️ Important:</strong> This will DROP the existing user_preferences table and recreate it with a simpler structure. Any existing preference data will be lost.
+        </div>
+
+        <h2>Migration SQL:</h2>
+        <pre class="sql-code">-- Drop the old complex table and its dependencies
+DROP TRIGGER IF EXISTS on_auth_user_created_preferences ON auth.users;
+DROP TRIGGER IF EXISTS update_user_preferences_updated_at ON public.user_preferences;
+DROP FUNCTION IF EXISTS initialize_user_preferences();
+DROP FUNCTION IF EXISTS update_user_preferences_updated_at();
+DROP TABLE IF EXISTS public.user_preferences;
+
+-- Create simplified user_preferences table
+CREATE TABLE public.user_preferences (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
+  
+  -- Basic preferences
+  travel_pace TEXT DEFAULT 'moderate',
+  budget_range JSONB DEFAULT '{"min": 50, "max": 200}'::jsonb,
+  accommodation_type TEXT[] DEFAULT ARRAY[]::TEXT[],
+  activity_preferences JSONB DEFAULT '{}'::jsonb,
+  dietary_restrictions TEXT[] DEFAULT ARRAY[]::TEXT[],
+  accessibility_needs TEXT[] DEFAULT ARRAY[]::TEXT[],
+  trip_style TEXT[] DEFAULT ARRAY[]::TEXT[],
+  transportation_preference TEXT[] DEFAULT ARRAY[]::TEXT[],
+  language_preferences TEXT[] DEFAULT ARRAY['en']::TEXT[],
+  weather_preference TEXT DEFAULT 'moderate',
+  
+  -- Settings
+  notification_settings JSONB DEFAULT '{"email": true, "push": false, "reminders": true, "updates": true}'::jsonb,
+  privacy_settings JSONB DEFAULT '{"share_trips": false, "share_reviews": true, "data_collection": true, "data_retention": 365}'::jsonb,
+  
+  -- Confidence scores (optional, for future use)
+  confidence_scores JSONB DEFAULT '{}'::jsonb,
+  
+  -- Metadata
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+);
+
+-- Create indexes and RLS policies...</pre>
+
+        <div id="status"></div>
+        
+        <button onclick="checkCurrentTable()" class="primary">1. Check Current Table</button>
+        <button onclick="runMigration()" class="danger">2. Run Migration</button>
+        <button onclick="testNewTable()">3. Test New Table</button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script type="module">
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        const supabaseUrl = 'https://zhusodnwzmbpvvkxjtvn.supabase.co';
+        const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpodXNvZG53em1icHZ2a3hqdHZuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTUxNDQyOTUsImV4cCI6MjA3MDcyMDI5NX0.CcwEJ7FtVgVDXWS83A7ui8zMZSwTNn1UWivFVnPoh9g';
+        
+        const supabase = createClient(supabaseUrl, supabaseAnonKey);
+        
+        window.checkCurrentTable = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            statusDiv.innerHTML = '<div class="warning">Checking current table structure...</div>';
+            
+            try {
+                // Try to query the current table
+                const { data, error } = await supabase
+                    .from('user_preferences')
+                    .select('*')
+                    .limit(1);
+                
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>Error accessing current table:</h3>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <h3>Current table exists and is accessible</h3>
+                            <p>Sample data structure:</p>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>Unexpected error:</h3>
+                        <pre>${err.message}</pre>
+                    </div>
+                `;
+            }
+        };
+        
+        window.runMigration = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            if (!confirm('⚠️ This will DROP the existing table and all data. Are you sure?')) {
+                return;
+            }
+            
+            statusDiv.innerHTML = '<div class="warning">⚠️ Migration must be run in Supabase SQL Editor!</div>';
+            resultDiv.innerHTML = `
+                <div class="warning">
+                    <h3>Instructions to run migration:</h3>
+                    <ol>
+                        <li>Go to your Supabase Dashboard</li>
+                        <li>Navigate to SQL Editor</li>
+                        <li>Copy the migration SQL from above</li>
+                        <li>Paste and run it</li>
+                        <li>Come back here and click "Test New Table"</li>
+                    </ol>
+                    <a href="https://supabase.com/dashboard/project/zhusodnwzmbpvvkxjtvn/sql/new" target="_blank" 
+                       style="display: inline-block; margin-top: 10px; padding: 10px 20px; background: #4F46E5; color: white; text-decoration: none; border-radius: 6px;">
+                        Open Supabase SQL Editor →
+                    </a>
+                </div>
+            `;
+        };
+        
+        window.testNewTable = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultDiv = document.getElementById('result');
+            
+            statusDiv.innerHTML = '<div class="warning">Testing new table structure...</div>';
+            
+            try {
+                // Get current user
+                const { data: { user }, error: userError } = await supabase.auth.getUser();
+                
+                if (userError || !user) {
+                    throw new Error('Not authenticated. Please log in first.');
+                }
+                
+                // Test data that matches our new structure
+                const testPreferences = {
+                    user_id: user.id,
+                    travel_pace: 'moderate',
+                    budget_range: { min: 100, max: 300 },
+                    accommodation_type: ['hotel', 'airbnb'],
+                    dietary_restrictions: ['vegetarian'],
+                    trip_style: ['couple'],
+                    weather_preference: 'warm'
+                };
+                
+                console.log('Attempting to insert:', testPreferences);
+                
+                // Try to insert test data
+                const { data, error } = await supabase
+                    .from('user_preferences')
+                    .upsert(testPreferences)
+                    .select()
+                    .single();
+                
+                if (error) {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <h3>❌ Failed to insert test data:</h3>
+                            <pre>${JSON.stringify(error, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    // Try to read it back
+                    const { data: readData, error: readError } = await supabase
+                        .from('user_preferences')
+                        .select('*')
+                        .eq('user_id', user.id)
+                        .single();
+                    
+                    if (readError) {
+                        resultDiv.innerHTML = `
+                            <div class="error">
+                                <h3>❌ Inserted but failed to read back:</h3>
+                                <pre>${JSON.stringify(readError, null, 2)}</pre>
+                            </div>
+                        `;
+                    } else {
+                        resultDiv.innerHTML = `
+                            <div class="success">
+                                <h3>✅ New table works perfectly!</h3>
+                                <p>Successfully inserted and retrieved preferences:</p>
+                                <pre>${JSON.stringify(readData, null, 2)}</pre>
+                                <p>The database is now ready to use!</p>
+                            </div>
+                        `;
+                    }
+                }
+            } catch (err) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <h3>Unexpected error:</h3>
+                        <pre>${err.message}</pre>
+                    </div>
+                `;
+            }
+        };
+        
+        // Auto-check on load
+        setTimeout(checkCurrentTable, 500);
+    </script>
+</body>
+</html>

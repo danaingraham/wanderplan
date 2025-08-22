@@ -7,6 +7,7 @@ import { NewTripCreation } from './pages/NewTripCreation'
 import { Settings } from './pages/Settings'
 import { Profile } from './pages/Profile'
 import { ApiStatus } from './pages/ApiStatus'
+import { TestDatabase } from './pages/TestDatabase'
 import { Login } from './pages/Login'
 import { Signup } from './pages/Signup'
 import { ForgotPassword } from './pages/ForgotPassword'
@@ -48,6 +49,7 @@ function AppContent() {
         <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />
         <Route path="/settings" element={<ProtectedRoute><Layout><Settings /></Layout></ProtectedRoute>} />
         <Route path="/api-status" element={<ProtectedRoute><Layout><ApiStatus /></Layout></ProtectedRoute>} />
+        <Route path="/test-database" element={<ProtectedRoute><Layout><TestDatabase /></Layout></ProtectedRoute>} />
       </Routes>
     </Router>
   )

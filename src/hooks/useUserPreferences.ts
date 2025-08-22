@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { supabase } from '../lib/supabase';
+import { supabaseDb } from '../lib/supabaseDb';
 import { useUser } from '../contexts/UserContext';
 
 export function useUserPreferences() {
@@ -21,42 +21,15 @@ export function useUserPreferences() {
     try {
       console.log('useUserPreferences: Fetching preferences for user', user.id);
       
-      // First check localStorage
-      const localKey = `wanderplan_preferences_${user.id}`;
-      const localData = localStorage.getItem(localKey);
-      
-      // Create timeout promise (3 seconds)
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Query timeout')), 3000);
-      });
-
-      // Create query promise
-      const queryPromise = supabase
+      // Use the working database client
+      const { data, error: fetchError } = await supabaseDb
         .from('user_preferences')
         .select('*')
         .eq('user_id', user.id)
         .single();
 
-      // Race them
-      const { data, error: fetchError } = await Promise.race([
-        queryPromise,
-        timeoutPromise
-      ]).catch(err => ({ data: null, error: err })) as any;
-
       if (fetchError) {
-        if (fetchError.message === 'Query timeout') {
-          console.log('useUserPreferences: Query timed out, using localStorage');
-          if (localData) {
-            try {
-              const parsed = JSON.parse(localData);
-              setPreferences(parsed);
-              console.log('useUserPreferences: Loaded from localStorage');
-            } catch (e) {
-              console.error('Failed to parse localStorage data');
-              setPreferences(null);
-            }
-          }
-        } else if (fetchError.code === 'PGRST116') {
+        if (fetchError.code === 'PGRST116') {
           // No preferences found - this is ok
           console.log('useUserPreferences: No preferences found');
           setPreferences(null);
@@ -67,8 +40,6 @@ export function useUserPreferences() {
       } else {
         console.log('useUserPreferences: Successfully fetched preferences:', data);
         setPreferences(data);
-        // Save to localStorage as backup
-        localStorage.setItem(localKey, JSON.stringify(data));
       }
     } catch (err) {
       console.error('useUserPreferences: Unexpected error:', err);
@@ -97,36 +68,16 @@ export function useUserPreferences() {
         updated_at: new Date().toISOString()
       };
 
-      // Save to localStorage first as backup
-      const localKey = `wanderplan_preferences_${user.id}`;
-      localStorage.setItem(localKey, JSON.stringify(dataToSave));
-      console.log('useUserPreferences: Saved to localStorage');
-
-      // Try to save to database with timeout
-      const timeoutPromise = new Promise((_, reject) => {
-        setTimeout(() => reject(new Error('Save timeout')), 3000);
-      });
-
-      const savePromise = supabase
+      // Save to database using working client
+      const { data, error: saveError } = await supabaseDb
         .from('user_preferences')
         .upsert(dataToSave)
         .select()
         .single();
 
-      const { data, error: saveError } = await Promise.race([
-        savePromise,
-        timeoutPromise
-      ]).catch(err => ({ data: null, error: err })) as any;
-
       if (saveError) {
-        if (saveError.message === 'Save timeout') {
-          console.log('useUserPreferences: Save timed out, but data is in localStorage');
-          // Still update local state since we saved to localStorage
-          setPreferences(dataToSave);
-        } else {
-          console.error('useUserPreferences: Error saving preferences:', saveError);
-          setError(saveError);
-        }
+        console.error('useUserPreferences: Error saving preferences:', saveError);
+        setError(saveError);
       } else {
         console.log('useUserPreferences: Successfully saved preferences to database');
         setPreferences(data);

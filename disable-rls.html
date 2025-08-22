@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Disable RLS for Testing</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            max-width: 800px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+        h1 { color: #333; }
+        .warning {
+            background: #FFF3CD;
+            color: #856404;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 15px 0;
+        }
+        .sql-code {
+            background: #263238;
+            color: #AABBC3;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: 'Monaco', 'Menlo', monospace;
+            font-size: 14px;
+        }
+        .button-group {
+            margin: 20px 0;
+        }
+        a.button {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #DC2626;
+            color: white;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 500;
+        }
+        a.button:hover {
+            background: #B91C1C;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔓 Disable RLS for Testing</h1>
+        
+        <div class="warning">
+            <strong>⚠️ TEMPORARY FIX:</strong> This will disable Row Level Security on the user_preferences table. This is ONLY for debugging. You must re-enable RLS after fixing the issue!
+        </div>
+
+        <h2>Run this SQL in Supabase:</h2>
+        <pre class="sql-code">-- Disable RLS temporarily
+ALTER TABLE public.user_preferences DISABLE ROW LEVEL SECURITY;
+
+-- Grant full access
+GRANT ALL ON public.user_preferences TO authenticated;
+GRANT ALL ON public.user_preferences TO anon;</pre>
+
+        <div class="button-group">
+            <a href="https://supabase.com/dashboard/project/zhusodnwzmbpvvkxjtvn/sql/new" target="_blank" class="button">
+                Open Supabase SQL Editor →
+            </a>
+        </div>
+
+        <h2>After running the SQL:</h2>
+        <ol>
+            <li>Go back to your app</li>
+            <li>Try the Test DB feature again</li>
+            <li>If it works, RLS policies were the problem</li>
+            <li>If it still hangs, the issue is deeper</li>
+        </ol>
+
+        <h2>To Re-enable RLS (IMPORTANT!):</h2>
+        <pre class="sql-code">ALTER TABLE public.user_preferences ENABLE ROW LEVEL SECURITY;</pre>
+    </div>
+</body>
+</html>
