@@ -1,5 +1,4 @@
 import { useState } from 'react';
-import { supabase } from '../lib/supabase';
 import { supabaseDb } from '../lib/supabaseDb';
 import { useUser } from '../contexts/UserContext';
 
@@ -92,45 +91,6 @@ export function TestDatabase() {
       setResult({ 
         success: false,
         error: 'Unexpected error',
-        details: err.message
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const testAnyTable = async () => {
-    setLoading(true);
-    setResult(null);
-
-    try {
-      console.log('Testing if ANY table works...');
-      
-      // Test a simple query on profiles table
-      const { data, error } = await supabaseDb
-        .from('profiles')
-        .select('*')
-        .limit(1);
-      
-      if (error) {
-        console.error('Profiles table error:', error);
-        setResult({
-          success: false,
-          error: 'Even profiles table failed',
-          details: error
-        });
-      } else {
-        console.log('Profiles table works!', data);
-        setResult({
-          success: true,
-          message: '✅ Other tables work! Issue is specific to user_preferences',
-          data
-        });
-      }
-    } catch (err: any) {
-      setResult({
-        success: false,
-        error: 'Exception',
         details: err.message
       });
     } finally {
