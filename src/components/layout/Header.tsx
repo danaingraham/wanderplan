@@ -71,6 +71,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10">
                   <Link
                     to="/profile"
+                    className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    ✈️ Travel Preferences
+                  </Link>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <Link
+                    to="/profile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setShowUserMenu(false)}
                   >
@@ -90,6 +98,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     Test DB (Temp)
                   </Link>
+                  <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={() => {
                       logout()
@@ -131,6 +140,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10">
                     <Link
                       to="/profile"
+                      className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      ✈️ Travel Preferences
+                    </Link>
+                    <div className="border-t border-gray-200 my-1"></div>
+                    <Link
+                      to="/profile"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       onClick={() => setShowUserMenu(false)}
                     >
@@ -143,6 +160,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     >
                       API Status
                     </Link>
+                    <div className="border-t border-gray-200 my-1"></div>
                     <button
                       onClick={() => {
                         logout()
@@ -202,6 +220,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10">
                   <Link
                     to="/profile"
+                    className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
+                    onClick={() => setShowUserMenu(false)}
+                  >
+                    ✈️ Travel Preferences
+                  </Link>
+                  <div className="border-t border-gray-200 my-1"></div>
+                  <Link
+                    to="/profile"
                     className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     onClick={() => setShowUserMenu(false)}
                   >
@@ -221,6 +247,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     Test DB (Temp)
                   </Link>
+                  <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={() => {
                       logout()

@@ -77,20 +77,47 @@ export function PreferencesForm({ preferences, onSave, loading = false }: Prefer
             Daily Budget Range (USD)
           </label>
           <div className="flex gap-4">
+            <div className="flex-1">
+              <input
+                type="number"
+                value={formData.budget_min}
+                onChange={(e) => setFormData({ ...formData, budget_min: Number(e.target.value) })}
+                placeholder="Min"
+                min="0"
+                max="3000"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span className="text-xs text-gray-500 mt-1">Min: $0</span>
+            </div>
+            <div className="flex-1">
+              <input
+                type="number"
+                value={formData.budget_max}
+                onChange={(e) => setFormData({ ...formData, budget_max: Number(e.target.value) })}
+                placeholder="Max"
+                min="0"
+                max="3000"
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <span className="text-xs text-gray-500 mt-1">Max: $3,000</span>
+            </div>
+          </div>
+          <div className="mt-2">
             <input
-              type="number"
-              value={formData.budget_min}
-              onChange={(e) => setFormData({ ...formData, budget_min: Number(e.target.value) })}
-              placeholder="Min"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-            />
-            <input
-              type="number"
+              type="range"
+              min="0"
+              max="3000"
               value={formData.budget_max}
               onChange={(e) => setFormData({ ...formData, budget_max: Number(e.target.value) })}
-              placeholder="Max"
-              className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full"
             />
+            <div className="flex justify-between text-xs text-gray-500">
+              <span>$0</span>
+              <span>$750</span>
+              <span>$1,500</span>
+              <span>$2,250</span>
+              <span>$3,000</span>
+            </div>
           </div>
         </div>
 
