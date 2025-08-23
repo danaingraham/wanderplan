@@ -649,6 +649,14 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Use Supabase if configured
     if (isUsingSupabase) {
       setIsLoading(true)
+      
+      // Clear user preferences from localStorage before logout
+      if (user?.id) {
+        const preferencesKey = `${STORAGE_KEYS.PREFERENCES}_${user.id}`
+        storage.remove(preferencesKey)
+        log('🔐 UserContext: Cleared user preferences from localStorage')
+      }
+      
       const { error } = await supabaseAuth.signOut()
       
       if (error) {
@@ -680,6 +688,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // Clean up legacy session keys
     storage.remove('wanderplan_session')
     storage.remove('wanderplan_session_expiry')
+    
+    // Clear user preferences from localStorage
+    if (user?.id) {
+      const preferencesKey = `${STORAGE_KEYS.PREFERENCES}_${user.id}`
+      storage.remove(preferencesKey)
+      log('🔐 UserContext: Cleared user preferences from localStorage')
+    }
     
     setUser(null)
     log('🔐 UserContext: User logged out, all auth data cleared')

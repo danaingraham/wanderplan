@@ -121,5 +121,6 @@ export const STORAGE_KEYS = {
   TRIPS: 'wanderplan_trips',
   PLACES: 'wanderplan_places',
   DRAFT_TRIPS: 'wanderplan_draft_trips',
-  SETTINGS: 'wanderplan_settings'
+  SETTINGS: 'wanderplan_settings',
+  PREFERENCES: 'wanderplan_preferences'
 } as const
