@@ -2,11 +2,13 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { TripPlanningForm, type TripFormData } from '../components/forms/TripPlanningForm'
 import { useTrips } from '../contexts/TripContext'
+import { useUser } from '../contexts/UserContext'
 import { realApiService } from '../services/realApi'
 
 export function NewTripCreation() {
   const navigate = useNavigate()
   const { createTrip, createPlace } = useTrips()
+  const { user } = useUser()
   const [formData, setFormData] = useState<TripFormData | null>(null)
   const [isGenerating, setIsGenerating] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -49,6 +51,7 @@ export function NewTripCreation() {
       prompt += ` Create a day-by-day itinerary with specific places, activities, and recommended times.`
 
       console.log('🤖 Generating itinerary with prompt:', prompt)
+      console.log('👤 Using preferences for user:', user?.id)
       
       const response = await realApiService.generateItinerary({
         destination: tripData.destination,
@@ -59,7 +62,8 @@ export function NewTripCreation() {
         has_kids: tripData.tripType === 'family',
         pace: tripData.travelPace || 'moderate',
         preferences: tripData.interests,
-        original_input: prompt
+        original_input: prompt,
+        user_id: user?.id  // Pass user ID to load preferences
       })
 
       console.log('✅ AI Response received:', response)

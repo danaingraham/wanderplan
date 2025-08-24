@@ -12,6 +12,12 @@ export interface ItineraryGeneratorRequest {
   pace: string
   preferences: string[]
   originalInput?: string
+  // Additional preference fields from user preferences
+  dietaryRestrictions?: string[]
+  budgetContext?: { min: number; max: number }
+  accessibilityNeeds?: string
+  cuisinePreferences?: string[]
+  accommodationPreferences?: string[]
 }
 
 // NYC-specific places for demonstration/fallback
@@ -66,7 +72,13 @@ class ItineraryGenerator {
           hasKids: request.hasKids,
           pace: request.pace,
           preferences: request.preferences,
-          originalInput: request.originalInput
+          originalInput: request.originalInput,
+          // Pass user preferences to OpenAI
+          dietaryRestrictions: request.dietaryRestrictions,
+          budgetContext: request.budgetContext,
+          accessibilityNeeds: request.accessibilityNeeds,
+          cuisinePreferences: request.cuisinePreferences,
+          accommodationPreferences: request.accommodationPreferences
         })
         if (this.validateItinerary(aiItinerary, days, !!request.originalInput)) {
           console.log('✅ AI generated valid itinerary')

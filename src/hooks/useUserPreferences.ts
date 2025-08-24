@@ -24,8 +24,13 @@ export function useUserPreferences() {
     const localPrefs = storage.get<any>(localKey);
     
     if (localPrefs) {
-      console.log('useUserPreferences: Loaded preferences from localStorage:', localPrefs);
-      setPreferences(localPrefs);
+      // Transform to ensure we have accommodation_style
+      const transformedPrefs = { ...localPrefs };
+      if (localPrefs.accommodation_type && !localPrefs.accommodation_style) {
+        transformedPrefs.accommodation_style = localPrefs.accommodation_type;
+      }
+      console.log('useUserPreferences: Loaded preferences from localStorage:', transformedPrefs);
+      setPreferences(transformedPrefs);
       setLoading(false);
       
       // Still fetch from database in background to ensure we have latest
@@ -65,11 +70,16 @@ export function useUserPreferences() {
         }
       } else {
         console.log('useUserPreferences: Successfully fetched preferences from database:', data);
-        setPreferences(data);
+        // Transform the database response to use accommodation_style
+        const transformedData = { ...data };
+        if (data.accommodation_type && !data.accommodation_style) {
+          transformedData.accommodation_style = data.accommodation_type;
+        }
+        setPreferences(transformedData);
         
         // Save to localStorage for next time
         const localKey = `${STORAGE_KEYS.PREFERENCES}_${user.id}`;
-        storage.set(localKey, data);
+        storage.set(localKey, transformedData);
         console.log('useUserPreferences: Saved preferences to localStorage');
       }
     } catch (err) {
@@ -95,17 +105,41 @@ export function useUserPreferences() {
     try {
       console.log('useUserPreferences: Saving preferences:', newPreferences);
       
+      // Transform accommodation_style to accommodation_type for database compatibility
+      // This is temporary until we can apply the migration
+      const transformedPreferences = { ...newPreferences };
+      if (transformedPreferences.accommodation_style) {
+        // Ensure it's always an array of strings (not objects)
+        let styles = transformedPreferences.accommodation_style;
+        if (!Array.isArray(styles)) {
+          styles = [styles];
+        }
+        // Extract just the style strings if we have objects
+        styles = styles.map((item: any) => {
+          if (typeof item === 'string') return item;
+          if (item && typeof item === 'object' && item.style) return item.style;
+          return null;
+        }).filter(Boolean);
+        
+        transformedPreferences.accommodation_type = styles;
+        delete transformedPreferences.accommodation_style;
+      }
+      
       const dataToSave = {
         ...(preferences?.id && { id: preferences.id }), // Include ID if updating existing record
         user_id: user.id,
-        ...newPreferences,
+        ...transformedPreferences,
         updated_at: new Date().toISOString()
       };
 
       // Save to localStorage immediately for instant feedback
       const localKey = `${STORAGE_KEYS.PREFERENCES}_${user.id}`;
-      // Merge with existing preferences to preserve fields like id
-      const localDataToSave = preferences ? { ...preferences, ...dataToSave } : dataToSave;
+      // For localStorage, we want to keep accommodation_style as it's what our UI expects
+      const localDataToSave = preferences ? { ...preferences, ...newPreferences } : { ...dataToSave, ...newPreferences };
+      // Ensure we have accommodation_style in local storage
+      if (newPreferences.accommodation_style) {
+        localDataToSave.accommodation_style = newPreferences.accommodation_style;
+      }
       storage.set(localKey, localDataToSave);
       console.log('useUserPreferences: Saved preferences to localStorage');
       
@@ -125,10 +159,15 @@ export function useUserPreferences() {
         setError(saveError);
       } else {
         console.log('useUserPreferences: Successfully saved preferences to database');
+        // Transform the database response to use accommodation_style
+        const transformedData = { ...data };
+        if (data.accommodation_type && !data.accommodation_style) {
+          transformedData.accommodation_style = data.accommodation_type;
+        }
         // Update with the database response (includes id and other fields)
-        setPreferences(data);
+        setPreferences(transformedData);
         // Update localStorage with complete data from database
-        storage.set(localKey, data);
+        storage.set(localKey, transformedData);
       }
     } catch (err) {
       console.error('useUserPreferences: Unexpected error:', err);

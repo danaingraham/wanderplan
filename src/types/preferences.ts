@@ -46,8 +46,12 @@ export interface UserPreferences {
   id: string;
   user_id: string;
   
+  // Budget preferences
+  budget_range: BudgetRange;  // Keep for backward compatibility
+  budget?: number;  // Single daily budget value
+  budget_type?: 'shoestring' | 'mid_range' | 'luxury' | 'ultra_luxury';
+  
   // Inferred preferences
-  budget_range: BudgetRange;
   preferred_cuisines: CuisinePreference[];
   activity_types: ActivityPreference[];
   accommodation_style: AccommodationPreference[];
@@ -104,6 +108,8 @@ export const DEFAULT_USER_PREFERENCES: Partial<UserPreferences> = {
     currency: 'USD',
     confidence: 0
   },
+  budget: 200,
+  budget_type: 'mid_range',
   preferred_cuisines: [],
   activity_types: [],
   accommodation_style: [],

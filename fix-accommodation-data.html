@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fix Accommodation Data</title>
+    <style>
+        body { font-family: monospace; padding: 20px; }
+        pre { background: #f0f0f0; padding: 15px; border-radius: 5px; overflow-x: auto; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 10px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>Fix Accommodation Data</h1>
+    <button onclick="fixData()">Fix Corrupted Accommodation Data</button>
+    <button onclick="clearPreferences()">Clear All Preferences</button>
+    <button onclick="window.location.href='http://localhost:5173'">Back to App</button>
+    <div id="output"></div>
+    
+    <script>
+        const output = document.getElementById('output');
+        
+        function log(msg, type = '') {
+            output.innerHTML += `<p class="${type}">${msg}</p>`;
+        }
+        
+        function fixData() {
+            output.innerHTML = '';
+            
+            // Find the user ID
+            const userStr = localStorage.getItem('wanderplan_user');
+            if (!userStr) {
+                log('No user found in localStorage', 'error');
+                return;
+            }
+            
+            const user = JSON.parse(userStr);
+            log(`User ID: ${user.id}`, 'success');
+            
+            // Get preferences
+            const prefsKey = `wanderplan_preferences_${user.id}`;
+            const prefsStr = localStorage.getItem(prefsKey);
+            
+            if (!prefsStr) {
+                log('No preferences found', 'error');
+                return;
+            }
+            
+            const prefs = JSON.parse(prefsStr);
+            log('Original preferences loaded', 'success');
+            
+            // Show current accommodation data
+            log('Current accommodation_style:', '');
+            log(JSON.stringify(prefs.accommodation_style, null, 2), '');
+            
+            // Fix accommodation_style if it's corrupted
+            if (prefs.accommodation_style) {
+                let fixed = false;
+                
+                // Ensure it's an array
+                if (!Array.isArray(prefs.accommodation_style)) {
+                    prefs.accommodation_style = [prefs.accommodation_style];
+                    fixed = true;
+                }
+                
+                // Fix any double-encoded JSON
+                prefs.accommodation_style = prefs.accommodation_style.map(item => {
+                    if (typeof item === 'string') {
+                        return item; // Already a simple string
+                    }
+                    
+                    if (item && typeof item === 'object' && item.style) {
+                        // Check if style is double-encoded
+                        if (typeof item.style === 'string' && item.style.startsWith('{')) {
+                            try {
+                                const parsed = JSON.parse(item.style);
+                                // Replace the double-encoded style with the actual style value
+                                return {
+                                    style: parsed.style || item.style,
+                                    confidence: item.confidence || 1.0,
+                                    last_seen: item.last_seen || new Date().toISOString(),
+                                    count: item.count || 1
+                                };
+                            } catch {
+                                // If parsing fails, just use the string as-is
+                                return item;
+                            }
+                        }
+                        return item; // Already properly formatted
+                    }
+                    
+                    return null;
+                }).filter(Boolean);
+                
+                // Remove duplicates
+                const seen = new Set();
+                prefs.accommodation_style = prefs.accommodation_style.filter(item => {
+                    const style = typeof item === 'string' ? item : item.style;
+                    if (seen.has(style)) {
+                        return false;
+                    }
+                    seen.add(style);
+                    return true;
+                });
+                
+                // Save the fixed preferences
+                localStorage.setItem(prefsKey, JSON.stringify(prefs));
+                
+                log('Fixed accommodation_style:', 'success');
+                log(JSON.stringify(prefs.accommodation_style, null, 2), 'success');
+                
+                log('✅ Preferences fixed and saved!', 'success');
+                log('Please refresh the app to see the changes.', 'warning');
+            } else {
+                log('No accommodation_style found to fix', 'warning');
+            }
+        }
+        
+        function clearPreferences() {
+            if (!confirm('This will clear all your preferences. Are you sure?')) {
+                return;
+            }
+            
+            output.innerHTML = '';
+            
+            const userStr = localStorage.getItem('wanderplan_user');
+            if (!userStr) {
+                log('No user found', 'error');
+                return;
+            }
+            
+            const user = JSON.parse(userStr);
+            const prefsKey = `wanderplan_preferences_${user.id}`;
+            
+            localStorage.removeItem(prefsKey);
+            log('✅ Preferences cleared!', 'success');
+            log('Please refresh the app.', 'warning');
+        }
+        
+        // Auto-check on load
+        window.onload = () => {
+            const userStr = localStorage.getItem('wanderplan_user');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                const prefsKey = `wanderplan_preferences_${user.id}`;
+                const prefsStr = localStorage.getItem(prefsKey);
+                
+                if (prefsStr) {
+                    const prefs = JSON.parse(prefsStr);
+                    if (prefs.accommodation_style) {
+                        log('Current accommodation data detected:', '');
+                        log(JSON.stringify(prefs.accommodation_style, null, 2), '');
+                        
+                        // Check if it needs fixing
+                        let needsFix = false;
+                        if (!Array.isArray(prefs.accommodation_style)) {
+                            needsFix = true;
+                        } else {
+                            prefs.accommodation_style.forEach(item => {
+                                if (item && typeof item === 'object' && item.style) {
+                                    if (typeof item.style === 'string' && item.style.startsWith('{')) {
+                                        needsFix = true;
+                                    }
+                                }
+                            });
+                        }
+                        
+                        if (needsFix) {
+                            log('⚠️ Data appears to be corrupted. Click "Fix Corrupted Accommodation Data" to repair.', 'warning');
+                        } else {
+                            log('✅ Data looks good!', 'success');
+                        }
+                    }
+                }
+            }
+        };
+    </script>
+</body>
+</html>

@@ -16,6 +16,7 @@ import { DraggablePlace, DroppableArea } from '../components/dnd/DraggablePlace'
 import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
+import { AccommodationSection } from '../components/trips/AccommodationSection'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -684,20 +685,49 @@ export function TripDetail() {
     setShowAddForm(false)
   }
 
-  // Group places by day - memoized to prevent unnecessary recalculations
+  // Separate accommodations from regular places
+  const { accommodations, regularPlaces } = useMemo(() => {
+    if (!places || places.length === 0) {
+      return { accommodations: [], regularPlaces: [] }
+    }
+    
+    const accoms: typeof places = []
+    const regular: typeof places = []
+    
+    places.forEach(place => {
+      // Check if it's an accommodation based on category or name/description
+      const isAccommodation = place.category === 'hotel' || 
+                            place.category === 'accommodation' ||
+                            place.name.toLowerCase().includes('hotel') ||
+                            place.name.toLowerCase().includes('airbnb') ||
+                            place.name.toLowerCase().includes('hostel') ||
+                            (place.description?.toLowerCase().includes('check-in') && 
+                             place.description?.toLowerCase().includes('check-out'))
+      
+      if (isAccommodation) {
+        accoms.push(place)
+      } else {
+        regular.push(place)
+      }
+    })
+    
+    return { accommodations: accoms, regularPlaces: regular }
+  }, [places])
+
+  // Group regular places by day - memoized to prevent unnecessary recalculations
   // MUST be before any early returns to maintain hooks order
   const placesByDay = useMemo(() => {
-    if (!places || places.length === 0) {
+    if (!regularPlaces || regularPlaces.length === 0) {
       return {} as Record<number, typeof places>
     }
-    return places.reduce((acc, place) => {
+    return regularPlaces.reduce((acc, place) => {
       if (!acc[place.day]) {
         acc[place.day] = []
       }
       acc[place.day].push(place)
       return acc
     }, {} as Record<number, typeof places>)
-  }, [places])
+  }, [regularPlaces])
 
   const days = useMemo(() => {
     return Object.keys(placesByDay).map(Number).sort((a, b) => a - b)
@@ -1059,6 +1089,14 @@ export function TripDetail() {
               {mobileView === 'itinerary' ? (
                 /* Mobile Itinerary View */
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto" style={{ minHeight: 'calc(100vh - 200px)' }}>
+                  {/* Accommodation Section */}
+                  {accommodations.length > 0 && (
+                    <AccommodationSection 
+                      accommodations={accommodations}
+                      tripDuration={days.length}
+                    />
+                  )}
+                  
                   {days.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
@@ -1177,6 +1215,14 @@ export function TripDetail() {
             <div className="hidden sm:flex sm:flex-col lg:grid lg:grid-cols-2 gap-6 min-h-[60vh] lg:h-[70vh] lg:min-h-[500px] lg:max-h-[900px]">
                 {/* Itinerary Panel */}
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
+                  {/* Accommodation Section */}
+                  {accommodations.length > 0 && (
+                    <AccommodationSection 
+                      accommodations={accommodations}
+                      tripDuration={days.length}
+                    />
+                  )}
+                  
                   {days.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 text-sm">No places added to this trip yet.</p>

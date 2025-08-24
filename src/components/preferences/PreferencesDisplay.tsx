@@ -44,18 +44,31 @@ export function PreferencesDisplay({ preferences, loading = false, error = null 
         </div>
 
         <div>
-          <h3 className="font-medium text-gray-700">Budget Range</h3>
+          <h3 className="font-medium text-gray-700">Budget Type</h3>
           <p className="text-gray-600">
-            {preferences.budget_range ? 
-              `$${preferences.budget_range.min || 0} - $${preferences.budget_range.max || 0} per day` : 
+            {preferences.budget_type ? 
+              preferences.budget_type.split('_').map((word: string) => 
+                word.charAt(0).toUpperCase() + word.slice(1)
+              ).join(' ') : 
               'Not set'}
           </p>
         </div>
 
         <div>
-          <h3 className="font-medium text-gray-700">Accommodation Type</h3>
+          <h3 className="font-medium text-gray-700">Daily Budget</h3>
           <p className="text-gray-600">
-            {preferences.accommodation_type?.join(', ') || 'Not set'}
+            {preferences.budget || preferences.budget_range?.max ? 
+              `$${preferences.budget || preferences.budget_range?.max || 0} per day` : 
+              'Not set'}
+          </p>
+        </div>
+
+        <div>
+          <h3 className="font-medium text-gray-700">Accommodation Style</h3>
+          <p className="text-gray-600">
+            {preferences.accommodation_style && Array.isArray(preferences.accommodation_style) && preferences.accommodation_style.length > 0
+              ? preferences.accommodation_style.join(', ')
+              : 'Not set'}
           </p>
         </div>
 

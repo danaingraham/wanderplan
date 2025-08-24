@@ -1,4 +1,4 @@
-import { supabase } from '../lib/supabase';
+import { supabaseDb } from '../lib/supabaseDb';
 import type { 
   UserPreferences, 
   PreferenceUpdate
@@ -55,7 +55,7 @@ class UserPreferencesService {
     try {
       console.log('🔍 UserPreferences: Fetching preferences for user', userId);
       
-      const { data, error } = await supabase
+      const { data, error } = await supabaseDb
         .from('user_preferences')
         .select('*')
         .eq('user_id', userId)
@@ -102,11 +102,19 @@ class UserPreferencesService {
         return this.createPreferences(userId, updates);
       }
 
+      // Transform the updates to use accommodation_type if that's what the DB has
+      // This is temporary until we can apply the migration
+      const transformedUpdates = { ...updates };
+      if (transformedUpdates.accommodation_style) {
+        transformedUpdates.accommodation_type = transformedUpdates.accommodation_style;
+        delete transformedUpdates.accommodation_style;
+      }
+
       // Update existing preferences
-      const { data, error } = await supabase
+      const { data, error } = await supabaseDb
         .from('user_preferences')
         .update({
-          ...updates,
+          ...transformedUpdates,
           updated_at: new Date().toISOString()
         })
         .eq('user_id', userId)
@@ -140,12 +148,19 @@ class UserPreferencesService {
     try {
       console.log('🆕 UserPreferences: Creating preferences for user', userId);
       
-      const { data, error } = await supabase
+      // Transform the data to use accommodation_type if that's what the DB has
+      // This is temporary until we can apply the migration
+      const dataToInsert = { ...DEFAULT_USER_PREFERENCES, ...initialData };
+      if (dataToInsert.accommodation_style) {
+        dataToInsert.accommodation_type = dataToInsert.accommodation_style;
+        delete dataToInsert.accommodation_style;
+      }
+      
+      const { data, error } = await supabaseDb
         .from('user_preferences')
         .insert({
           user_id: userId,
-          ...DEFAULT_USER_PREFERENCES,
-          ...initialData
+          ...dataToInsert
         })
         .select()
         .single();
@@ -174,7 +189,7 @@ class UserPreferencesService {
     try {
       console.log('🗑️ UserPreferences: Deleting preferences for user', userId);
       
-      const { error } = await supabase
+      const { error } = await supabaseDb
         .from('user_preferences')
         .delete()
         .eq('user_id', userId);
@@ -220,13 +235,16 @@ class UserPreferencesService {
    * Transform database row to typed preferences
    */
   private transformDatabasePreferences(data: any): UserPreferences {
+    // Handle both accommodation_type and accommodation_style for backward compatibility
+    const accommodationData = data.accommodation_style || data.accommodation_type || [];
+    
     return {
       id: data.id,
       user_id: data.user_id,
       budget_range: data.budget_range || DEFAULT_USER_PREFERENCES.budget_range,
       preferred_cuisines: data.preferred_cuisines || [],
       activity_types: data.activity_types || [],
-      accommodation_style: data.accommodation_style || [],
+      accommodation_style: accommodationData,
       travel_style: data.travel_style || [],
       pace_preference: data.pace_preference,
       avg_trip_duration: data.avg_trip_duration,
@@ -294,7 +312,18 @@ class UserPreferencesService {
       ];
     }
 
-    // Add budget range for context (OpenAI will use this)
+    // Add budget and budget type for context (OpenAI will use this)
+    if (preferences.budget) {
+      merged.budget = preferences.budget;
+    } else if (preferences.budget_range?.max) {
+      merged.budget = preferences.budget_range.max;
+    }
+    
+    if (preferences.budget_type) {
+      merged.budgetType = preferences.budget_type;
+    }
+    
+    // Keep budget_context for backward compatibility
     if (preferences.budget_range?.min || preferences.budget_range?.max) {
       merged.budget_context = preferences.budget_range;
     }
@@ -304,6 +333,18 @@ class UserPreferencesService {
       merged.cuisine_preferences = preferences.preferred_cuisines
         .filter(c => c.confidence > 0.5)
         .map(c => c.cuisine);
+    }
+
+    // Add accommodation preferences
+    if (preferences.accommodation_style?.length > 0) {
+      merged.accommodation_preferences = preferences.accommodation_style
+        .map((pref: any) => {
+          // Handle both object and string formats
+          if (typeof pref === 'string') return pref;
+          if (pref && typeof pref === 'object' && pref.style) return pref.style;
+          return null;
+        })
+        .filter(Boolean); // Remove any null values
     }
 
     console.log('🔀 UserPreferences: Merged preferences into request');

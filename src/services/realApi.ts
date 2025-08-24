@@ -1,5 +1,6 @@
 import { googlePlacesService } from './googlePlaces'
 import { itineraryGenerator } from './itineraryGenerator'
+import { userPreferencesService } from './userPreferences'
 import { isGoogleMapsConfigured, isOpenAIConfigured } from '../config/api'
 import type { Trip, Place } from '../types'
 
@@ -13,6 +14,7 @@ export interface GenerateItineraryRequest {
   pace: string
   preferences: string[]
   original_input?: string
+  user_id?: string  // Optional user ID for loading preferences
 }
 
 export interface GenerateItineraryResponse {
@@ -29,6 +31,30 @@ class RealApiService {
     try {
       console.log('Generating itinerary with real APIs...', request)
 
+      // Load user preferences if user ID is provided
+      let userPreferences = null
+      if (request.user_id) {
+        console.log('🔍 Loading user preferences for:', request.user_id)
+        userPreferences = await userPreferencesService.getPreferences(request.user_id)
+        if (userPreferences) {
+          console.log('✅ User preferences loaded:', {
+            dietary_restrictions: userPreferences.dietary_restrictions,
+            budget_range: userPreferences.budget_range,
+            pace_preference: userPreferences.pace_preference,
+            travel_style: userPreferences.travel_style
+          })
+        } else {
+          console.log('ℹ️ No saved preferences found for user')
+        }
+      }
+
+      // Merge user preferences into the request
+      const enhancedRequest = userPreferencesService.mergePreferencesIntoRequest(
+        request,
+        userPreferences
+      )
+      console.log('🔀 Enhanced request with preferences:', enhancedRequest)
+
       // Get destination coordinates first
       let destinationCoords: { lat: number; lng: number } | undefined
 
@@ -44,17 +70,23 @@ class RealApiService {
         }
       }
 
-      // Generate itinerary suggestions using the new generator
+      // Generate itinerary suggestions using the enhanced request with preferences
       let aiSuggestions = await itineraryGenerator.generate({
-        destination: request.destination,
-        startDate: request.start_date,
-        endDate: request.end_date,
-        tripType: request.trip_type,
-        groupSize: request.group_size,
-        hasKids: request.has_kids,
-        pace: request.pace,
-        preferences: request.preferences,
-        originalInput: request.original_input,
+        destination: enhancedRequest.destination,
+        startDate: enhancedRequest.start_date,
+        endDate: enhancedRequest.end_date,
+        tripType: enhancedRequest.trip_type,
+        groupSize: enhancedRequest.group_size,
+        hasKids: enhancedRequest.has_kids,
+        pace: enhancedRequest.pace || enhancedRequest.pace_preference || 'moderate', // Use preference if no explicit pace
+        preferences: enhancedRequest.preferences,
+        originalInput: enhancedRequest.original_input,
+        // Pass merged preferences to the generator
+        dietaryRestrictions: enhancedRequest.dietary_restrictions,
+        budgetContext: enhancedRequest.budget_context,
+        accessibilityNeeds: enhancedRequest.accessibility_needs,
+        cuisinePreferences: enhancedRequest.cuisine_preferences,
+        accommodationPreferences: enhancedRequest.accommodation_preferences
       })
 
       // Enhance AI suggestions with real Google Places data

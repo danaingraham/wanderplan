@@ -13,6 +13,12 @@ export interface ItineraryRequest {
   preferences: string[]
   existingPlaces?: Place[]
   originalInput?: string
+  // User preferences from saved profile
+  dietaryRestrictions?: string[]
+  budgetContext?: { min: number; max: number }
+  accessibilityNeeds?: string
+  cuisinePreferences?: string[]
+  accommodationPreferences?: string[]
 }
 
 export interface ItinerarySuggestion {
@@ -58,6 +64,16 @@ class OpenAIService {
     console.log('📍 Destination:', request.destination)
     console.log('👥 Group:', request.groupSize, request.hasKids ? 'with kids' : 'no kids')
     console.log('⚡ Pace:', request.pace)
+    
+    // Log user preferences if present
+    if (request.dietaryRestrictions?.length || request.budgetContext || request.accessibilityNeeds || request.cuisinePreferences?.length || request.accommodationPreferences?.length) {
+      console.log('✨ Applying user preferences:')
+      if (request.dietaryRestrictions?.length) console.log('  - Dietary:', request.dietaryRestrictions.join(', '))
+      if (request.budgetContext) console.log('  - Budget: $' + request.budgetContext.min + '-$' + request.budgetContext.max)
+      if (request.accessibilityNeeds) console.log('  - Accessibility:', request.accessibilityNeeds)
+      if (request.cuisinePreferences?.length) console.log('  - Cuisines:', request.cuisinePreferences.join(', '))
+      if (request.accommodationPreferences?.length) console.log('  - Accommodation:', request.accommodationPreferences.join(', '))
+    }
 
     const systemPrompt = `You are an expert travel planner creating detailed day-by-day itineraries. ${request.originalInput ? 'Your PRIORITY is to structure and organize the user\'s provided travel ideas while preserving their intent and timeline as much as possible.' : 'Your goal is to create memorable, well-timed experiences that match the traveler\'s preferences exactly.'}
 
@@ -68,6 +84,97 @@ TRIP DETAILS:
 - Group: ${request.groupSize} ${request.groupSize === 1 ? 'person' : 'people'}${request.hasKids ? ' WITH CHILDREN' : ''}
 - Travel Pace: ${request.pace}
 - **PRIMARY INTERESTS**: ${request.preferences?.join(', ') || 'General sightseeing'} ${request.preferences?.length > 0 ? '(CRITICAL: The itinerary MUST heavily focus on these interests!)' : ''}
+${days > 1 ? '- **ACCOMMODATION NEEDED**: This is a multi-day trip requiring accommodation recommendations' : ''}
+
+${request.dietaryRestrictions && request.dietaryRestrictions.length > 0 ? `
+USER DIETARY RESTRICTIONS (MANDATORY):
+- The user has the following dietary restrictions: ${request.dietaryRestrictions.join(', ')}
+- ALL restaurant recommendations MUST accommodate these restrictions
+- When suggesting restaurants, explicitly mention they have ${request.dietaryRestrictions.join('/')} options
+- Prioritize restaurants known for excellent ${request.dietaryRestrictions.join('/')} selections
+` : ''}
+
+${request.budgetContext || request.budgetType ? `
+BUDGET REQUIREMENTS (MANDATORY):
+${request.budgetType ? `- Budget Category: ${
+  request.budgetType === 'shoestring' ? 'SHOESTRING/BACKPACKER - Ultra budget-conscious travel' :
+  request.budgetType === 'mid_range' ? 'MID-RANGE/COMFORT - Good value and comfort balance' :
+  request.budgetType === 'luxury' ? 'LUXURY - Premium experiences and accommodations' :
+  request.budgetType === 'ultra_luxury' ? 'ULTRA-LUXURY - No expense spared, exclusive experiences' :
+  'MID-RANGE'
+}` : ''}
+${request.budget ? `- Daily budget: $${request.budget} per person per day` : 
+  request.budgetContext ? `- Daily budget: $${request.budgetContext.max} per person per day` : ''}
+
+${request.budgetType === 'shoestring' ? `
+  - Accommodation: Hostels, budget hotels ($20-60/night)
+  - Meals: Street food, local eateries ($5-15/meal)
+  - Activities: Free attractions, walking tours, public transport
+  - Focus on authentic local experiences over touristy options
+` : request.budgetType === 'mid_range' ? `
+  - Accommodation: 3-star hotels, nice Airbnbs ($${request.budget ? Math.round(request.budget * 0.4) : 80}-$${request.budget ? Math.round(request.budget * 0.6) : 150}/night)
+  - Meals: Good local restaurants ($15-35/meal)
+  - Activities: Mix of paid attractions and free experiences
+  - Comfortable but not extravagant choices
+` : request.budgetType === 'luxury' ? `
+  - Accommodation: ONLY luxury 5-star hotels and high-end boutique properties ($${request.budget ? Math.round(request.budget * 0.5) : 250}-$${request.budget ? Math.round(request.budget * 0.7) : 500}/night)
+  - REQUIRED: Four Seasons, St. Regis, Ritz-Carlton, Mandarin Oriental, Park Hyatt, Waldorf Astoria, Rosewood, Aman, or equivalent luxury brands
+  - NO mid-tier chains like Marriott, Hilton, Hyatt (except Park/Andaz), Sheraton, Westin
+  - Meals: Fine dining, Michelin-recommended, James Beard nominees, celebrity chef restaurants ($50-150/meal)
+  - Activities: Premium private tours, exclusive experiences, VIP access
+  - Focus on exceptional service and unique luxury experiences
+` : request.budgetType === 'ultra_luxury' ? `
+  - Accommodation: Ultra-luxury 5-star hotels and resorts ONLY ($${request.budget ? Math.round(request.budget * 0.6) : 800}+/night)
+  - REQUIRED: Four Seasons, St. Regis, Aman, Rosewood, Mandarin Oriental, One&Only, Raffles, or equivalent ultra-luxury brands
+  - Presidential suites, private villas, or penthouse accommodations when available
+  - Meals: ONLY Michelin-starred restaurants, world-renowned chefs, exclusive dining experiences ($150-500+/meal)
+  - Activities: Private jets, helicopter tours, yacht charters, exclusive access, personal guides
+  - Everything must be absolutely top-tier with impeccable service
+` : `
+  - Accommodation: $${request.budget ? Math.round(request.budget * 0.4) : 100}-$${request.budget ? Math.round(request.budget * 0.6) : 200}/night
+  - Meals: $${request.budget ? Math.round(request.budget * 0.15) : 20}-$${request.budget ? Math.round(request.budget * 0.25) : 40}/meal
+  - Focus on good value options
+`}
+` : ''}
+
+${request.accessibilityNeeds ? `
+ACCESSIBILITY REQUIREMENTS (CRITICAL):
+- User requires: ${request.accessibilityNeeds}
+- ALL venues MUST be accessible for: ${request.accessibilityNeeds}
+- Verify wheelchair access, elevators, and accessible facilities
+- Avoid locations with stairs-only access or difficult terrain
+` : ''}
+
+${request.cuisinePreferences && request.cuisinePreferences.length > 0 ? `
+CUISINE PREFERENCES:
+- User particularly enjoys: ${request.cuisinePreferences.join(', ')}
+- Prioritize restaurants featuring these cuisines
+- Mix in local specialties that align with these preferences
+` : ''}
+
+${request.accommodationPreferences && request.accommodationPreferences.length > 0 ? `
+ACCOMMODATION REQUIREMENTS:
+- User prefers: ${request.accommodationPreferences.join(', ')}
+${request.budgetType === 'luxury' ? `
+- LUXURY HOTELS ONLY: Four Seasons, St. Regis, Ritz-Carlton, Park Hyatt, Mandarin Oriental, Waldorf Astoria, Rosewood
+- NO standard Marriott, Hilton, regular Hyatt, Sheraton, or other mid-tier brands
+- If suggesting Airbnb, ONLY luxury properties with exceptional amenities
+` : request.budgetType === 'ultra_luxury' ? `
+- ULTRA-LUXURY ONLY: Four Seasons, St. Regis, Aman, Rosewood, One&Only, Mandarin Oriental presidential suites
+- Private villas, penthouses, or exclusive resort properties
+- Must be the absolute best accommodation available in the destination
+` : ''}
+- ONLY recommend: ${request.accommodationPreferences.includes('hotel') ? 'hotels' : request.accommodationPreferences.includes('airbnb') ? 'vacation rentals/Airbnbs' : request.accommodationPreferences.includes('hostel') ? 'hostels' : request.accommodationPreferences.includes('resort') ? 'resorts' : 'accommodations'}
+${request.budget || request.budgetContext ? `- Price range: $${
+  request.budget ? Math.round(request.budget * 0.4) : 
+  request.budgetContext ? Math.round(request.budgetContext.max * 0.4) : 150
+}-$${
+  request.budget ? Math.round(request.budget * 0.7) : 
+  request.budgetContext ? Math.round(request.budgetContext.max * 0.7) : 300
+} per night
+- Include estimated price per night in the description` : ''}
+- Match the accommodation type to user's preferences exactly
+` : ''}
 
 GROUP CONSIDERATIONS:
 ${request.groupSize === 1 ? '- SOLO TRAVELER: Include social opportunities, safe neighborhoods, solo-friendly venues' : ''}
@@ -121,7 +228,9 @@ ${request.originalInput ? `- FIRST analyze the user's provided content and extra
   * Moderate: 5 places (balanced schedule)  
   * Packed: 6 places (busy itinerary)`}
 - Include a good mix: attractions, restaurants, cafes, activities
-- Start days around 9:00-10:00 AM
+${days > 1 ? '- IMPORTANT: Include ONE accommodation/hotel recommendation as the FIRST item on Day 1' : ''}
+${days > 1 ? '- The accommodation should have category "hotel" and include check-in/check-out info in description' : ''}
+- Start days around 9:00-10:00 AM (after accommodation if multi-day)
 - End with dinner around 7:00-8:00 PM
 - Account for travel time between locations (max 15-20 minutes between stops)
 - ${request.hasKids ? 'Include family-friendly activities, kid-friendly restaurants, and consider nap/rest time' : ''}
@@ -168,7 +277,16 @@ EXAMPLE OUTPUT for Carmel-by-the-Sea trip (notice ALL places are in Carmel area)
 [
   {
     "day": 1,
-    "places": [
+    "places": [${days > 1 ? `
+      {
+        "name": "La Playa Carmel Hotel",
+        "address": "Camino Real & 8th Avenue, Carmel-by-the-Sea, CA 93921",
+        "category": "hotel",
+        "description": "Charming boutique hotel near the beach ($180/night). Check-in: 3PM, Check-out: 11AM. Beautiful gardens and walking distance to downtown.",
+        "estimatedDuration": 30,
+        "suggestedTime": "15:00",
+        "whyRecommended": "Highly rated hotel matching your budget and style preferences"
+      },` : ''}
       {
         "name": "Carmel Beach",
         "address": "Carmel Beach, Carmel-by-the-Sea, CA 93921",
@@ -201,6 +319,17 @@ EXAMPLE OUTPUT for Carmel-by-the-Sea trip (notice ALL places are in Carmel area)
 ]
 
 CRITICAL: Return ONLY valid JSON array exactly like the example above. No markdown, no extra text. Each day MUST have ${request.pace === 'relaxed' ? '4' : request.pace === 'moderate' ? '5' : '6'} places.
+
+${request.budgetType === 'luxury' || request.budgetType === 'ultra_luxury' ? `
+LUXURY ACCOMMODATION EXAMPLES BY DESTINATION:
+- Mexico City: Four Seasons, St. Regis, Sofitel, Las Alcobas
+- Cancun/Riviera Maya: Rosewood Mayakoba, Four Seasons, Grand Velas, Hotel Esencia
+- Paris: Four Seasons George V, Le Meurice, Ritz Paris, Mandarin Oriental
+- New York: St. Regis, The Carlyle, The Greenwich Hotel, Mandarin Oriental
+- Tokyo: Aman Tokyo, Four Seasons, Mandarin Oriental, The Peninsula
+- London: Claridge's, The Savoy, Four Seasons, Rosewood
+DO NOT suggest standard chain hotels for luxury travelers!
+` : ''}
 
 VALIDATION CHECKLIST (MUST VERIFY BEFORE RESPONDING):
 ${request.preferences.includes('shopping') ? '✓ At least 50% of activities are shopping-related' : ''}

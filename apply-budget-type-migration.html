@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Apply Budget Type Migration</title>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            padding: 40px;
+            max-width: 900px;
+            margin: 0 auto;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; }
+        .sql-box {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 20px;
+            border-radius: 5px;
+            font-family: 'Courier New', monospace;
+            margin: 20px 0;
+            position: relative;
+            overflow-x: auto;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            padding: 5px 10px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            cursor: pointer;
+        }
+        .copy-btn:hover {
+            background: #45a049;
+        }
+        .instructions {
+            background: #e3f2fd;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            margin: 20px 0;
+        }
+        .step {
+            margin: 15px 0;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+        .step-number {
+            display: inline-block;
+            width: 30px;
+            height: 30px;
+            background: #007bff;
+            color: white;
+            text-align: center;
+            line-height: 30px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .success { 
+            color: #4CAF50; 
+            font-weight: bold;
+        }
+        .info { 
+            background: #fff3cd;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎯 Apply Budget Type Migration</h1>
+        
+        <div class="instructions">
+            <strong>What this does:</strong>
+            <ul>
+                <li>Removes the minimum budget field (keeping only one budget value)</li>
+                <li>Adds a budget type field (Shoestring, Mid-range, Luxury, Ultra-luxury)</li>
+                <li>Migrates existing data to use the new fields</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">1</span>
+            <strong>Go to your Supabase Dashboard</strong>
+            <br>
+            <a href="https://supabase.com/dashboard/project/zhusodnwzmbpvvkxjtvn/editor" target="_blank">
+                <button style="margin-top: 10px; padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer;">
+                    Open Supabase SQL Editor
+                </button>
+            </a>
+        </div>
+
+        <div class="step">
+            <span class="step-number">2</span>
+            <strong>Run this SQL to add the new columns:</strong>
+            <div class="sql-box" id="sql1">
+                <button class="copy-btn" onclick="copySQL('sql1')">Copy</button>
+                <pre>-- Add budget and budget_type columns to user_preferences table
+
+-- Add budget column (single value instead of range)
+ALTER TABLE public.user_preferences 
+ADD COLUMN IF NOT EXISTS budget INTEGER DEFAULT 200;
+
+-- Add budget_type column
+ALTER TABLE public.user_preferences 
+ADD COLUMN IF NOT EXISTS budget_type TEXT DEFAULT 'mid_range';
+
+-- Add check constraint for budget_type values
+DO $$ 
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint 
+        WHERE conname = 'check_budget_type'
+    ) THEN
+        ALTER TABLE public.user_preferences
+        ADD CONSTRAINT check_budget_type 
+        CHECK (budget_type IN ('shoestring', 'mid_range', 'luxury', 'ultra_luxury'));
+    END IF;
+END $$;
+
+-- Update comments
+COMMENT ON COLUMN public.user_preferences.budget IS 'Daily budget per person in USD';
+COMMENT ON COLUMN public.user_preferences.budget_type IS 'Budget category: shoestring, mid_range, luxury, ultra_luxury';</pre>
+            </div>
+        </div>
+
+        <div class="step">
+            <span class="step-number">3</span>
+            <strong>Then run this to migrate existing data:</strong>
+            <div class="sql-box" id="sql2">
+                <button class="copy-btn" onclick="copySQL('sql2')">Copy</button>
+                <pre>-- Migrate existing data: use max of budget_range as the budget value
+UPDATE public.user_preferences
+SET budget = CASE 
+    WHEN budget_range IS NOT NULL AND (budget_range->>'max')::INTEGER > 0 
+    THEN (budget_range->>'max')::INTEGER
+    ELSE 200
+END
+WHERE budget IS NULL OR budget = 0;
+
+-- Set budget_type based on existing budget values
+UPDATE public.user_preferences
+SET budget_type = CASE 
+    WHEN budget <= 100 THEN 'shoestring'
+    WHEN budget > 100 AND budget <= 300 THEN 'mid_range'
+    WHEN budget > 300 AND budget <= 1000 THEN 'luxury'
+    WHEN budget > 1000 THEN 'ultra_luxury'
+    ELSE 'mid_range'
+END;
+
+-- Verify the migration
+SELECT 
+    user_id,
+    budget,
+    budget_type,
+    budget_range
+FROM user_preferences
+LIMIT 10;</pre>
+            </div>
+        </div>
+
+        <div class="info">
+            <strong>✨ What's New:</strong>
+            <ul>
+                <li><span class="success">Simplified Budget:</span> Just one budget value instead of min/max range</li>
+                <li><span class="success">Budget Categories:</span>
+                    <ul>
+                        <li><strong>Shoestring:</strong> Hostels, street food, public transport</li>
+                        <li><strong>Mid-range:</strong> 3-star hotels, good restaurants, comfort</li>
+                        <li><strong>Luxury:</strong> 4-5 star hotels, fine dining, premium experiences</li>
+                        <li><strong>Ultra-luxury:</strong> Best of everything, no expense spared</li>
+                    </ul>
+                </li>
+                <li><span class="success">Smarter AI:</span> Trip suggestions now match your budget category</li>
+            </ul>
+        </div>
+
+        <div class="step">
+            <span class="step-number">4</span>
+            <strong>After running the SQL:</strong>
+            <ol>
+                <li>Go back to the app</li>
+                <li>Navigate to your Profile → Edit Preferences</li>
+                <li>You'll see the new Budget Type dropdown and simplified budget slider</li>
+                <li>Set your preferences and save</li>
+                <li>Generate a new trip to see budget-aware recommendations!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function copySQL(id) {
+            const sqlBox = document.getElementById(id);
+            const sqlText = sqlBox.querySelector('pre').textContent;
+            navigator.clipboard.writeText(sqlText).then(() => {
+                const btn = sqlBox.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                btn.style.background = '#4CAF50';
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.style.background = '#4CAF50';
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

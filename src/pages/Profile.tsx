@@ -3,6 +3,7 @@ import { useUser } from '../contexts/UserContext'
 import { PreferencesDisplay } from '../components/preferences/PreferencesDisplay'
 import { PreferencesFetchTest } from '../components/preferences/PreferencesFetchTest'
 import { PreferencesForm } from '../components/preferences/PreferencesForm'
+import { FixAccommodationData } from '../components/preferences/FixAccommodationData'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { supabaseDb } from '../lib/supabaseDb'
 
@@ -26,7 +27,7 @@ export function Profile() {
         user_id: user.id,
         travel_pace: 'moderate',
         budget_range: { min: 100, max: 300 },
-        accommodation_type: ['hotel']
+        accommodation_style: [{ style: 'hotel', confidence: 1.0, last_seen: new Date().toISOString(), count: 1 }]
       };
       
       // Test with timeout
@@ -133,6 +134,9 @@ export function Profile() {
               </button>
             </>
           )}
+          
+          {/* Fix tool for accommodation data */}
+          {process.env.NODE_ENV === 'development' && <FixAccommodationData />}
           
           {/* Temporary test component - remove in production */}
           {process.env.NODE_ENV === 'development' && <PreferencesFetchTest />}

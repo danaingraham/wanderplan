@@ -106,9 +106,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log('🔐 UserContext: Supabase URL:', supabaseUrl)
       setIsUsingSupabase(true)
       
-      // Skip getSession - it times out with our config
-      // The auth state listener below will handle the session
-      console.log('🔐 UserContext: Setting up auth listener...')
+      // Try to get existing session first
+      console.log('🔐 UserContext: Checking for existing session...')
       
       // First, try a simple health check
       fetch(`${supabaseUrl}/rest/v1/`, {
@@ -122,10 +121,56 @@ export function UserProvider({ children }: { children: ReactNode }) {
         console.error('🔐 UserContext: Supabase health check failed:', err)
       })
       
-      // Don't call getSession - it times out with our current config
-      // The auth state listener below will get the session
-      setIsInitialized(true)
-      console.log('🔐 UserContext: Skipping getSession, relying on auth listener')
+      // Try to get the session with a timeout
+      const checkExistingSession = async () => {
+        try {
+          const sessionPromise = supabase.auth.getSession()
+          const timeoutPromise = new Promise((resolve) => 
+            setTimeout(() => resolve({ data: { session: null }, error: 'timeout' }), 3000)
+          )
+          
+          const result = await Promise.race([sessionPromise, timeoutPromise]) as any
+          
+          if (result.error === 'timeout') {
+            console.log('⏱️ UserContext: Session check timed out')
+            return null
+          }
+          
+          return result?.data?.session || null
+        } catch (error) {
+          console.log('🔐 UserContext: Session check failed:', error)
+          return null
+        }
+      }
+      
+      // Call the async function and handle the result
+      checkExistingSession().then(async (existingSession) => {
+        if (existingSession) {
+          console.log('✅ UserContext: Found existing session for:', existingSession.user.email)
+          setUser(convertSupabaseUser(existingSession.user))
+          
+          // Ensure profile exists
+          await supabase
+            .from('profiles')
+            .upsert({
+              id: existingSession.user.id,
+              email: existingSession.user.email,
+              full_name: existingSession.user.user_metadata?.full_name,
+              username: existingSession.user.user_metadata?.username,
+              avatar_url: existingSession.user.user_metadata?.avatar_url,
+              updated_at: new Date().toISOString()
+            })
+            .select()
+            .single()
+        } else {
+          console.log('ℹ️ UserContext: No existing session found')
+        }
+        
+        setIsInitialized(true)
+      }).catch(error => {
+        console.error('🔐 UserContext: Error checking session:', error)
+        setIsInitialized(true)
+      })
 
       // Listen for auth changes
       const { data: { subscription } } = supabase.auth.onAuthStateChange(
