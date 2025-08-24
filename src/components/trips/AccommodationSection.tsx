@@ -1,10 +1,15 @@
-import React from 'react';
 import { Hotel, Home, Building, MapPin, DollarSign } from 'lucide-react';
 import { PlacePhoto } from '../places/PlacePhoto';
 import type { Place } from '../../types';
 
+// Extended Place type with AI-generated fields
+interface AccommodationPlace extends Place {
+  description?: string;
+  why_recommended?: string;
+}
+
 interface AccommodationSectionProps {
-  accommodations: Place[];
+  accommodations: AccommodationPlace[];
   tripDuration: number;
 }
 
@@ -13,7 +18,7 @@ export function AccommodationSection({ accommodations, tripDuration }: Accommoda
     return null;
   }
 
-  const getAccommodationIcon = (place: Place) => {
+  const getAccommodationIcon = (place: AccommodationPlace) => {
     const name = place.name.toLowerCase();
     const desc = (place.description || '').toLowerCase();
     

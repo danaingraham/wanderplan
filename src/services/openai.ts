@@ -16,6 +16,8 @@ export interface ItineraryRequest {
   // User preferences from saved profile
   dietaryRestrictions?: string[]
   budgetContext?: { min: number; max: number }
+  budget?: number
+  budgetType?: 'shoestring' | 'mid_range' | 'luxury' | 'ultra_luxury'
   accessibilityNeeds?: string
   cuisinePreferences?: string[]
   accommodationPreferences?: string[]

@@ -148,12 +148,11 @@ class UserPreferencesService {
     try {
       console.log('🆕 UserPreferences: Creating preferences for user', userId);
       
-      // Transform the data to use accommodation_type if that's what the DB has
-      // This is temporary until we can apply the migration
-      const dataToInsert = { ...DEFAULT_USER_PREFERENCES, ...initialData };
-      if (dataToInsert.accommodation_style) {
-        dataToInsert.accommodation_type = dataToInsert.accommodation_style;
-        delete dataToInsert.accommodation_style;
+      // Transform the data to use accommodation_style as the DB column
+      const dataToInsert = { ...DEFAULT_USER_PREFERENCES, ...initialData } as any;
+      if (dataToInsert.accommodation_type) {
+        dataToInsert.accommodation_style = dataToInsert.accommodation_type;
+        delete dataToInsert.accommodation_type;
       }
       
       const { data, error } = await supabaseDb

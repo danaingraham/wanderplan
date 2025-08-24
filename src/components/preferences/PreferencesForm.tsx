@@ -17,7 +17,7 @@ export function PreferencesForm({ preferences, onSave, loading = false }: Prefer
       : [preferences.accommodation_style];
     
     // Filter to only valid strings
-    return styles.filter(item => typeof item === 'string');
+    return styles.filter((item: any) => typeof item === 'string');
   };
 
   const [formData, setFormData] = useState({

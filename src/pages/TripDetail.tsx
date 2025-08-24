@@ -701,8 +701,8 @@ export function TripDetail() {
                             place.name.toLowerCase().includes('hotel') ||
                             place.name.toLowerCase().includes('airbnb') ||
                             place.name.toLowerCase().includes('hostel') ||
-                            (place.description?.toLowerCase().includes('check-in') && 
-                             place.description?.toLowerCase().includes('check-out'))
+                            ((place as any).description?.toLowerCase().includes('check-in') && 
+                             (place as any).description?.toLowerCase().includes('check-out'))
       
       if (isAccommodation) {
         accoms.push(place)

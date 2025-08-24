@@ -82,6 +82,8 @@ export interface UserPreferences {
 
 export interface PreferenceUpdate {
   budget_range?: Partial<BudgetRange>;
+  budget?: number;
+  budget_type?: 'shoestring' | 'mid_range' | 'luxury' | 'ultra_luxury';
   dietary_restrictions?: string[];
   accessibility_needs?: string | null;
   travel_style?: string[];
@@ -90,6 +92,8 @@ export interface PreferenceUpdate {
   avoided_chains?: Record<string, string[]>;
   learning_enabled?: boolean;
   data_retention_days?: number;
+  accommodation_style?: any;  // Can be array of strings or AccommodationPreference[]
+  accommodation_type?: any;  // For backward compatibility
 }
 
 export interface PreferenceConfidence {
