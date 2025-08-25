@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Settings, Check, X, Edit2 } from 'lucide-react';
+import { Settings, Check, Edit2 } from 'lucide-react';
 import { userPreferencesService } from '../../services/userPreferences';
 import { useUser } from '../../contexts/UserContext';
 import type { UserPreferences } from '../../types/preferences';
