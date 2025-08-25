@@ -81,12 +81,18 @@ export function PreferenceOverride({ onPreferencesChange, onTrackingChange, clas
         );
       }
       
-      // Track accommodation style
+      // Track accommodation style (normalize to string array)
       if (finalPreferences.accommodation_style?.length) {
-        tracking.accommodationStyle = trackPreference(
-          finalPreferences.accommodation_style,
-          overrides.accommodation_style ? 'override' : 'profile'
-        );
+        const accommodationStyles = finalPreferences.accommodation_style.map((item: any) => 
+          typeof item === 'string' ? item : item.style
+        ).filter(Boolean);
+        
+        if (accommodationStyles.length > 0) {
+          tracking.accommodationStyle = trackPreference(
+            accommodationStyles,
+            overrides.accommodation_style ? 'override' : 'profile'
+          );
+        }
       }
       
       // Track accessibility needs
