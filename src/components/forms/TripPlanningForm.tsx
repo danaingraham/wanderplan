@@ -117,6 +117,30 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData, isGenera
       const newData = { ...prevData, ...updates }
       return newData
     })
+    
+    // Clear errors for fields that are being updated
+    const fieldsBeingUpdated = Object.keys(updates)
+    if (fieldsBeingUpdated.length > 0) {
+      setErrors(prevErrors => {
+        const newErrors = { ...prevErrors }
+        // Clear destination error if destination is being updated
+        if ('destination' in updates && updates.destination) {
+          delete newErrors.destination
+        }
+        // Clear date errors if dates are being updated
+        if ('startDate' in updates && updates.startDate) {
+          delete newErrors.startDate
+        }
+        if ('endDate' in updates && updates.endDate) {
+          delete newErrors.endDate
+        }
+        // Clear travel pace error if pace is being updated
+        if ('travelPace' in updates && updates.travelPace) {
+          delete newErrors.travelPace
+        }
+        return newErrors
+      })
+    }
   }
 
   const handlePreferencesChange = useCallback((preferences: Partial<UserPreferences> | null) => {
