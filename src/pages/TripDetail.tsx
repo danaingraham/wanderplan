@@ -17,6 +17,7 @@ import { DragOverlay } from '../components/dnd/DragOverlay'
 import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
 import { AccommodationSection } from '../components/trips/AccommodationSection'
+import { PreferenceIndicator } from '../components/preferences/PreferenceIndicator'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -839,8 +840,16 @@ export function TripDetail() {
               </div>
             ) : (
               <div className="flex items-center gap-2 mb-2 sm:mb-4 group">
-                <div>
-                  <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{trip.title}</h1>
+                <div className="flex-1">
+                  <div className="flex items-center gap-3">
+                    <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{trip.title}</h1>
+                    {trip.preference_metadata && (
+                      <PreferenceIndicator 
+                        metadata={trip.preference_metadata}
+                        variant="badge"
+                      />
+                    )}
+                  </div>
                   {trip.start_date && (
                     <p className="text-lg text-gray-600 mt-1">
                       {formatDate(trip.start_date, 'MMM d')} - {trip.end_date ? formatDate(trip.end_date, 'MMM d, yyyy') : 'TBD'}
@@ -1097,6 +1106,15 @@ export function TripDetail() {
                     />
                   )}
                   
+                  {/* Preference Indicator - Show what influenced this trip */}
+                  {trip.preference_metadata && (
+                    <PreferenceIndicator 
+                      metadata={trip.preference_metadata}
+                      variant="detailed"
+                      className="mb-6"
+                    />
+                  )}
+                  
                   {days.length === 0 ? (
                     <div className="text-center py-8">
                       <p className="text-gray-500 text-sm">No places added to this trip yet.</p>
@@ -1220,6 +1238,15 @@ export function TripDetail() {
                     <AccommodationSection 
                       accommodations={accommodations}
                       tripDuration={days.length}
+                    />
+                  )}
+                  
+                  {/* Preference Indicator - Show what influenced this trip */}
+                  {trip.preference_metadata && (
+                    <PreferenceIndicator 
+                      metadata={trip.preference_metadata}
+                      variant="detailed"
+                      className="mb-6"
                     />
                   )}
                   
