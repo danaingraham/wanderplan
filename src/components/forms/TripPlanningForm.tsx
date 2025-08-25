@@ -112,16 +112,19 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData, isGenera
     }
   }, [formData, onDataChange])
 
-  const updateFormData = useCallback((updates: Partial<TripFormData>) => {
+  const updateFormData = (updates: Partial<TripFormData>) => {
     setFormData(prevData => {
       const newData = { ...prevData, ...updates }
       return newData
     })
-  }, [])
+  }
 
   const handlePreferencesChange = useCallback((preferences: Partial<UserPreferences> | null) => {
-    updateFormData({ userPreferences: preferences })
-  }, [updateFormData])
+    setFormData(prevData => ({
+      ...prevData,
+      userPreferences: preferences
+    }))
+  }, [])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
