@@ -15,6 +15,7 @@ export interface GenerateItineraryRequest {
   preferences: string[]
   original_input?: string
   user_id?: string  // Optional user ID for loading preferences
+  preference_overrides?: any  // Partial<UserPreferences> but avoiding circular dependency
 }
 
 export interface GenerateItineraryResponse {
@@ -33,7 +34,12 @@ class RealApiService {
 
       // Load user preferences if user ID is provided
       let userPreferences = null
-      if (request.user_id) {
+      
+      // Check for preference overrides first
+      if (request.preference_overrides) {
+        console.log('🔄 Using preference overrides from form')
+        userPreferences = request.preference_overrides
+      } else if (request.user_id) {
         console.log('🔍 Loading user preferences for:', request.user_id)
         userPreferences = await userPreferencesService.getPreferences(request.user_id)
         if (userPreferences) {

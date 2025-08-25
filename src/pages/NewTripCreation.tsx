@@ -63,7 +63,8 @@ export function NewTripCreation() {
         pace: tripData.travelPace || 'moderate',
         preferences: tripData.interests,
         original_input: prompt,
-        user_id: user?.id  // Pass user ID to load preferences
+        user_id: user?.id,  // Pass user ID to load preferences
+        preference_overrides: tripData.userPreferences  // Pass any preference overrides
       })
 
       console.log('✅ AI Response received:', response)
