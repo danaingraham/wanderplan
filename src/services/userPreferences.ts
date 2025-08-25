@@ -331,14 +331,14 @@ class UserPreferencesService {
 
     // Add cuisine preferences for food recommendations
     if (preferences.preferred_cuisines?.length > 0) {
-      merged.cuisine_preferences = preferences.preferred_cuisines
+      merged.cuisinePreferences = preferences.preferred_cuisines
         .filter(c => c.confidence > 0.5)
         .map(c => c.cuisine);
     }
 
-    // Add accommodation preferences
+    // Add accommodation preferences - fixed field name to match OpenAI service
     if (preferences.accommodation_style?.length > 0) {
-      merged.accommodation_preferences = preferences.accommodation_style
+      merged.accommodationPreferences = preferences.accommodation_style
         .map((pref: any) => {
           // Handle both object and string formats
           if (typeof pref === 'string') return pref;

@@ -154,9 +154,10 @@ CUISINE PREFERENCES:
 - Mix in local specialties that align with these preferences
 ` : ''}
 
-${request.accommodationPreferences && request.accommodationPreferences.length > 0 ? `
 ACCOMMODATION REQUIREMENTS:
-- User prefers: ${request.accommodationPreferences.join(', ')}
+${request.accommodationPreferences && request.accommodationPreferences.length > 0 ? 
+  `- User prefers: ${request.accommodationPreferences.join(', ')}` : 
+  '- Recommend a suitable hotel based on budget and trip type'}
 ${request.budgetType === 'luxury' ? `
 - LUXURY HOTELS ONLY: Four Seasons, St. Regis, Ritz-Carlton, Park Hyatt, Mandarin Oriental, Waldorf Astoria, Rosewood
 - NO standard Marriott, Hilton, regular Hyatt, Sheraton, or other mid-tier brands
@@ -166,7 +167,12 @@ ${request.budgetType === 'luxury' ? `
 - Private villas, penthouses, or exclusive resort properties
 - Must be the absolute best accommodation available in the destination
 ` : ''}
-- ONLY recommend: ${request.accommodationPreferences.includes('hotel') ? 'hotels' : request.accommodationPreferences.includes('airbnb') ? 'vacation rentals/Airbnbs' : request.accommodationPreferences.includes('hostel') ? 'hostels' : request.accommodationPreferences.includes('resort') ? 'resorts' : 'accommodations'}
+- ONLY recommend: ${request.accommodationPreferences && request.accommodationPreferences.length > 0 ? 
+  (request.accommodationPreferences.includes('hotel') ? 'hotels' : 
+   request.accommodationPreferences.includes('airbnb') ? 'vacation rentals/Airbnbs' : 
+   request.accommodationPreferences.includes('hostel') ? 'hostels' : 
+   request.accommodationPreferences.includes('resort') ? 'resorts' : 'accommodations') : 
+  'hotels or suitable accommodations'}
 ${request.budget || request.budgetContext ? `- Price range: $${
   request.budget ? Math.round(request.budget * 0.4) : 
   request.budgetContext ? Math.round(request.budgetContext.max * 0.4) : 150
@@ -176,7 +182,6 @@ ${request.budget || request.budgetContext ? `- Price range: $${
 } per night
 - Include estimated price per night in the description` : ''}
 - Match the accommodation type to user's preferences exactly
-` : ''}
 
 GROUP CONSIDERATIONS:
 ${request.groupSize === 1 ? '- SOLO TRAVELER: Include social opportunities, safe neighborhoods, solo-friendly venues' : ''}
@@ -256,6 +261,8 @@ ${request.preferences.includes('relaxation') ? `- RELAXATION FOCUS: Include spas
 - Allow more time at each location, fewer transitions` : ''}
 ` : ''}
 - Use REAL, specific place names and addresses when possible
+- ALWAYS include exactly ONE accommodation (hotel/airbnb/hostel) for multi-day trips
+- Place the accommodation as the first item on Day 1
 
 OUTPUT FORMAT - Return ONLY valid JSON array:
 [
