@@ -32,6 +32,7 @@ export interface Trip {
   cover_image?: string
   currency?: string
   location?: string | null
+  preference_metadata?: any  // TripPreferenceMetadata but avoiding circular dependency
   created_by: string
   created_date: string
   updated_date: string

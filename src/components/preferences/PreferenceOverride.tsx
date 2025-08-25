@@ -3,13 +3,16 @@ import { Settings, Check, Edit2 } from 'lucide-react';
 import { userPreferencesService } from '../../services/userPreferences';
 import { useUser } from '../../contexts/UserContext';
 import type { UserPreferences } from '../../types/preferences';
+import type { PreferenceTracking } from '../../types/preferenceTracking';
+import { trackPreference } from '../../types/preferenceTracking';
 
 interface PreferenceOverrideProps {
   onPreferencesChange?: (preferences: Partial<UserPreferences> | null) => void;
+  onTrackingChange?: (tracking: PreferenceTracking) => void;
   className?: string;
 }
 
-export function PreferenceOverride({ onPreferencesChange, className = '' }: PreferenceOverrideProps) {
+export function PreferenceOverride({ onPreferencesChange, onTrackingChange, className = '' }: PreferenceOverrideProps) {
   const { user } = useUser();
   const [usePreferences, setUsePreferences] = useState(true);
   const [preferences, setPreferences] = useState<UserPreferences | null>(null);
@@ -50,10 +53,56 @@ export function PreferenceOverride({ onPreferencesChange, className = '' }: Pref
       // Merge preferences with overrides
       const finalPreferences = { ...preferences, ...overrides };
       onPreferencesChange?.(finalPreferences);
+      
+      // Track preference sources
+      const tracking: PreferenceTracking = {};
+      
+      // Track budget
+      if (finalPreferences.budget) {
+        tracking.budget = trackPreference(
+          finalPreferences.budget,
+          overrides.budget ? 'override' : 'profile'
+        );
+      }
+      
+      // Track budget type
+      if (finalPreferences.budget_type) {
+        tracking.budgetType = trackPreference(
+          finalPreferences.budget_type,
+          overrides.budget_type ? 'override' : 'profile'
+        );
+      }
+      
+      // Track dietary restrictions
+      if (finalPreferences.dietary_restrictions?.length) {
+        tracking.dietaryRestrictions = trackPreference(
+          finalPreferences.dietary_restrictions,
+          overrides.dietary_restrictions ? 'override' : 'profile'
+        );
+      }
+      
+      // Track accommodation style
+      if (finalPreferences.accommodation_style?.length) {
+        tracking.accommodationStyle = trackPreference(
+          finalPreferences.accommodation_style,
+          overrides.accommodation_style ? 'override' : 'profile'
+        );
+      }
+      
+      // Track accessibility needs
+      if (finalPreferences.accessibility_needs) {
+        tracking.accessibilityNeeds = trackPreference(
+          finalPreferences.accessibility_needs,
+          overrides.accessibility_needs ? 'override' : 'profile'
+        );
+      }
+      
+      onTrackingChange?.(tracking);
     } else {
       onPreferencesChange?.(null);
+      onTrackingChange?.({});
     }
-    // Deliberately not including onPreferencesChange in deps to avoid infinite loops
+    // Deliberately not including callbacks in deps to avoid infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [usePreferences, preferences, overrides, initialized]);
 
@@ -134,7 +183,12 @@ export function PreferenceOverride({ onPreferencesChange, className = '' }: Pref
           <div className="space-y-2 text-sm">
             {/* Budget */}
             <div className="flex items-center justify-between py-1">
-              <span className="text-gray-600">Budget:</span>
+              <div className="flex items-center gap-2">
+                <span className="text-gray-600">Budget:</span>
+                {overrides.budget_type && (
+                  <span className="text-xs bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded">customized</span>
+                )}
+              </div>
               {editingField === 'budget' ? (
                 <div className="flex items-center gap-2">
                   <select
