@@ -180,8 +180,8 @@ ${request.budget || request.budgetContext ? `- Price range: $${
   request.budget ? Math.round(request.budget * 0.7) : 
   request.budgetContext ? Math.round(request.budgetContext.max * 0.7) : 300
 } per night
-- Include estimated price per night in the description` : ''}
-- Match the accommodation type to user's preferences exactly
+- Include estimated price per night in the description
+- Match the accommodation type to user's preferences exactly` : ''}
 
 GROUP CONSIDERATIONS:
 ${request.groupSize === 1 ? '- SOLO TRAVELER: Include social opportunities, safe neighborhoods, solo-friendly venues' : ''}
