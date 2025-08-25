@@ -16,10 +16,11 @@ export function PreferenceOverride({ onPreferencesChange, className = '' }: Pref
   const [overrides, setOverrides] = useState<Partial<UserPreferences>>({});
   const [editingField, setEditingField] = useState<string | null>(null);
   const [loading, setLoading] = useState(true); // Start with loading true
+  const [initialized, setInitialized] = useState(false);
 
   // Load user preferences on mount
   useEffect(() => {
-    if (user?.id) {
+    if (user?.id && !initialized) {
       console.log('📋 PreferenceOverride: Loading preferences for user:', user.id);
       setLoading(true);
       userPreferencesService.getPreferences(user.id)
@@ -27,19 +28,24 @@ export function PreferenceOverride({ onPreferencesChange, className = '' }: Pref
           console.log('✅ PreferenceOverride: Preferences loaded:', prefs);
           setPreferences(prefs);
           setLoading(false);
+          setInitialized(true);
         })
         .catch(err => {
           console.error('❌ PreferenceOverride: Failed to load preferences:', err);
           setLoading(false);
+          setInitialized(true);
         });
-    } else {
+    } else if (!user?.id) {
       console.log('ℹ️ PreferenceOverride: No user ID available');
       setLoading(false);
+      setInitialized(true);
     }
-  }, [user?.id]);
+  }, [user?.id, initialized]);
 
-  // Notify parent when preferences change
+  // Notify parent when preferences change (but not on initial load)
   useEffect(() => {
+    if (!initialized) return;
+    
     if (usePreferences && preferences) {
       // Merge preferences with overrides
       const finalPreferences = { ...preferences, ...overrides };
@@ -47,7 +53,9 @@ export function PreferenceOverride({ onPreferencesChange, className = '' }: Pref
     } else {
       onPreferencesChange?.(null);
     }
-  }, [usePreferences, preferences, overrides, onPreferencesChange]);
+    // Deliberately not including onPreferencesChange in deps to avoid infinite loops
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [usePreferences, preferences, overrides, initialized]);
 
   const handleToggle = () => {
     setUsePreferences(!usePreferences);

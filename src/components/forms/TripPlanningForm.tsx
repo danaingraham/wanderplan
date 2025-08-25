@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react'
 import { DestinationAutocomplete } from './DestinationAutocomplete'
 import { DateRangePicker } from './DateRangePicker'
@@ -102,22 +102,26 @@ export function TripPlanningForm({ onSubmit, onDataChange, initialData, isGenera
     }
   }, [formData.destination, formData.startDate, formData.endDate, formData.tripType])
 
-  // Notify parent of data changes
+  // Notify parent of data changes (but skip initial render)
+  const isInitialMount = useRef(true);
   useEffect(() => {
-    onDataChange?.(formData)
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+    } else {
+      onDataChange?.(formData)
+    }
   }, [formData, onDataChange])
 
-  const updateFormData = (updates: Partial<TripFormData>) => {
+  const updateFormData = useCallback((updates: Partial<TripFormData>) => {
     setFormData(prevData => {
       const newData = { ...prevData, ...updates }
-      onDataChange?.(newData)
       return newData
     })
-  }
+  }, [])
 
-  const handlePreferencesChange = (preferences: Partial<UserPreferences> | null) => {
+  const handlePreferencesChange = useCallback((preferences: Partial<UserPreferences> | null) => {
     updateFormData({ userPreferences: preferences })
-  }
+  }, [updateFormData])
 
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {}
