@@ -92,7 +92,7 @@ export function OnboardingWizard() {
               {currentStep === 'welcome' && 'Welcome to Wanderplan!'}
               {currentStep === 'gmail-connect' && 'Connect Your Gmail'}
               {currentStep === 'scanning' && 'Analyzing Your Travel History'}
-              {currentStep === 'results' && 'Your Travel Profile'}
+              {currentStep === 'results' && 'Your Travel DNA 🧬'}
               {currentStep === 'gaps' && 'Complete Your Profile'}
               {currentStep === 'success' && '🎉 All Set!'}
             </h2>
@@ -110,11 +110,11 @@ export function OnboardingWizard() {
                 <div className="space-y-3">
                   <button
                     onClick={() => selectPath('gmail')}
-                    className="w-full p-4 rounded-lg border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all group"
+                    className="w-full p-4 rounded-lg border-2 border-primary-200 hover:border-primary-400 hover:bg-primary-50 transition-all group"
                   >
                     <div className="flex items-center">
-                      <div className="bg-purple-100 p-3 rounded-lg group-hover:bg-purple-200 transition-colors">
-                        <Mail className="w-6 h-6 text-purple-600" />
+                      <div className="bg-primary-100 p-3 rounded-lg group-hover:bg-primary-200 transition-colors">
+                        <Mail className="w-6 h-6 text-primary-600" />
                       </div>
                       <div className="ml-4 text-left">
                         <h3 className="font-semibold text-gray-900">
@@ -160,8 +160,8 @@ export function OnboardingWizard() {
             {currentStep === 'gmail-connect' && (
               <div className="space-y-6">
                 <div className="text-center">
-                  <div className="mx-auto w-20 h-20 bg-purple-100 rounded-full flex items-center justify-center mb-4">
-                    <Mail className="w-10 h-10 text-purple-600" />
+                  <div className="mx-auto w-20 h-20 bg-primary-100 rounded-full flex items-center justify-center mb-4">
+                    <Mail className="w-10 h-10 text-primary-600" />
                   </div>
                   <p className="text-gray-600 mb-6">
                     We'll securely connect to your Gmail to find travel bookings.
@@ -190,7 +190,7 @@ export function OnboardingWizard() {
                     console.log('Starting OAuth flow...');
                     nextStep();
                   }}
-                  className="w-full bg-purple-600 text-white py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors font-medium"
+                  className="w-full bg-primary-500 text-white py-3 px-4 rounded-lg hover:bg-primary-600 transition-colors font-medium"
                 >
                   Connect Gmail Account
                 </button>
@@ -263,7 +263,7 @@ export function OnboardingWizard() {
                           }}
                           className={`p-2 rounded-lg border-2 transition-all ${
                             hasStyle
-                              ? 'border-purple-400 bg-purple-50'
+                              ? 'border-primary-400 bg-primary-50'
                               : 'border-gray-200 hover:border-gray-300'
                           }`}
                         >
@@ -338,7 +338,7 @@ export function OnboardingWizard() {
                   Complete Setup
                   <Check className="w-4 h-4 ml-2" />
                 </button>
-              ) : currentStep !== 'welcome' && currentStep !== 'gmail-connect' ? (
+              ) : currentStep === 'scanning' ? (
                 <button
                   onClick={nextStep}
                   className="flex items-center px-6 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors"

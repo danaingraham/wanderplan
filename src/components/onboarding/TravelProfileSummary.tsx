@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit2, MapPin, DollarSign, Home, Utensils, Activity, Check } from 'lucide-react';
+import { Edit2, MapPin, DollarSign, Home, Utensils, Activity } from 'lucide-react';
 import type { UserPreferences } from '../../types/preferences';
 
 interface TravelProfileSummaryProps {
@@ -32,13 +32,10 @@ export function TravelProfileSummary({ preferences, onEdit }: TravelProfileSumma
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Subtitle */}
       <div className="text-center">
-        <h3 className="text-xl font-semibold text-gray-900 mb-2">
-          Your Travel DNA 🧬
-        </h3>
         <p className="text-gray-600">
-          Here's what we learned about your travel style
+          Review and customize your personalized travel preferences
         </p>
       </div>
 
@@ -489,19 +486,15 @@ export function TravelProfileSummary({ preferences, onEdit }: TravelProfileSumma
       </div>
 
 
-      {/* Completion Note */}
-      <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-        <div className="flex items-start">
-          <Check className="w-5 h-5 text-green-600 mt-0.5 mr-2 flex-shrink-0" />
-          <div className="text-sm">
-            <p className="font-medium text-green-900 mb-1">
-              Profile Ready!
-            </p>
-            <p className="text-green-700">
-              Your preferences will automatically personalize all your future trips. 
-              You can always update these in Settings.
-            </p>
-          </div>
+      {/* Completion Note - Subtle version */}
+      <div className="border-t pt-4">
+        <div className="text-center">
+          <p className="text-sm text-gray-500">
+            ✨ Your preferences will automatically personalize all your future trips.
+          </p>
+          <p className="text-sm text-gray-500 mt-1">
+            You can always update these in your Profile.
+          </p>
         </div>
       </div>
     </div>
