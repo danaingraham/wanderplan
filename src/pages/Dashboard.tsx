@@ -4,6 +4,7 @@ import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture } from '../utils/date'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { calculateCompleteness } from '../utils/travelDNA'
+import { EmailVerificationBanner } from '../components/auth/EmailVerificationBanner'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
@@ -46,7 +47,11 @@ export function Dashboard() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      {/* Email Verification Banner */}
+      <EmailVerificationBanner />
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Travel DNA Prompt - Show only if user hasn't created their DNA */}
       {!hasDNA && (
         <div className="mb-6 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-lg p-6 border border-primary-200">
@@ -160,5 +165,6 @@ export function Dashboard() {
         )}
       </section>
     </div>
+    </>
   )
 }

@@ -42,7 +42,10 @@ export function Signup() {
           navigate('/')
         }
       } else {
-        setError('Email already exists. Please use a different email.')
+        setError(
+          'An account with this email already exists. Please sign in instead, ' +
+          'or use a different email address.'
+        )
       }
     } catch (err) {
       setError('An error occurred. Please try again.')
@@ -156,6 +159,11 @@ export function Signup() {
           {error && (
             <div className="text-red-600 text-sm text-center bg-red-50 p-3 rounded-lg">
               {error}
+              {error.includes('already exists') && (
+                <Link to="/login" className="block mt-2 text-primary-600 hover:text-primary-500 font-medium">
+                  Go to login →
+                </Link>
+              )}
             </div>
           )}
 

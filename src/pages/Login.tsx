@@ -64,7 +64,15 @@ export function Login() {
       if (result.success) {
         navigate('/')
       } else {
-        setError(result.error || 'Google sign-in failed')
+        // Check if error is due to existing email account
+        if (result.error?.includes('already exists') || result.error?.includes('already registered')) {
+          setError(
+            'An account with this email already exists. Please sign in with your email and password, ' +
+            'then link your Google account from your profile settings.'
+          )
+        } else {
+          setError(result.error || 'Google sign-in failed')
+        }
       }
     } catch (err) {
       setError('Google sign-in failed. Please try again.')

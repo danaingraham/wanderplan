@@ -70,6 +70,10 @@ const hashPassword = (password: string) => {
 const convertSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => {
   if (!supabaseUser) return null
   
+  // Check if user has multiple identities (email + OAuth)
+  const hasMultipleIdentities = supabaseUser.identities && supabaseUser.identities.length > 1
+  const providers = supabaseUser.identities?.map(i => i.provider) || []
+  
   return {
     id: supabaseUser.id,
     email: supabaseUser.email || '',
@@ -79,7 +83,10 @@ const convertSupabaseUser = (supabaseUser: SupabaseUser | null): User | null => 
     auth_provider: (supabaseUser.app_metadata?.provider || 'email') as 'local' | 'google',
     email_verified: !!supabaseUser.email_confirmed_at,
     created_date: supabaseUser.created_at || new Date().toISOString(),
-    updated_date: supabaseUser.updated_at || new Date().toISOString()
+    updated_date: supabaseUser.updated_at || new Date().toISOString(),
+    // Add identity information for account management
+    identities: providers,
+    has_multiple_auth_methods: hasMultipleIdentities
   }
 }
 

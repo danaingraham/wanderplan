@@ -8,6 +8,8 @@ export interface User {
   google_id?: string // Google OAuth ID
   auth_provider?: 'local' | 'google' // Track auth method
   email_verified?: boolean // Email verification status
+  identities?: string[] // List of auth providers linked to this account
+  has_multiple_auth_methods?: boolean // True if user has both email and OAuth
   created_date: string
   updated_date: string
 }
