@@ -39,9 +39,15 @@ export function Layout({ children }: LayoutProps) {
         />
       )}
       
-      {/* Mobile: Show MobileNav on all pages except Trip Detail */}
+      {/* Mobile: Show Header AND MobileNav on all pages except Trip Detail */}
       {isMobile && !isTripDetail && (
-        <MobileNav />
+        <>
+          <Header 
+            context={{ isSettings: isSettings || location.pathname === '/profile' }}
+            showCreateTrip={false}
+          />
+          <MobileNav />
+        </>
       )}
       
       {/* Main content with appropriate padding */}
@@ -49,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
         isTripDetail 
           ? "" 
           : isMobile 
-            ? "pt-12 pb-24" // Top padding for mobile header, bottom for tab bar + FAB
+            ? "pt-16 pb-24" // Top padding for mobile header, bottom for tab bar + FAB
             : ""
       }>
         {children}
