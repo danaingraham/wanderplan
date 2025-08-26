@@ -81,19 +81,29 @@ export const supabaseAuth = {
   // Sign in with Google
   async signInWithGoogle(): Promise<AuthResponse> {
     try {
+      console.log('[supabaseAuth] Starting Google OAuth sign in')
+      
+      // Check if there's an existing user with this email first
+      // This is just for logging - Supabase handles the actual linking
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/dashboard`,
+          queryParams: {
+            prompt: 'select_account' // Always show account selection
+          }
         }
       })
 
       if (error) {
+        console.error('[supabaseAuth] Google OAuth error:', error)
         return { error: { message: error.message, code: error.code } }
       }
 
+      console.log('[supabaseAuth] Google OAuth initiated successfully')
       return { data }
     } catch (error: any) {
+      console.error('[supabaseAuth] Google sign in exception:', error)
       return { error: { message: error.message || 'Google sign in failed' } }
     }
   },

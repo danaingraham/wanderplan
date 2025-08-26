@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Mail, Lock, Eye, EyeOff, Chrome } from 'lucide-react'
 import { useUser } from '../contexts/UserContext'
 import { Button } from '../components/ui/Button'
-import { isGoogleOAuthConfigured } from '../config/api'
 
 export function Login() {
   const [email, setEmail] = useState('')
@@ -12,7 +11,7 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
   
-  const { login, register, loginWithGoogle } = useUser()
+  const { login, register, loginWithGoogle, isUsingSupabase } = useUser() as any
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,8 +178,8 @@ export function Login() {
             </Link>
           </div>
 
-          {/* Google Sign In */}
-          {isGoogleOAuthConfigured() && (
+          {/* Google Sign In - Using Supabase OAuth */}
+          {isUsingSupabase && (
             <div>
               <div className="relative">
                 <div className="absolute inset-0 flex items-center">
