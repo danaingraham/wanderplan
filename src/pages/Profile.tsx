@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useUser } from '../contexts/UserContext';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { TravelDNA } from '../components/dna/TravelDNA';
 import { TravelArchetypeCard } from '../components/dna/TravelArchetype';
@@ -12,18 +11,14 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA';
-import { Sparkles, RefreshCw, Mail, X, LogOut, Camera, Trash2, User, ChevronDown } from 'lucide-react';
+import { Sparkles, RefreshCw, Mail, X } from 'lucide-react';
 
 export function Profile() {
-  const { user, logout } = useUser();
   const { startWithGmail, currentStep } = useOnboarding();
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const { preferences, savePreferences } = useUserPreferences();
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [dnaUpdateKey, setDnaUpdateKey] = useState(0); // For forcing DNA animation
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
-  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
-  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
 
   // Calculate DNA from preferences
   const dnaData = preferences ? {
@@ -81,94 +76,14 @@ export function Profile() {
     setExpandedCard(expandedCard === cardId ? null : cardId);
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const result = reader.result as string;
-        setAvatarUrl(result);
-        // TODO: Save to database
-        localStorage.setItem(`avatar_${user?.id}`, result);
-      };
-      reader.readAsDataURL(file);
-    }
-    setIsEditingAvatar(false);
-  };
-
-  const handleAvatarRemove = () => {
-    setAvatarUrl(null);
-    localStorage.removeItem(`avatar_${user?.id}`);
-    setIsEditingAvatar(false);
-  };
-
-  // Load avatar on mount
-  useEffect(() => {
-    if (user?.id) {
-      const savedAvatar = localStorage.getItem(`avatar_${user.id}`);
-      if (savedAvatar) {
-        setAvatarUrl(savedAvatar);
-      }
-    }
-  }, [user?.id]);
 
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Your Travel Profile</h1>
-            <p className="text-sm sm:text-base text-gray-600">Discover and refine your unique travel style</p>
-          </div>
-          
-          {/* Account Dropdown - Desktop Only */}
-          <div className="hidden sm:block relative">
-            <button
-              onClick={() => setShowAccountDropdown(!showAccountDropdown)}
-              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
-            >
-              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
-                {avatarUrl ? (
-                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-gray-400">
-                    <User className="w-5 h-5" />
-                  </div>
-                )}
-              </div>
-              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showAccountDropdown ? 'rotate-180' : ''}`} />
-            </button>
-            
-            {/* Dropdown Menu */}
-            {showAccountDropdown && (
-              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
-                <div className="px-4 py-3 border-b border-gray-100">
-                  <p className="font-medium text-sm">{user?.full_name || 'User'}</p>
-                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
-                </div>
-                
-                <button
-                  onClick={() => {
-                    setIsEditingAvatar(true);
-                    setShowAccountDropdown(false);
-                  }}
-                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
-                >
-                  <Camera className="w-4 h-4" />
-                  Change Photo
-                </button>
-                
-                <button
-                  onClick={logout}
-                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign Out
-                </button>
-              </div>
-            )}
-          </div>
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Your Travel Profile</h1>
+          <p className="text-sm sm:text-base text-gray-600">Discover and refine your unique travel style</p>
         </div>
       </div>
 
@@ -430,88 +345,10 @@ export function Profile() {
                   )}
                 />
               </PreferenceCard>
-              
-              {/* Account Settings Card - Only visible when editing avatar */}
-              {isEditingAvatar && (
-                <PreferenceCard
-                  title="Account Settings"
-                  icon="👤"
-                  expanded={true}
-                  onToggle={() => setIsEditingAvatar(false)}
-                >
-                  <div className="flex flex-col sm:flex-row items-center gap-6">
-                    {/* Avatar */}
-                    <div className="relative">
-                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                        {avatarUrl ? (
-                          <img 
-                            src={avatarUrl} 
-                            alt="Profile" 
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center text-gray-400">
-                            <User className="w-12 h-12" />
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                    
-                    {/* Actions */}
-                    <div className="flex flex-col sm:flex-row gap-2">
-                      <label className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 cursor-pointer text-center">
-                        Upload Photo
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleAvatarUpload}
-                          className="hidden"
-                        />
-                      </label>
-                      {avatarUrl && (
-                        <button
-                          onClick={handleAvatarRemove}
-                          className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Remove
-                        </button>
-                      )}
-                      <button
-                        onClick={() => setIsEditingAvatar(false)}
-                        className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
-                      >
-                        Done
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t">
-                    <div>
-                      <p className="text-sm text-gray-600">Name</p>
-                      <p className="font-medium">{user?.full_name || 'Not set'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600">Email</p>
-                      <p className="font-medium text-sm">{user?.email}</p>
-                    </div>
-                  </div>
-                </PreferenceCard>
-              )}
             </div>
         </div>
       )}
 
-      {/* Mobile Sign Out Button - at bottom of screen */}
-      <div className="block sm:hidden mt-8 pt-8 border-t">
-        <button
-          onClick={logout}
-          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors"
-        >
-          <LogOut className="w-5 h-5" />
-          Sign Out
-        </button>
-      </div>
 
       {/* Onboarding Modal */}
       {showOnboardingModal && (

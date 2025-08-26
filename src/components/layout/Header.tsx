@@ -1,6 +1,6 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, User, ChevronLeft } from 'lucide-react'
+import { MapPin, Plus, User, ChevronLeft, Camera } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { cn } from '../../utils/cn'
 
@@ -11,8 +11,9 @@ interface HeaderProps {
 
 export function Header({ context, showCreateTrip = true }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
-  const { user, logout } = useUser()
+  const { user, logout, avatarUrl, updateAvatar } = useUser()
   const navigate = useNavigate()
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   const isSettings = context?.isSettings || false
   
@@ -62,8 +63,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                 )}
                 aria-label="Open account menu"
               >
-                <div className="w-8 h-8 bg-primary-500 rounded-full flex items-center justify-center">
-                  <User className="w-5 h-5 text-white" />
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary-500 flex items-center justify-center">
+                      <User className="w-5 h-5 text-white" />
+                    </div>
+                  )}
                 </div>
               </button>
 
@@ -76,6 +83,16 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     Profile
                   </Link>
+                  <button
+                    onClick={() => {
+                      fileInputRef.current?.click()
+                      setShowUserMenu(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Change Photo
+                  </button>
                   <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={() => {
@@ -109,8 +126,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center p-2 rounded-xl hover:bg-gray-100 transition-colors"
                 >
-                  <div className="h-8 w-8 bg-primary-500 rounded-full flex items-center justify-center">
-                    <User className="h-5 w-5 text-white" />
+                  <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                    {avatarUrl ? (
+                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                    ) : (
+                      <div className="w-full h-full bg-primary-500 flex items-center justify-center">
+                        <User className="h-5 w-5 text-white" />
+                      </div>
+                    )}
                   </div>
                 </button>
 
@@ -123,6 +146,16 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     >
                       Profile
                     </Link>
+                    <button
+                      onClick={() => {
+                        fileInputRef.current?.click()
+                        setShowUserMenu(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Change Photo
+                    </button>
                     <Link
                       to="/api-status"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -178,8 +211,14 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className="flex items-center space-x-2 p-2 rounded-xl hover:bg-gray-100 transition-colors"
               >
-                <div className="h-8 w-8 bg-primary-500 rounded-full flex items-center justify-center">
-                  <User className="h-5 w-5 text-white" />
+                <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                  {avatarUrl ? (
+                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-primary-500 flex items-center justify-center">
+                      <User className="h-5 w-5 text-white" />
+                    </div>
+                  )}
                 </div>
                 <span className="hidden md:block text-sm font-medium text-gray-700">
                   {user?.full_name || 'User'}
@@ -195,6 +234,16 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     Profile
                   </Link>
+                  <button
+                    onClick={() => {
+                      fileInputRef.current?.click()
+                      setShowUserMenu(false)
+                    }}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Change Photo
+                  </button>
                   <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={() => {
@@ -211,6 +260,24 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
           </div>
         </div>
       </div>
+      
+      {/* Hidden file input for avatar upload */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={(e) => {
+          const file = e.target.files?.[0]
+          if (file) {
+            const reader = new FileReader()
+            reader.onloadend = () => {
+              updateAvatar(reader.result as string)
+            }
+            reader.readAsDataURL(file)
+          }
+        }}
+      />
     </header>
   )
 }

@@ -30,6 +30,8 @@ interface UserContextType {
   updateProfile: (updates: Partial<User>) => void
   getAllUsers: () => User[]
   isUsingSupabase?: boolean
+  avatarUrl: string | null
+  updateAvatar: (url: string | null) => void
 }
 
 const UserContext = createContext<UserContextType | undefined>(undefined)
@@ -86,6 +88,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [isUsingSupabase, setIsUsingSupabase] = useState(false)
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null)
 
   // Initialize auth state - check for Supabase first, then fall back to localStorage
   useEffect(() => {
@@ -768,6 +771,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
     return token.startsWith('wanderplan_') && token.split('_').length >= 4
   }
 
+  // Avatar management functions
+  const updateAvatar = (url: string | null) => {
+    setAvatarUrl(url)
+    if (user?.id) {
+      if (url) {
+        localStorage.setItem(`avatar_${user.id}`, url)
+      } else {
+        localStorage.removeItem(`avatar_${user.id}`)
+      }
+      // TODO: Save to database when available
+    }
+  }
+
+  // Load avatar when user changes
+  useEffect(() => {
+    if (user?.id) {
+      const savedAvatar = localStorage.getItem(`avatar_${user.id}`)
+      setAvatarUrl(savedAvatar)
+    } else {
+      setAvatarUrl(null)
+    }
+  }, [user?.id])
+
   const value: UserContextType = {
     user,
     setUser,
@@ -782,7 +808,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     logout,
     updateProfile,
     getAllUsers,
-    isUsingSupabase
+    isUsingSupabase,
+    avatarUrl,
+    updateAvatar
   }
 
   return <UserContext.Provider value={value}>{children}</UserContext.Provider>
