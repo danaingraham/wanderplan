@@ -42,6 +42,27 @@ export interface SeasonalPattern {
   destinations: string[];
 }
 
+export interface DNAScores {
+  adventure: number;    // 0-100
+  culture: number;      // 0-100
+  luxury: number;       // 0-100
+  social: number;       // 0-100
+  relaxation: number;   // 0-100
+  culinary: number;     // 0-100
+}
+
+export type TravelArchetype = 
+  | 'urban_explorer'
+  | 'beach_lounger'
+  | 'culture_seeker'
+  | 'adventure_junkie'
+  | 'luxury_traveler'
+  | 'foodie_wanderer'
+  | 'social_butterfly'
+  | 'nature_lover'
+  | 'budget_backpacker'
+  | 'digital_nomad';
+
 export interface UserPreferences {
   id: string;
   user_id: string;
@@ -68,6 +89,15 @@ export interface UserPreferences {
   accessibility_needs: string | null;
   preferred_chains: Record<string, string[]>;
   avoided_chains: Record<string, string[]>;
+  
+  // Travel DNA fields
+  travel_archetype?: TravelArchetype;
+  dna_scores?: DNAScores;
+  dna_completeness?: number;  // 0-100
+  dna_created_at?: string;
+  dna_updated_at?: string;
+  quiz_completed?: boolean;
+  total_trips_analyzed?: number;
   
   // Privacy settings
   learning_enabled: boolean;

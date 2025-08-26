@@ -1,12 +1,19 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Calendar, Users, Sparkles } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture } from '../utils/date'
 import { useOnboarding } from '../contexts/OnboardingContext'
+import { useUserPreferences } from '../hooks/useUserPreferences'
+import { calculateCompleteness } from '../utils/travelDNA'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
   const { resetOnboarding } = useOnboarding()
+  const { preferences } = useUserPreferences()
+  const navigate = useNavigate()
+  
+  const dnaCompleteness = preferences ? calculateCompleteness(preferences) : 0
+  const hasDNA = dnaCompleteness > 0
 
   console.log('📊 Dashboard: Trips loaded:', trips.length)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
@@ -42,22 +49,29 @@ export function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Temporary onboarding test button */}
-      <div className="mb-4 bg-purple-50 rounded-lg p-4 border border-purple-200">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="font-medium text-purple-900">Test Onboarding Flow</p>
-            <p className="text-sm text-purple-700">Click to see the new onboarding wizard</p>
+      {/* Travel DNA Prompt - Show only if user hasn't created their DNA */}
+      {!hasDNA && (
+        <div className="mb-6 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-lg p-6 border border-primary-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
+                <Sparkles className="w-6 h-6 text-primary-600" />
+              </div>
+              <div>
+                <p className="font-semibold text-gray-900">Create Your Travel DNA</p>
+                <p className="text-sm text-gray-600">Get personalized trip recommendations based on your unique travel style</p>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate('/profile')}
+              className="px-4 py-2 bg-primary-500 text-white rounded-lg hover:bg-primary-600 transition-colors flex items-center"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Create DNA
+            </button>
           </div>
-          <button
-            onClick={resetOnboarding}
-            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
-          >
-            <Sparkles className="w-4 h-4 mr-2" />
-            Start Onboarding
-          </button>
         </div>
-      </div>
+      )}
 
       <section>
         <div className="flex items-center justify-between mb-6">
