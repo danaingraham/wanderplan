@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Mark Onboarding Complete</title>
+  <style>
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      max-width: 600px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f3f4f6;
+    }
+    .container {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #1f2937;
+      margin-bottom: 20px;
+    }
+    button {
+      background: #3b82f6;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 16px;
+      cursor: pointer;
+      margin-right: 10px;
+      margin-top: 10px;
+    }
+    button:hover {
+      background: #2563eb;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      background: #f0f9ff;
+      border-radius: 8px;
+      border-left: 4px solid #3b82f6;
+    }
+    .error {
+      background: #fef2f2;
+      border-left-color: #ef4444;
+    }
+    .success {
+      background: #f0fdf4;
+      border-left-color: #22c55e;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Fix Onboarding Navigation</h1>
+    <p>This utility will mark onboarding as complete so you can navigate the app normally.</p>
+    
+    <button onclick="markComplete()">Mark Onboarding Complete</button>
+    <button onclick="clearOnboarding()">Clear Onboarding</button>
+    <button onclick="checkStatus()">Check Status</button>
+    
+    <div id="status"></div>
+  </div>
+
+  <script>
+    function markComplete() {
+      try {
+        localStorage.setItem('wanderplan_onboarding_complete', 'true');
+        showStatus('Onboarding marked as complete! You can now navigate normally.', 'success');
+        setTimeout(() => {
+          window.location.href = '/';
+        }, 1500);
+      } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+    
+    function clearOnboarding() {
+      try {
+        localStorage.removeItem('wanderplan_onboarding_complete');
+        showStatus('Onboarding cleared. You will see the welcome wizard on next login.', 'success');
+      } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+    
+    function checkStatus() {
+      try {
+        const status = localStorage.getItem('wanderplan_onboarding_complete');
+        if (status === 'true') {
+          showStatus('Onboarding is marked as complete.', 'success');
+        } else if (status === 'skip') {
+          showStatus('Onboarding was skipped.', 'success');
+        } else {
+          showStatus('Onboarding is not complete. You will see the welcome wizard.', 'status');
+        }
+      } catch (error) {
+        showStatus('Error: ' + error.message, 'error');
+      }
+    }
+    
+    function showStatus(message, type = 'status') {
+      const statusDiv = document.getElementById('status');
+      statusDiv.className = 'status ' + type;
+      statusDiv.textContent = message;
+    }
+    
+    // Check status on load
+    checkStatus();
+  </script>
+</body>
+</html>

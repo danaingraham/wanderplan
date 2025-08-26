@@ -3,8 +3,7 @@ import { useUser } from '../contexts/UserContext';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { TravelDNA } from '../components/dna/TravelDNA';
 import { TravelArchetypeCard } from '../components/dna/TravelArchetype';
-import { DNACompleteness } from '../components/dna/DNACompleteness';
-import { PreferenceCard, PreferenceItem, PreferenceCompleteness } from '../components/preferences/PreferenceCard';
+import { PreferenceCard, PreferenceItem } from '../components/preferences/PreferenceCard';
 import { OnboardingWizard } from '../components/onboarding/OnboardingWizard';
 import { useUserPreferences } from '../hooks/useUserPreferences';
 import { 
@@ -367,16 +366,6 @@ export function Profile() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* Completeness */}
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4">Profile Strength</h3>
-              <DNACompleteness 
-                completeness={dnaData.completeness} 
-                size="md"
-              />
-              <PreferenceCompleteness completeness={dnaData.completeness} />
-            </div>
-
             {/* Quick Actions */}
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">Improve Your Profile</h3>
