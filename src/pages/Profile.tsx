@@ -12,7 +12,7 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA';
-import { Sparkles, RefreshCw, Mail, X, LogOut, Camera, Trash2, User } from 'lucide-react';
+import { Sparkles, RefreshCw, Mail, X, LogOut, Camera, Trash2, User, ChevronDown } from 'lucide-react';
 
 export function Profile() {
   const { user, logout } = useUser();
@@ -23,6 +23,7 @@ export function Profile() {
   const [dnaUpdateKey, setDnaUpdateKey] = useState(0); // For forcing DNA animation
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [isEditingAvatar, setIsEditingAvatar] = useState(false);
+  const [showAccountDropdown, setShowAccountDropdown] = useState(false);
 
   // Calculate DNA from preferences
   const dnaData = preferences ? {
@@ -39,13 +40,9 @@ export function Profile() {
     }
   }, [preferences]);
 
-  const handleCreateDNA = (method: 'gmail' | 'manual' | 'quiz') => {
-    if (method === 'gmail') {
-      startWithGmail();
-      setShowOnboardingModal(true);
-    } else if (method === 'quiz') {
-      alert('Quiz coming soon!');
-    }
+  const handleCreateDNA = () => {
+    startWithGmail();
+    setShowOnboardingModal(true);
   };
 
   // Close modal when onboarding completes
@@ -124,13 +121,54 @@ export function Profile() {
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Your Travel Profile</h1>
             <p className="text-sm sm:text-base text-gray-600">Discover and refine your unique travel style</p>
           </div>
-          <button
-            onClick={logout}
-            className="hidden sm:flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
+          
+          {/* Account Dropdown - Desktop Only */}
+          <div className="hidden sm:block relative">
+            <button
+              onClick={() => setShowAccountDropdown(!showAccountDropdown)}
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-lg transition-colors"
+            >
+              <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-gray-400">
+                    <User className="w-5 h-5" />
+                  </div>
+                )}
+              </div>
+              <ChevronDown className={`w-4 h-4 text-gray-500 transition-transform ${showAccountDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {/* Dropdown Menu */}
+            {showAccountDropdown && (
+              <div className="absolute right-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-10">
+                <div className="px-4 py-3 border-b border-gray-100">
+                  <p className="font-medium text-sm">{user?.full_name || 'User'}</p>
+                  <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+                </div>
+                
+                <button
+                  onClick={() => {
+                    setIsEditingAvatar(true);
+                    setShowAccountDropdown(false);
+                  }}
+                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  Change Photo
+                </button>
+                
+                <button
+                  onClick={logout}
+                  className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign Out
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -150,23 +188,14 @@ export function Profile() {
               </p>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto">
+            <div className="max-w-xs mx-auto">
               <button
-                onClick={() => handleCreateDNA('gmail')}
-                className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
+                onClick={handleCreateDNA}
+                className="w-full p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
               >
                 <Mail className="w-8 h-8 text-primary-600 mb-3" />
-                <div className="font-semibold">Gmail Sync</div>
-                <div className="text-xs text-gray-600 mt-1">Auto-detect from trips</div>
-              </button>
-              
-              <button
-                onClick={() => handleCreateDNA('quiz')}
-                className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
-              >
-                <Sparkles className="w-8 h-8 text-primary-600 mb-3" />
-                <div className="font-semibold">Quick Quiz</div>
-                <div className="text-xs text-gray-600 mt-1">5 minute quiz</div>
+                <div className="font-semibold">Sync Gmail</div>
+                <div className="text-xs text-gray-600 mt-1">Auto-detect from past trips</div>
               </button>
             </div>
 
@@ -182,27 +211,34 @@ export function Profile() {
         </div>
       ) : (
         // Show existing Travel DNA with integrated preferences
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Column */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="space-y-6">
             {/* Archetype Card */}
             <TravelArchetypeCard 
               archetype={dnaData.archetype} 
               size="lg"
             />
             
-            {/* DNA Chart */}
+            {/* DNA Chart with Actions */}
             <div className="card overflow-visible">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-lg sm:text-xl font-semibold">Your Travel DNA</h2>
-                <button
-                  onClick={handleUpdateDNA}
-                  className="flex items-center gap-1 sm:gap-2 text-primary-600 hover:text-primary-700 text-sm"
-                >
-                  <RefreshCw className="w-4 h-4" />
-                  <span className="hidden sm:inline">Refresh DNA</span>
-                  <span className="sm:hidden">Refresh</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleCreateDNA}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors"
+                    title="Sync Gmail to update preferences"
+                  >
+                    <Mail className="w-4 h-4" />
+                    <span className="hidden sm:inline">Sync Gmail</span>
+                  </button>
+                  <button
+                    onClick={handleUpdateDNA}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    <span className="hidden sm:inline">Refresh</span>
+                  </button>
+                </div>
               </div>
               
               {/* Desktop/Tablet: Radar Chart */}
@@ -394,125 +430,88 @@ export function Profile() {
                   )}
                 />
               </PreferenceCard>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Quick Actions */}
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4">Improve Your Profile</h3>
-              <div className="space-y-2">
-                <button
-                  onClick={() => handleCreateDNA('gmail')}
-                  className="w-full p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <Mail className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <div className="font-medium text-sm">Sync Gmail</div>
-                      <div className="text-xs text-gray-600">Update from recent trips</div>
-                    </div>
-                  </div>
-                </button>
-                
-                <button
-                  onClick={() => handleCreateDNA('quiz')}
-                  className="w-full p-3 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex items-center justify-between text-left"
-                >
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="w-5 h-5 text-primary-600" />
-                    <div>
-                      <div className="font-medium text-sm">Take Quiz</div>
-                      <div className="text-xs text-gray-600">Discover preferences</div>
-                    </div>
-                  </div>
-                </button>
-              </div>
-            </div>
-
-            {/* Account Info */}
-            <div className="card">
-              <h3 className="text-lg font-semibold mb-4">Account</h3>
               
-              {/* Avatar Section */}
-              <div className="flex flex-col items-center mb-6">
-                <div className="relative group">
-                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
-                    {avatarUrl ? (
-                      <img 
-                        src={avatarUrl} 
-                        alt="Profile" 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center text-gray-400">
-                        <User className="w-12 h-12" />
+              {/* Account Settings Card - Only visible when editing avatar */}
+              {isEditingAvatar && (
+                <PreferenceCard
+                  title="Account Settings"
+                  icon="👤"
+                  expanded={true}
+                  onToggle={() => setIsEditingAvatar(false)}
+                >
+                  <div className="flex flex-col sm:flex-row items-center gap-6">
+                    {/* Avatar */}
+                    <div className="relative">
+                      <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+                        {avatarUrl ? (
+                          <img 
+                            src={avatarUrl} 
+                            alt="Profile" 
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-gray-400">
+                            <User className="w-12 h-12" />
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
+                    
+                    {/* Actions */}
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <label className="px-4 py-2 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 cursor-pointer text-center">
+                        Upload Photo
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleAvatarUpload}
+                          className="hidden"
+                        />
+                      </label>
+                      {avatarUrl && (
+                        <button
+                          onClick={handleAvatarRemove}
+                          className="px-4 py-2 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center justify-center gap-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Remove
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setIsEditingAvatar(false)}
+                        className="px-4 py-2 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+                      >
+                        Done
+                      </button>
+                    </div>
                   </div>
                   
-                  {/* Avatar Edit Overlay */}
-                  <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                       onClick={() => setIsEditingAvatar(true)}>
-                    <Camera className="w-6 h-6 text-white" />
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-6 pt-6 border-t">
+                    <div>
+                      <p className="text-sm text-gray-600">Name</p>
+                      <p className="font-medium">{user?.full_name || 'Not set'}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Email</p>
+                      <p className="font-medium text-sm">{user?.email}</p>
+                    </div>
                   </div>
-                </div>
-                
-                {/* Avatar Actions */}
-                {isEditingAvatar && (
-                  <div className="mt-3 flex gap-2">
-                    <label className="px-3 py-1 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 cursor-pointer">
-                      Upload
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleAvatarUpload}
-                        className="hidden"
-                      />
-                    </label>
-                    {avatarUrl && (
-                      <button
-                        onClick={handleAvatarRemove}
-                        className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center gap-1"
-                      >
-                        <Trash2 className="w-3 h-3" />
-                        Remove
-                      </button>
-                    )}
-                    <button
-                      onClick={() => setIsEditingAvatar(false)}
-                      className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                )}
-              </div>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-sm text-gray-600">Name</p>
-                  <p className="font-medium">{user?.full_name || 'Not set'}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-gray-600">Email</p>
-                  <p className="font-medium text-sm break-all">{user?.email}</p>
-                </div>
-              </div>
-              
-              {/* Mobile Sign Out Button */}
-              <button
-                onClick={logout}
-                className="sm:hidden w-full mt-6 flex items-center justify-center gap-2 px-4 py-2 text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors font-medium"
-              >
-                <LogOut className="w-4 h-4" />
-                Sign Out
-              </button>
+                </PreferenceCard>
+              )}
             </div>
-          </div>
         </div>
       )}
+
+      {/* Mobile Sign Out Button - at bottom of screen */}
+      <div className="block sm:hidden mt-8 pt-8 border-t">
+        <button
+          onClick={logout}
+          className="w-full flex items-center justify-center gap-2 px-4 py-3 bg-red-50 text-red-600 font-medium rounded-lg hover:bg-red-100 transition-colors"
+        >
+          <LogOut className="w-5 h-5" />
+          Sign Out
+        </button>
+      </div>
 
       {/* Onboarding Modal */}
       {showOnboardingModal && (
