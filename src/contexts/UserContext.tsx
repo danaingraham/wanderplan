@@ -712,7 +712,13 @@ export function UserProvider({ children }: { children: ReactNode }) {
       } else {
         log('✅ UserContext: User logged out via Supabase')
       }
+      
+      // Clear the user state immediately
+      setUser(null)
       setIsLoading(false)
+      
+      // Force redirect to login page
+      window.location.href = '/login'
       return
     }
     
@@ -746,6 +752,9 @@ export function UserProvider({ children }: { children: ReactNode }) {
     
     setUser(null)
     log('🔐 UserContext: User logged out, all auth data cleared')
+    
+    // Force redirect to login page
+    window.location.href = '/login'
   }
 
   const getAllUsers = (): User[] => {

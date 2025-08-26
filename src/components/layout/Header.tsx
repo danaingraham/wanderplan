@@ -104,9 +104,10 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={async () => {
+                      console.log('Sign out button clicked')
                       setShowUserMenu(false)
                       await logout()
-                      navigate('/login')
+                      // Logout function handles redirect
                     }}
                     className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                   >
@@ -175,9 +176,10 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     <div className="border-t border-gray-200 my-1"></div>
                     <button
                       onClick={async () => {
+                        console.log('Sign out button clicked')
                         setShowUserMenu(false)
                         await logout()
-                        navigate('/login')
+                        // Logout function handles redirect
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
@@ -258,9 +260,10 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     <div className="border-t border-gray-200 my-1"></div>
                     <button
                       onClick={async () => {
+                        console.log('Sign out button clicked')
                         setShowUserMenu(false)
                         await logout()
-                        navigate('/login')
+                        // Logout function handles redirect
                       }}
                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                     >
