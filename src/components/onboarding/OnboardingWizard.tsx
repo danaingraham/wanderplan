@@ -92,7 +92,7 @@ export function OnboardingWizard() {
               {currentStep === 'welcome' && 'Welcome to Wanderplan!'}
               {currentStep === 'gmail-connect' && 'Connect Your Gmail'}
               {currentStep === 'scanning' && 'Analyzing Your Travel History'}
-              {currentStep === 'results' && 'Your Travel DNA 🧬'}
+              {currentStep === 'results' && 'Your Travel DNA'}
               {currentStep === 'gaps' && 'Complete Your Profile'}
               {currentStep === 'success' && '🎉 All Set!'}
             </h2>
