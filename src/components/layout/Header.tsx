@@ -1,6 +1,6 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Plus, User, ChevronLeft, Camera } from 'lucide-react'
+import { MapPin, Plus, User, ChevronLeft } from 'lucide-react'
 import { useUser } from '../../contexts/UserContext'
 import { cn } from '../../utils/cn'
 
@@ -14,6 +14,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
   const { user, logout, avatarUrl, updateAvatar } = useUser()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const dropdownRef = useRef<HTMLDivElement>(null)
 
   const isSettings = context?.isSettings || false
   
@@ -25,6 +26,23 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
       navigate('/')
     }
   }
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowUserMenu(false)
+      }
+    }
+
+    if (showUserMenu) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [showUserMenu])
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -53,7 +71,7 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
             </h1>
 
             {/* Avatar menu */}
-            <div className="relative">
+            <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowUserMenu(!showUserMenu)}
                 className={cn(
@@ -83,16 +101,6 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   >
                     Profile
                   </Link>
-                  <button
-                    onClick={() => {
-                      fileInputRef.current?.click()
-                      setShowUserMenu(false)
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                  >
-                    <Camera className="w-4 h-4" />
-                    Change Photo
-                  </button>
                   <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={() => {
@@ -121,20 +129,30 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
             </Link>
             
             <div className="flex items-center space-x-2">
-              <div className="relative">
+              {/* Avatar - clickable for photo upload */}
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 hover:ring-2 hover:ring-primary-400 transition-all"
+                aria-label="Change profile photo"
+              >
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-primary-500 flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                )}
+              </button>
+              
+              {/* Menu button */}
+              <div className="relative" ref={dropdownRef}>
                 <button
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center p-2 rounded-xl hover:bg-gray-100 transition-colors"
                 >
-                  <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
-                    {avatarUrl ? (
-                      <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                    ) : (
-                      <div className="w-full h-full bg-primary-500 flex items-center justify-center">
-                        <User className="h-5 w-5 text-white" />
-                      </div>
-                    )}
-                  </div>
+                  <svg className="w-5 h-5 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                  </svg>
                 </button>
 
                 {showUserMenu && (
@@ -146,16 +164,6 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     >
                       Profile
                     </Link>
-                    <button
-                      onClick={() => {
-                        fileInputRef.current?.click()
-                        setShowUserMenu(false)
-                      }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <Camera className="w-4 h-4" />
-                      Change Photo
-                    </button>
                     <Link
                       to="/api-status"
                       className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
@@ -206,56 +214,58 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
               </Link>
             )}
 
-            <div className="relative">
+            <div className="flex items-center space-x-3">
+              {/* Avatar - clickable for photo upload */}
               <button
-                onClick={() => setShowUserMenu(!showUserMenu)}
-                className="flex items-center space-x-2 p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200 hover:ring-2 hover:ring-primary-400 transition-all"
+                aria-label="Change profile photo"
               >
-                <div className="h-8 w-8 rounded-full overflow-hidden bg-gray-100 border border-gray-200">
-                  {avatarUrl ? (
-                    <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full bg-primary-500 flex items-center justify-center">
-                      <User className="h-5 w-5 text-white" />
-                    </div>
-                  )}
-                </div>
-                <span className="hidden md:block text-sm font-medium text-gray-700">
-                  {user?.full_name || 'User'}
-                </span>
+                {avatarUrl ? (
+                  <img src={avatarUrl} alt="Profile" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full bg-primary-500 flex items-center justify-center">
+                    <User className="h-5 w-5 text-white" />
+                  </div>
+                )}
               </button>
+              
+              {/* User menu */}
+              <div className="relative" ref={dropdownRef}>
+                <button
+                  onClick={() => setShowUserMenu(!showUserMenu)}
+                  className="flex items-center space-x-2 p-2 rounded-xl hover:bg-gray-100 transition-colors"
+                >
+                  <span className="hidden md:block text-sm font-medium text-gray-700">
+                    {user?.full_name || 'User'}
+                  </span>
+                  <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                  </svg>
+                </button>
 
-              {showUserMenu && (
-                <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10">
-                  <Link
-                    to="/profile"
-                    className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
-                    onClick={() => setShowUserMenu(false)}
-                  >
-                    Profile
-                  </Link>
-                  <button
-                    onClick={() => {
-                      fileInputRef.current?.click()
-                      setShowUserMenu(false)
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
-                  >
-                    <Camera className="w-4 h-4" />
-                    Change Photo
-                  </button>
-                  <div className="border-t border-gray-200 my-1"></div>
-                  <button
-                    onClick={() => {
-                      logout()
-                      setShowUserMenu(false)
-                    }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                  >
-                    Sign Out
-                  </button>
-                </div>
-              )}
+                {showUserMenu && (
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-lg border border-gray-200 py-1 z-10">
+                    <Link
+                      to="/profile"
+                      className="block px-4 py-2 text-sm text-primary-600 font-medium hover:bg-gray-100"
+                      onClick={() => setShowUserMenu(false)}
+                    >
+                      Profile
+                    </Link>
+                    <div className="border-t border-gray-200 my-1"></div>
+                    <button
+                      onClick={() => {
+                        logout()
+                        setShowUserMenu(false)
+                      }}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    >
+                      Sign Out
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>
