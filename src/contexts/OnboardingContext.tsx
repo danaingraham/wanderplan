@@ -196,11 +196,14 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const startWithGmail = useCallback(() => {
-    localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    // Don't remove the storage key if user has already completed onboarding
+    // This allows them to update their DNA without being trapped in wizard
+    const wasCompleted = localStorage.getItem(ONBOARDING_STORAGE_KEY) === 'true';
+    
     setState({
       currentStep: 'gmail-connect',
       selectedPath: 'gmail',
-      isComplete: false,
+      isComplete: wasCompleted, // Keep completion status if already completed
       scannedData: {
         hotels: 0,
         flights: 0,

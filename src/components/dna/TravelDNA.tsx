@@ -23,14 +23,15 @@ export function TravelDNA({
     { key: 'culinary', label: 'Culinary', color: '#f97316' }
   ];
 
+  // Mobile-first sizing with proper padding for labels
   const sizeConfig = {
-    sm: { width: 200, height: 200, fontSize: 9, dotSize: 3, labelOffset: 15 },
-    md: { width: 300, height: 300, fontSize: 11, dotSize: 4, labelOffset: 20 },
-    lg: { width: 400, height: 400, fontSize: 12, dotSize: 5, labelOffset: 25 }
+    sm: { width: 300, height: 300, fontSize: 12, dotSize: 5, labelOffset: 5 },
+    md: { width: 360, height: 360, fontSize: 13, dotSize: 6, labelOffset: 10 },
+    lg: { width: 420, height: 420, fontSize: 14, dotSize: 6, labelOffset: 15 }
   }[size];
 
   const center = sizeConfig.width / 2;
-  const maxRadius = center - (size === 'sm' ? 35 : size === 'md' ? 45 : 55);
+  const maxRadius = (size === 'sm' ? 90 : size === 'md' ? 110 : 130);
   const angleStep = (Math.PI * 2) / dimensions.length;
 
   // Calculate polygon points for the radar chart
@@ -51,11 +52,13 @@ export function TravelDNA({
   const gridLevels = [20, 40, 60, 80, 100];
   
   return (
-    <div className="relative">
+    <div className="relative inline-block" style={{ padding: '10px' }}>
       <svg 
         width={sizeConfig.width} 
         height={sizeConfig.height}
+        viewBox={`0 0 ${sizeConfig.width} ${sizeConfig.height}`}
         className={animated ? 'transition-all duration-500' : ''}
+        style={{ display: 'block', maxWidth: '100%', height: 'auto' }}
       >
         {/* Background circles (grid) */}
         {gridLevels.map(level => (
@@ -118,11 +121,22 @@ export function TravelDNA({
           const x = center + Math.cos(angle) * labelRadius;
           const y = center + Math.sin(angle) * labelRadius;
           
-          // Adjust text anchor based on position for better mobile display
+          // Determine position and anchoring
+          const isTop = y < center - maxRadius * 0.5;
+          const isBottom = y > center + maxRadius * 0.5;
+          const isLeft = x < center - maxRadius * 0.5;
+          const isRight = x > center + maxRadius * 0.5;
+          
           let textAnchor = "middle";
-          if (Math.abs(x - center) > maxRadius * 0.8) {
-            textAnchor = x > center ? "start" : "end";
-          }
+          let dominantBaseline = "middle";
+          
+          if (isLeft) textAnchor = "end";
+          if (isRight) textAnchor = "start";
+          if (isTop) dominantBaseline = "bottom";
+          if (isBottom) dominantBaseline = "top";
+          
+          // Use full labels but position them better
+          const labelText = dim.label;
           
           return (
             <text
@@ -130,12 +144,12 @@ export function TravelDNA({
               x={x}
               y={y}
               textAnchor={textAnchor}
-              dominantBaseline="middle"
+              dominantBaseline={dominantBaseline}
               fontSize={sizeConfig.fontSize}
               fill="#4b5563"
               className="font-medium"
             >
-              {size === 'sm' ? dim.label.slice(0, 4) : dim.label}
+              {labelText}
             </text>
           );
         })}

@@ -8,6 +8,7 @@ import { TravelDNA } from '../components/dna/TravelDNA'
 import { TravelArchetypeCard } from '../components/dna/TravelArchetype'
 import { DNACompleteness } from '../components/dna/DNACompleteness'
 import { DNAStats } from '../components/dna/DNAStats'
+import { OnboardingWizard } from '../components/onboarding/OnboardingWizard'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { 
   calculateDNAScores, 
@@ -15,13 +16,14 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA'
-import { Sparkles, RefreshCw, Edit, Mail, TrendingUp } from 'lucide-react'
+import { Sparkles, RefreshCw, Edit, Mail, TrendingUp, X } from 'lucide-react'
 
 export function Profile() {
   const { user, logout } = useUser()
   const navigate = useNavigate()
-  const { startWithGmail } = useOnboarding()
+  const { startWithGmail, currentStep, selectedPath, completeOnboarding } = useOnboarding()
   const [showEditForm, setShowEditForm] = useState(false)
+  const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const { preferences, loading, savePreferences } = useUserPreferences()
   const [activeTab, setActiveTab] = useState<'dna' | 'preferences' | 'account'>('dna')
 
@@ -42,9 +44,9 @@ export function Profile() {
 
   const handleCreateDNA = (method: 'gmail' | 'manual' | 'quiz') => {
     if (method === 'gmail') {
-      // Go directly to Gmail sync in onboarding
+      // Start Gmail sync flow in modal
       startWithGmail()
-      navigate('/dashboard') // Will trigger onboarding
+      setShowOnboardingModal(true)
     } else if (method === 'manual') {
       // Go directly to edit preferences
       setActiveTab('preferences')
@@ -54,6 +56,15 @@ export function Profile() {
       alert('Quiz coming soon!')
     }
   }
+
+  // Close modal when onboarding completes
+  useEffect(() => {
+    if (currentStep === 'success' && showOnboardingModal) {
+      setShowOnboardingModal(false)
+      // Refresh the page to show new DNA
+      window.location.reload()
+    }
+  }, [currentStep, showOnboardingModal])
 
   const handleUpdateDNA = async () => {
     if (preferences) {
@@ -124,27 +135,65 @@ export function Profile() {
                   />
                   
                   {/* DNA Chart */}
-                  <div className="card">
+                  <div className="card overflow-visible">
                     <div className="flex items-center justify-between mb-4">
-                      <h2 className="text-xl font-semibold">Your Travel DNA</h2>
+                      <h2 className="text-lg sm:text-xl font-semibold">Your Travel DNA</h2>
                       <button
                         onClick={handleUpdateDNA}
-                        className="flex items-center gap-2 text-primary-600 hover:text-primary-700"
+                        className="flex items-center gap-1 sm:gap-2 text-primary-600 hover:text-primary-700 text-sm"
                       >
                         <RefreshCw className="w-4 h-4" />
-                        Refresh DNA
+                        <span className="hidden sm:inline">Refresh DNA</span>
+                        <span className="sm:hidden">Refresh</span>
                       </button>
                     </div>
-                    <div className="flex justify-center">
+                    {/* Desktop/Tablet: Radar Chart */}
+                    <div className="hidden md:flex justify-center">
                       <div className="hidden lg:block">
                         <TravelDNA scores={dnaData.scores} size="lg" />
                       </div>
-                      <div className="hidden md:block lg:hidden">
+                      <div className="block lg:hidden">
                         <TravelDNA scores={dnaData.scores} size="md" />
                       </div>
-                      <div className="block md:hidden">
-                        <TravelDNA scores={dnaData.scores} size="sm" />
-                      </div>
+                    </div>
+                    
+                    {/* Mobile: Score List */}
+                    <div className="block md:hidden space-y-3">
+                      {Object.entries(dnaData.scores).map(([key, value]) => {
+                        const dimension = {
+                          adventure: { label: 'Adventure', color: '#10b981', icon: '🏔️' },
+                          culture: { label: 'Culture', color: '#8b5cf6', icon: '🏛️' },
+                          luxury: { label: 'Luxury', color: '#ec4899', icon: '💎' },
+                          social: { label: 'Social', color: '#3b82f6', icon: '👥' },
+                          relaxation: { label: 'Relaxation', color: '#06b6d4', icon: '🏖️' },
+                          culinary: { label: 'Culinary', color: '#f97316', icon: '🍽️' }
+                        }[key];
+                        
+                        if (!dimension) return null;
+                        
+                        return (
+                          <div key={key} className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg">{dimension.icon}</span>
+                              <span className="font-medium text-gray-700">{dimension.label}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="w-24 bg-gray-200 rounded-full h-2">
+                                <div 
+                                  className="h-2 rounded-full transition-all duration-500"
+                                  style={{ 
+                                    width: `${value}%`,
+                                    backgroundColor: dimension.color 
+                                  }}
+                                />
+                              </div>
+                              <span className="text-sm font-semibold text-gray-600 w-10 text-right">
+                                {value}%
+                              </span>
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -152,7 +201,7 @@ export function Profile() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <button
                       onClick={() => handleCreateDNA('gmail')}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center justify-center text-center"
                     >
                       <Mail className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Sync Gmail</div>
@@ -161,7 +210,7 @@ export function Profile() {
                     
                     <button
                       onClick={() => handleCreateDNA('manual')}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center justify-center text-center"
                     >
                       <Edit className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Edit Manually</div>
@@ -170,7 +219,7 @@ export function Profile() {
                     
                     <button
                       onClick={() => handleCreateDNA('quiz')}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center justify-center text-center"
                     >
                       <Sparkles className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Take Quiz</div>
@@ -235,27 +284,27 @@ export function Profile() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-lg mx-auto">
                     <button
                       onClick={() => handleCreateDNA('gmail')}
-                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group"
+                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
                     >
-                      <Mail className="w-8 h-8 text-primary-600 mb-3 mx-auto" />
+                      <Mail className="w-8 h-8 text-primary-600 mb-3" />
                       <div className="font-semibold">Gmail Sync</div>
                       <div className="text-xs text-gray-600 mt-1">Auto-detect from trips</div>
                     </button>
                     
                     <button
                       onClick={() => handleCreateDNA('manual')}
-                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group"
+                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
                     >
-                      <Edit className="w-8 h-8 text-primary-600 mb-3 mx-auto" />
+                      <Edit className="w-8 h-8 text-primary-600 mb-3" />
                       <div className="font-semibold">Manual Setup</div>
                       <div className="text-xs text-gray-600 mt-1">Enter preferences</div>
                     </button>
                     
                     <button
                       onClick={() => handleCreateDNA('quiz')}
-                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group"
+                      className="p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
                     >
-                      <Sparkles className="w-8 h-8 text-primary-600 mb-3 mx-auto" />
+                      <Sparkles className="w-8 h-8 text-primary-600 mb-3" />
                       <div className="font-semibold">Quick Quiz</div>
                       <div className="text-xs text-gray-600 mt-1">5 minute quiz</div>
                     </button>
@@ -358,6 +407,21 @@ export function Profile() {
           </>
         )}
       </div>
+
+      {/* Onboarding Modal */}
+      {showOnboardingModal && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto relative">
+            <button
+              onClick={() => setShowOnboardingModal(false)}
+              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-10"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            <OnboardingWizard isModal={true} onClose={() => setShowOnboardingModal(false)} />
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -5,7 +5,12 @@ import { ChevronLeft, ChevronRight, X, Sparkles, Mail, Edit, Check } from 'lucid
 import { GmailScanProgress } from './GmailScanProgress';
 import { TravelProfileSummary } from './TravelProfileSummary';
 
-export function OnboardingWizard() {
+interface OnboardingWizardProps {
+  isModal?: boolean;
+  onClose?: () => void;
+}
+
+export function OnboardingWizard({ isModal = false, onClose }: OnboardingWizardProps = {}) {
   const {
     currentStep,
     isComplete,
@@ -20,6 +25,16 @@ export function OnboardingWizard() {
   } = useOnboarding();
   
   const navigate = useNavigate();
+  
+  // Handle back button in modal mode
+  const handleBack = () => {
+    if (isModal && currentStep === 'gmail-connect') {
+      // If we're at the first step in modal mode, close the modal
+      onClose?.();
+    } else {
+      previousStep();
+    }
+  };
 
   // Redirect if already complete
   useEffect(() => {
@@ -41,16 +56,15 @@ export function OnboardingWizard() {
     'success': 3
   }[currentStep];
 
-  return (
-    <div className="fixed inset-0 bg-gradient-to-br from-primary-50 to-secondary-50 z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
+  // Use different wrapper based on whether it's a modal
+  const content = (
+    <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
           {/* Header */}
           <div className="relative p-6 border-b border-gray-200">
             <button
-              onClick={skipOnboarding}
+              onClick={isModal ? onClose : skipOnboarding}
               className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 z-10"
-              aria-label="Skip onboarding"
+              aria-label={isModal ? "Close" : "Skip onboarding"}
             >
               <X className="w-5 h-5" />
             </button>
@@ -318,10 +332,10 @@ export function OnboardingWizard() {
           {currentStep !== 'success' && (
             <div className="px-6 py-4 bg-gray-50 rounded-b-2xl flex justify-between items-center">
               <button
-                onClick={previousStep}
-                disabled={currentStep === 'welcome'}
+                onClick={handleBack}
+                disabled={currentStep === 'welcome' && !isModal}
                 className={`flex items-center px-4 py-2 rounded-lg transition-colors ${
-                  currentStep === 'welcome'
+                  currentStep === 'welcome' && !isModal
                     ? 'text-gray-400 cursor-not-allowed'
                     : 'text-gray-600 hover:bg-gray-200'
                 }`}
@@ -350,6 +364,17 @@ export function OnboardingWizard() {
             </div>
           )}
         </div>
+  );
+  
+  // Wrap content based on modal mode
+  if (isModal) {
+    return content;
+  }
+  
+  return (
+    <div className="fixed inset-0 bg-gradient-to-br from-primary-50 to-secondary-50 z-50 overflow-y-auto">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        {content}
       </div>
     </div>
   );
