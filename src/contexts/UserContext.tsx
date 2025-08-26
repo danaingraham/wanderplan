@@ -705,19 +705,31 @@ export function UserProvider({ children }: { children: ReactNode }) {
         log('🔐 UserContext: Cleared user preferences from localStorage')
       }
       
-      const { error } = await supabaseAuth.signOut()
-      
-      if (error) {
-        console.error('❌ UserContext: Logout failed:', error.message)
-      } else {
-        log('✅ UserContext: User logged out via Supabase')
+      try {
+        // Add timeout to prevent hanging
+        const timeoutPromise = new Promise((resolve) => 
+          setTimeout(() => resolve({ error: 'Timeout' }), 3000)
+        )
+        
+        const logoutPromise = supabaseAuth.signOut()
+        
+        const result = await Promise.race([logoutPromise, timeoutPromise]) as any
+        
+        if (result?.error) {
+          console.error('❌ UserContext: Logout error:', result.error)
+        } else {
+          log('✅ UserContext: User logged out via Supabase')
+        }
+      } catch (error) {
+        console.error('❌ UserContext: Logout exception:', error)
       }
       
-      // Clear the user state immediately
+      // Clear the user state immediately regardless of Supabase result
       setUser(null)
       setIsLoading(false)
       
       // Force redirect to login page
+      log('🔐 UserContext: Redirecting to login page...')
       window.location.href = '/login'
       return
     }

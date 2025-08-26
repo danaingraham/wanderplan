@@ -11,6 +11,7 @@ interface HeaderProps {
 
 export function Header({ context, showCreateTrip = true }: HeaderProps) {
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { user, logout, avatarUrl, updateAvatar } = useUser()
   const navigate = useNavigate()
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -104,14 +105,17 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                   <div className="border-t border-gray-200 my-1"></div>
                   <button
                     onClick={async () => {
+                      if (isLoggingOut) return
                       console.log('Sign out button clicked')
+                      setIsLoggingOut(true)
                       setShowUserMenu(false)
                       await logout()
                       // Logout function handles redirect
                     }}
-                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                    disabled={isLoggingOut}
+                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                   >
-                    Sign Out
+                    {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                   </button>
                 </div>
               )}
@@ -176,14 +180,17 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     <div className="border-t border-gray-200 my-1"></div>
                     <button
                       onClick={async () => {
+                        if (isLoggingOut) return
                         console.log('Sign out button clicked')
+                        setIsLoggingOut(true)
                         setShowUserMenu(false)
                         await logout()
                         // Logout function handles redirect
                       }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      disabled={isLoggingOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                     >
-                      Sign Out
+                      {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   </div>
                 )}
@@ -260,14 +267,17 @@ export function Header({ context, showCreateTrip = true }: HeaderProps) {
                     <div className="border-t border-gray-200 my-1"></div>
                     <button
                       onClick={async () => {
+                        if (isLoggingOut) return
                         console.log('Sign out button clicked')
+                        setIsLoggingOut(true)
                         setShowUserMenu(false)
                         await logout()
                         // Logout function handles redirect
                       }}
-                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                      disabled={isLoggingOut}
+                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                     >
-                      Sign Out
+                      {isLoggingOut ? 'Signing Out...' : 'Sign Out'}
                     </button>
                   </div>
                 )}
