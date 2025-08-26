@@ -34,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
       {/* Desktop: Show Header on all pages except Trip Detail */}
       {!isMobile && !isTripDetail && (
         <Header 
-          context={{ isSettings: isSettings || location.pathname === '/profile' }}
+          context={{ isSettings: isSettings }}
           showCreateTrip={!isSettings && location.pathname !== '/profile'}
         />
       )}
@@ -43,7 +43,7 @@ export function Layout({ children }: LayoutProps) {
       {isMobile && !isTripDetail && (
         <>
           <Header 
-            context={{ isSettings: isSettings || location.pathname === '/profile' }}
+            context={{ isSettings: isSettings }}
             showCreateTrip={false}
           />
           <MobileNav />
@@ -55,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
         isTripDetail 
           ? "" 
           : isMobile 
-            ? "pt-16 pb-24" // Top padding for mobile header, bottom for tab bar + FAB
+            ? "pt-16 pb-24" // Top padding for mobile header (64px), bottom for tab bar + FAB
             : ""
       }>
         {children}
