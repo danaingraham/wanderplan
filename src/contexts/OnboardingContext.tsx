@@ -42,6 +42,7 @@ interface OnboardingContextValue extends OnboardingState {
   completeOnboarding: () => Promise<void>;
   skipOnboarding: () => void;
   resetOnboarding: () => void;
+  startWithGmail: () => void;
 }
 
 const OnboardingContext = createContext<OnboardingContextValue | undefined>(undefined);
@@ -194,6 +195,25 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
+  const startWithGmail = useCallback(() => {
+    localStorage.removeItem(ONBOARDING_STORAGE_KEY);
+    setState({
+      currentStep: 'gmail-connect',
+      selectedPath: 'gmail',
+      isComplete: false,
+      scannedData: {
+        hotels: 0,
+        flights: 0,
+        restaurants: 0,
+        activities: 0
+      },
+      detectedPreferences: null,
+      temporaryPreferences: {},
+      isScanning: false,
+      scanProgress: 0
+    });
+  }, []);
+
   const value: OnboardingContextValue = {
     ...state,
     nextStep,
@@ -208,7 +228,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     updateScanProgress,
     completeOnboarding,
     skipOnboarding,
-    resetOnboarding
+    resetOnboarding,
+    startWithGmail
   };
 
   return (

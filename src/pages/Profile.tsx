@@ -20,7 +20,7 @@ import { Sparkles, RefreshCw, Edit, Mail, TrendingUp } from 'lucide-react'
 export function Profile() {
   const { user, logout } = useUser()
   const navigate = useNavigate()
-  const { resetOnboarding } = useOnboarding()
+  const { startWithGmail } = useOnboarding()
   const [showEditForm, setShowEditForm] = useState(false)
   const { preferences, loading, savePreferences } = useUserPreferences()
   const [activeTab, setActiveTab] = useState<'dna' | 'preferences' | 'account'>('dna')
@@ -41,11 +41,14 @@ export function Profile() {
   }, [preferences])
 
   const handleCreateDNA = (method: 'gmail' | 'manual' | 'quiz') => {
-    resetOnboarding()
-    
-    if (method === 'gmail' || method === 'manual') {
-      // Use existing onboarding flow
+    if (method === 'gmail') {
+      // Go directly to Gmail sync in onboarding
+      startWithGmail()
       navigate('/dashboard') // Will trigger onboarding
+    } else if (method === 'manual') {
+      // Go directly to edit preferences
+      setActiveTab('preferences')
+      setShowEditForm(true)
     } else if (method === 'quiz') {
       // TODO: Navigate to quiz page when implemented
       alert('Quiz coming soon!')
@@ -133,7 +136,15 @@ export function Profile() {
                       </button>
                     </div>
                     <div className="flex justify-center">
-                      <TravelDNA scores={dnaData.scores} size="lg" />
+                      <div className="hidden lg:block">
+                        <TravelDNA scores={dnaData.scores} size="lg" />
+                      </div>
+                      <div className="hidden md:block lg:hidden">
+                        <TravelDNA scores={dnaData.scores} size="md" />
+                      </div>
+                      <div className="block md:hidden">
+                        <TravelDNA scores={dnaData.scores} size="sm" />
+                      </div>
                     </div>
                   </div>
 
@@ -141,7 +152,7 @@ export function Profile() {
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                     <button
                       onClick={() => handleCreateDNA('gmail')}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group"
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
                     >
                       <Mail className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Sync Gmail</div>
@@ -149,8 +160,8 @@ export function Profile() {
                     </button>
                     
                     <button
-                      onClick={() => setShowEditForm(true)}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group"
+                      onClick={() => handleCreateDNA('manual')}
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
                     >
                       <Edit className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Edit Manually</div>
@@ -159,7 +170,7 @@ export function Profile() {
                     
                     <button
                       onClick={() => handleCreateDNA('quiz')}
-                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group"
+                      className="p-4 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 transition-colors group flex flex-col items-center text-center"
                     >
                       <Sparkles className="w-6 h-6 text-primary-600 mb-2" />
                       <div className="font-medium">Take Quiz</div>

@@ -24,13 +24,13 @@ export function TravelDNA({
   ];
 
   const sizeConfig = {
-    sm: { width: 200, height: 200, fontSize: 10, dotSize: 3 },
-    md: { width: 300, height: 300, fontSize: 12, dotSize: 4 },
-    lg: { width: 400, height: 400, fontSize: 14, dotSize: 5 }
+    sm: { width: 200, height: 200, fontSize: 9, dotSize: 3, labelOffset: 15 },
+    md: { width: 300, height: 300, fontSize: 11, dotSize: 4, labelOffset: 20 },
+    lg: { width: 400, height: 400, fontSize: 12, dotSize: 5, labelOffset: 25 }
   }[size];
 
   const center = sizeConfig.width / 2;
-  const maxRadius = center - 40;
+  const maxRadius = center - (size === 'sm' ? 35 : size === 'md' ? 45 : 55);
   const angleStep = (Math.PI * 2) / dimensions.length;
 
   // Calculate polygon points for the radar chart
@@ -114,22 +114,28 @@ export function TravelDNA({
         {/* Labels */}
         {showLabels && dimensions.map((dim, index) => {
           const angle = angleStep * index - Math.PI / 2;
-          const labelRadius = maxRadius + 20;
+          const labelRadius = maxRadius + sizeConfig.labelOffset;
           const x = center + Math.cos(angle) * labelRadius;
           const y = center + Math.sin(angle) * labelRadius;
+          
+          // Adjust text anchor based on position for better mobile display
+          let textAnchor = "middle";
+          if (Math.abs(x - center) > maxRadius * 0.8) {
+            textAnchor = x > center ? "start" : "end";
+          }
           
           return (
             <text
               key={index}
               x={x}
               y={y}
-              textAnchor="middle"
+              textAnchor={textAnchor}
               dominantBaseline="middle"
               fontSize={sizeConfig.fontSize}
               fill="#4b5563"
               className="font-medium"
             >
-              {dim.label}
+              {size === 'sm' ? dim.label.slice(0, 4) : dim.label}
             </text>
           );
         })}
