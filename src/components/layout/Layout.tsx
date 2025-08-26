@@ -55,8 +55,8 @@ export function Layout({ children }: LayoutProps) {
         isTripDetail 
           ? "" 
           : isMobile 
-            ? "pt-16 pb-24" // Top padding for mobile header (64px), bottom for tab bar + FAB
-            : ""
+            ? "pb-24" // Bottom padding for tab bar + FAB (header is sticky on mobile)
+            : "" // Desktop header is static, no padding needed
       }>
         {children}
       </main>
