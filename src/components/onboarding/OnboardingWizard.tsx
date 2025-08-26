@@ -49,14 +49,14 @@ export function OnboardingWizard() {
           <div className="relative p-6 border-b border-gray-200">
             <button
               onClick={skipOnboarding}
-              className="absolute right-6 top-6 text-gray-400 hover:text-gray-600"
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-600 z-10"
               aria-label="Skip onboarding"
             >
               <X className="w-5 h-5" />
             </button>
             
             {/* Progress indicator */}
-            <div className="flex items-center justify-center space-x-2 mb-4">
+            <div className="flex items-center justify-center mb-4 max-w-sm mx-auto">
               {steps.map((step, index) => (
                 <div
                   key={step}
