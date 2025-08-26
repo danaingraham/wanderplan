@@ -12,7 +12,7 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA';
-import { Sparkles, RefreshCw, Mail, X, LogOut } from 'lucide-react';
+import { Sparkles, RefreshCw, Mail, X, LogOut, Camera, Trash2, User } from 'lucide-react';
 
 export function Profile() {
   const { user, logout } = useUser();
@@ -21,6 +21,8 @@ export function Profile() {
   const { preferences, savePreferences } = useUserPreferences();
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [dnaUpdateKey, setDnaUpdateKey] = useState(0); // For forcing DNA animation
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [isEditingAvatar, setIsEditingAvatar] = useState(false);
 
   // Calculate DNA from preferences
   const dnaData = preferences ? {
@@ -82,18 +84,49 @@ export function Profile() {
     setExpandedCard(expandedCard === cardId ? null : cardId);
   };
 
+  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        setAvatarUrl(result);
+        // TODO: Save to database
+        localStorage.setItem(`avatar_${user?.id}`, result);
+      };
+      reader.readAsDataURL(file);
+    }
+    setIsEditingAvatar(false);
+  };
+
+  const handleAvatarRemove = () => {
+    setAvatarUrl(null);
+    localStorage.removeItem(`avatar_${user?.id}`);
+    setIsEditingAvatar(false);
+  };
+
+  // Load avatar on mount
+  useEffect(() => {
+    if (user?.id) {
+      const savedAvatar = localStorage.getItem(`avatar_${user.id}`);
+      if (savedAvatar) {
+        setAvatarUrl(savedAvatar);
+      }
+    }
+  }, [user?.id]);
+
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="mb-8">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Your Travel Profile</h1>
-            <p className="text-gray-600">Discover and refine your unique travel style</p>
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">Your Travel Profile</h1>
+            <p className="text-sm sm:text-base text-gray-600">Discover and refine your unique travel style</p>
           </div>
           <button
             onClick={logout}
-            className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
+            className="hidden sm:flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors font-medium"
           >
             <LogOut className="w-4 h-4" />
             Sign Out
@@ -401,6 +434,62 @@ export function Profile() {
             {/* Account Info */}
             <div className="card">
               <h3 className="text-lg font-semibold mb-4">Account</h3>
+              
+              {/* Avatar Section */}
+              <div className="flex flex-col items-center mb-6">
+                <div className="relative group">
+                  <div className="w-24 h-24 rounded-full overflow-hidden bg-gray-100 border-2 border-gray-200">
+                    {avatarUrl ? (
+                      <img 
+                        src={avatarUrl} 
+                        alt="Profile" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center text-gray-400">
+                        <User className="w-12 h-12" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Avatar Edit Overlay */}
+                  <div className="absolute inset-0 rounded-full bg-black bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
+                       onClick={() => setIsEditingAvatar(true)}>
+                    <Camera className="w-6 h-6 text-white" />
+                  </div>
+                </div>
+                
+                {/* Avatar Actions */}
+                {isEditingAvatar && (
+                  <div className="mt-3 flex gap-2">
+                    <label className="px-3 py-1 bg-primary-600 text-white text-sm rounded-lg hover:bg-primary-700 cursor-pointer">
+                      Upload
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleAvatarUpload}
+                        className="hidden"
+                      />
+                    </label>
+                    {avatarUrl && (
+                      <button
+                        onClick={handleAvatarRemove}
+                        className="px-3 py-1 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 flex items-center gap-1"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                        Remove
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setIsEditingAvatar(false)}
+                      className="px-3 py-1 bg-gray-200 text-gray-700 text-sm rounded-lg hover:bg-gray-300"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+              </div>
+              
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-600">Name</p>
@@ -408,9 +497,18 @@ export function Profile() {
                 </div>
                 <div>
                   <p className="text-sm text-gray-600">Email</p>
-                  <p className="font-medium text-sm">{user?.email}</p>
+                  <p className="font-medium text-sm break-all">{user?.email}</p>
                 </div>
               </div>
+              
+              {/* Mobile Sign Out Button */}
+              <button
+                onClick={logout}
+                className="sm:hidden w-full mt-6 flex items-center justify-center gap-2 px-4 py-2 text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors font-medium"
+              >
+                <LogOut className="w-4 h-4" />
+                Sign Out
+              </button>
             </div>
           </div>
         </div>
