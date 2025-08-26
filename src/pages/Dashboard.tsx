@@ -2,13 +2,11 @@ import { Link, useNavigate } from 'react-router-dom'
 import { MapPin, Calendar, Users, Sparkles } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture } from '../utils/date'
-import { useOnboarding } from '../contexts/OnboardingContext'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { calculateCompleteness } from '../utils/travelDNA'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
-  const { resetOnboarding } = useOnboarding()
   const { preferences } = useUserPreferences()
   const navigate = useNavigate()
   

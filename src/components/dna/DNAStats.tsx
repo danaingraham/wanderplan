@@ -1,4 +1,4 @@
-import { MapPin, Utensils, DollarSign, TrendingUp, Calendar, Compass } from 'lucide-react';
+import { MapPin, Utensils, Calendar, Compass } from 'lucide-react';
 import type { UserPreferences } from '../../types/preferences';
 import { getTravelStats } from '../../utils/travelDNA';
 

@@ -15,7 +15,7 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA'
-import { Sparkles, RefreshCw, Edit, Mail, TrendingUp, Plus } from 'lucide-react'
+import { Sparkles, RefreshCw, Edit, Mail, TrendingUp } from 'lucide-react'
 
 export function Profile() {
   const { user, logout } = useUser()
