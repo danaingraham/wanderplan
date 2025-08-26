@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Edit2, MapPin, DollarSign, Home, Utensils, Activity, Share2, Check } from 'lucide-react';
+import { Edit2, MapPin, DollarSign, Home, Utensils, Activity, Check } from 'lucide-react';
 import type { UserPreferences } from '../../types/preferences';
 
 interface TravelProfileSummaryProps {
@@ -9,8 +9,10 @@ interface TravelProfileSummaryProps {
 
 export function TravelProfileSummary({ preferences, onEdit }: TravelProfileSummaryProps) {
   const [isEditing, setIsEditing] = useState<string | null>(null);
-  const [showShareCard, setShowShareCard] = useState(false);
   const [editedAccommodation, setEditedAccommodation] = useState<string[]>([]);
+  const [editedCuisines, setEditedCuisines] = useState<string>('');
+  const [editedPace, setEditedPace] = useState<string>('');
+  const [editedDietary, setEditedDietary] = useState<string>('');
 
   const handleEdit = (field: string, value: any) => {
     onEdit({ ...preferences, [field]: value });
@@ -169,13 +171,13 @@ export function TravelProfileSummary({ preferences, onEdit }: TravelProfileSumma
         </div>
 
         {/* Top Destinations */}
-        {preferences.frequent_destinations && preferences.frequent_destinations.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-center">
-                <MapPin className="w-5 h-5 text-red-600 mr-2" />
-                <div>
-                  <p className="text-sm font-medium text-gray-700">Favorite Destinations</p>
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center">
+              <MapPin className="w-5 h-5 text-red-600 mr-2" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Favorite Destinations</p>
+                {preferences.frequent_destinations && preferences.frequent_destinations.length > 0 ? (
                   <div className="flex flex-wrap gap-2 mt-1">
                     {preferences.frequent_destinations.slice(0, 3).map((dest) => {
                       const cityStr = typeof dest === 'string' ? dest : dest.city;
@@ -189,139 +191,303 @@ export function TravelProfileSummary({ preferences, onEdit }: TravelProfileSumma
                       );
                     })}
                   </div>
-                </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">Not set yet</p>
+                )}
               </div>
             </div>
+            <button
+              onClick={() => setIsEditing('destinations')}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
           </div>
-        )}
+          
+          {isEditing === 'destinations' && (
+            <div className="mt-3 p-3 bg-white rounded-lg">
+              <input
+                type="text"
+                placeholder="Enter cities separated by commas (e.g., Paris, Tokyo, New York)"
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                defaultValue={preferences.frequent_destinations?.map(d => 
+                  typeof d === 'string' ? d : d.city
+                ).join(', ') || ''}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const cities = (e.target as HTMLInputElement).value
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                      .map(city => ({
+                        city,
+                        count: 1,
+                        last_visit: new Date().toISOString()
+                      }));
+                    handleEdit('frequent_destinations', cities);
+                  }
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={(e) => {
+                    const input = (e.target as HTMLElement).parentElement?.previousElementSibling as HTMLInputElement;
+                    const cities = input.value
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                      .map(city => ({
+                        city,
+                        count: 1,
+                        last_visit: new Date().toISOString()
+                      }));
+                    handleEdit('frequent_destinations', cities);
+                  }}
+                  className="px-3 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(null)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Cuisine Preferences */}
-        {preferences.preferred_cuisines && preferences.preferred_cuisines.length > 0 && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-start">
-              <Utensils className="w-5 h-5 text-green-600 mr-2 mt-0.5" />
-              <div className="flex-1">
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center">
+              <Utensils className="w-5 h-5 text-green-600 mr-2" />
+              <div>
                 <p className="text-sm font-medium text-gray-700">Favorite Cuisines</p>
-                <div className="flex flex-wrap gap-2 mt-1">
-                  {preferences.preferred_cuisines
-                    .sort((a, b) => b.confidence - a.confidence)
-                    .slice(0, 3)
-                    .map((cuisine) => (
-                      <span 
-                        key={cuisine.cuisine}
-                        className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
-                      >
-                        {cuisine.cuisine}
-                      </span>
-                    ))}
-                </div>
+                {preferences.preferred_cuisines && preferences.preferred_cuisines.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {preferences.preferred_cuisines
+                      .sort((a, b) => b.confidence - a.confidence)
+                      .slice(0, 3)
+                      .map((cuisine) => (
+                        <span 
+                          key={cuisine.cuisine}
+                          className="px-2 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium"
+                        >
+                          {cuisine.cuisine}
+                        </span>
+                      ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">Not set yet</p>
+                )}
               </div>
             </div>
+            <button
+              onClick={() => {
+                setIsEditing('cuisines');
+                setEditedCuisines(preferences.preferred_cuisines?.map(c => c.cuisine).join(', ') || '');
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
           </div>
-        )}
+          
+          {isEditing === 'cuisines' && (
+            <div className="mt-3 p-3 bg-white rounded-lg">
+              <input
+                type="text"
+                placeholder="Enter cuisines separated by commas (e.g., Italian, Japanese, Mexican)"
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                value={editedCuisines}
+                onChange={(e) => setEditedCuisines(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const cuisines = editedCuisines
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                      .map(cuisine => ({
+                        cuisine,
+                        confidence: 0.8,
+                        sample_size: 1
+                      }));
+                    handleEdit('preferred_cuisines', cuisines);
+                  }
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    const cuisines = editedCuisines
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean)
+                      .map(cuisine => ({
+                        cuisine,
+                        confidence: 0.8,
+                        sample_size: 1
+                      }));
+                    handleEdit('preferred_cuisines', cuisines);
+                  }}
+                  className="px-3 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(null)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* Travel Pace */}
-        {preferences.pace_preference && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <div className="flex items-start">
-              <Activity className="w-5 h-5 text-orange-600 mr-2 mt-0.5" />
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center">
+              <Activity className="w-5 h-5 text-orange-600 mr-2" />
               <div>
                 <p className="text-sm font-medium text-gray-700">Travel Pace</p>
-                <p className="text-lg font-semibold text-gray-900 capitalize">
+                <p className="text-lg font-semibold text-gray-900">
                   {preferences.pace_preference === 'relaxed' && '🐢 Slow & Relaxed'}
                   {preferences.pace_preference === 'moderate' && '🚶 Moderate'}
                   {preferences.pace_preference === 'packed' && '🏃 Fast-paced'}
+                  {!preferences.pace_preference && <span className="text-sm text-gray-500 font-normal">Not set yet</span>}
                 </p>
               </div>
             </div>
-          </div>
-        )}
-      </div>
-
-      {/* Share Card */}
-      <div className="border-t pt-4">
-        <button
-          onClick={() => setShowShareCard(!showShareCard)}
-          className="w-full flex items-center justify-center px-4 py-2 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-lg hover:from-primary-600 hover:to-secondary-600 transition-colors"
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          View Travel DNA Card
-        </button>
-      </div>
-
-      {/* Shareable Travel DNA Card - Airbnb Style */}
-      {showShareCard && (
-        <div className="mt-4 bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
-          <div className="mb-6">
-            <h3 className="text-xl font-semibold text-gray-900">My Travel DNA</h3>
+            <button
+              onClick={() => {
+                setIsEditing('pace');
+                setEditedPace(preferences.pace_preference || 'moderate');
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
           </div>
           
-          <div className="space-y-4">
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center">
-                <DollarSign className="w-5 h-5 text-gray-400 mr-3" />
-                <span className="text-sm text-gray-600">Travel Budget</span>
+          {isEditing === 'pace' && (
+            <div className="mt-3 space-y-2">
+              {[
+                { value: 'relaxed', label: '🐢 Slow & Relaxed', desc: 'Plenty of time to explore at leisure' },
+                { value: 'moderate', label: '🚶 Moderate', desc: 'Balance of activities and downtime' },
+                { value: 'packed', label: '🏃 Fast-paced', desc: 'See as much as possible' }
+              ].map((option) => (
+                <button
+                  key={option.value}
+                  onClick={() => setEditedPace(option.value)}
+                  className={`w-full p-3 rounded-lg border text-left ${
+                    editedPace === option.value
+                      ? 'border-primary-400 bg-primary-50'
+                      : 'border-gray-200 hover:bg-gray-50'
+                  }`}
+                >
+                  <div className="font-medium">{option.label}</div>
+                  <div className="text-xs text-gray-600 mt-1">{option.desc}</div>
+                </button>
+              ))}
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => handleEdit('pace_preference', editedPace)}
+                  className="px-3 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(null)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
               </div>
-              <span className="font-medium text-gray-900">
-                {currentBudget.label}
-              </span>
             </div>
-            
-            <div className="flex items-center justify-between py-3 border-b border-gray-100">
-              <div className="flex items-center">
-                <Home className="w-5 h-5 text-gray-400 mr-3" />
-                <span className="text-sm text-gray-600">Accommodation</span>
-              </div>
-              <span className="font-medium text-gray-900">
-                {(preferences.accommodation_style || []).map((pref) => {
-                  const styleStr = typeof pref === 'string' ? pref : pref.style;
-                  return styleStr.charAt(0).toUpperCase() + styleStr.slice(1);
-                }).join(', ') || 'Hotel'}
-              </span>
-            </div>
-            
-            {preferences.frequent_destinations && preferences.frequent_destinations.length > 0 && (
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div className="flex items-center">
-                  <MapPin className="w-5 h-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">Top Destination</span>
-                </div>
-                <span className="font-medium text-gray-900">
-                  {typeof preferences.frequent_destinations[0] === 'string' 
-                    ? preferences.frequent_destinations[0] 
-                    : preferences.frequent_destinations[0].city}
-                </span>
-              </div>
-            )}
-            
-            {preferences.preferred_cuisines && preferences.preferred_cuisines[0] && (
-              <div className="flex items-center justify-between py-3 border-b border-gray-100">
-                <div className="flex items-center">
-                  <Utensils className="w-5 h-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">Favorite Cuisine</span>
-                </div>
-                <span className="font-medium text-gray-900">
-                  {preferences.preferred_cuisines[0].cuisine}
-                </span>
-              </div>
-            )}
-            
-            {preferences.pace_preference && (
-              <div className="flex items-center justify-between py-3">
-                <div className="flex items-center">
-                  <Activity className="w-5 h-5 text-gray-400 mr-3" />
-                  <span className="text-sm text-gray-600">Travel Pace</span>
-                </div>
-                <span className="font-medium text-gray-900">
-                  {preferences.pace_preference === 'relaxed' && 'Slow & Relaxed'}
-                  {preferences.pace_preference === 'moderate' && 'Moderate'}
-                  {preferences.pace_preference === 'packed' && 'Fast-paced'}
-                </span>
-              </div>
-            )}
-          </div>
+          )}
         </div>
-      )}
+        
+        {/* Dietary Restrictions */}
+        <div className="bg-gray-50 rounded-lg p-4">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center">
+              <Utensils className="w-5 h-5 text-amber-600 mr-2" />
+              <div>
+                <p className="text-sm font-medium text-gray-700">Dietary Restrictions</p>
+                {preferences.dietary_restrictions && preferences.dietary_restrictions.length > 0 ? (
+                  <div className="flex flex-wrap gap-2 mt-1">
+                    {preferences.dietary_restrictions.map((restriction) => (
+                      <span 
+                        key={restriction}
+                        className="px-2 py-1 bg-amber-100 text-amber-700 rounded-full text-sm font-medium"
+                      >
+                        {restriction}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-gray-500 mt-1">None</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => {
+                setIsEditing('dietary');
+                setEditedDietary((preferences.dietary_restrictions || []).join(', '));
+              }}
+              className="text-gray-400 hover:text-gray-600"
+            >
+              <Edit2 className="w-4 h-4" />
+            </button>
+          </div>
+          
+          {isEditing === 'dietary' && (
+            <div className="mt-3 p-3 bg-white rounded-lg">
+              <input
+                type="text"
+                placeholder="Enter dietary restrictions separated by commas (e.g., Vegetarian, Gluten-free)"
+                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
+                value={editedDietary}
+                onChange={(e) => setEditedDietary(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const restrictions = editedDietary
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    handleEdit('dietary_restrictions', restrictions);
+                  }
+                }}
+              />
+              <div className="flex gap-2 mt-2">
+                <button
+                  onClick={() => {
+                    const restrictions = editedDietary
+                      .split(',')
+                      .map(s => s.trim())
+                      .filter(Boolean);
+                    handleEdit('dietary_restrictions', restrictions);
+                  }}
+                  className="px-3 py-1 bg-primary-500 text-white rounded-lg hover:bg-primary-600 text-sm"
+                >
+                  Save
+                </button>
+                <button
+                  onClick={() => setIsEditing(null)}
+                  className="px-3 py-1 border border-gray-300 rounded-lg hover:bg-gray-50 text-sm"
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
 
       {/* Completion Note */}
       <div className="bg-green-50 border border-green-200 rounded-lg p-4">
