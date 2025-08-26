@@ -30,19 +30,19 @@ export function OnboardingWizard() {
     }
   }, [isComplete, currentStep, navigate]);
 
-  // Step progress indicator
-  const steps = ['Welcome', 'Connect', 'Scan', 'Results', 'Complete', 'Success'];
+  // Step progress indicator - 4 actual steps
+  const steps = ['Welcome', 'Connect', 'Scan', 'Complete'];
   const currentStepIndex = {
     'welcome': 0,
     'gmail-connect': 1,
     'scanning': 2,
     'results': 3,
-    'gaps': 4,
-    'success': 5
+    'gaps': 3,
+    'success': 3
   }[currentStep];
 
   return (
-    <div className="fixed inset-0 bg-gradient-to-br from-purple-50 to-blue-50 z-50 overflow-y-auto">
+    <div className="fixed inset-0 bg-gradient-to-br from-primary-50 to-secondary-50 z-50 overflow-y-auto">
       <div className="min-h-screen flex items-center justify-center p-4">
         <div className="bg-white rounded-2xl shadow-xl max-w-2xl w-full">
           {/* Header */}
@@ -65,7 +65,7 @@ export function OnboardingWizard() {
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium ${
                       index <= currentStepIndex
-                        ? 'bg-purple-600 text-white'
+                        ? 'bg-primary-500 text-white'
                         : 'bg-gray-200 text-gray-500'
                     }`}
                   >
@@ -79,7 +79,7 @@ export function OnboardingWizard() {
                     <div
                       className={`h-0.5 flex-1 mx-2 ${
                         index < currentStepIndex
-                          ? 'bg-purple-600'
+                          ? 'bg-primary-500'
                           : 'bg-gray-200'
                       }`}
                     />
