@@ -785,15 +785,6 @@ export function TripDetail() {
             </button>
             <button
               onClick={() => {
-                navigate('/api-status')
-                setShowProfileMenu(false)
-              }}
-              className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              API Status
-            </button>
-            <button
-              onClick={() => {
                 // Sign out will need to be handled properly
                 // For now, just navigate to login
                 navigate('/login')
