@@ -15,6 +15,7 @@ import { ResetPassword } from './pages/ResetPassword'
 import { AuthCallback } from './pages/AuthCallback'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
+import { OnboardingProvider } from './contexts/OnboardingContext'
 
 function AppContent() {
   const { isInitialized } = useUser()
@@ -59,7 +60,9 @@ function App() {
   return (
     <UserProvider>
       <TripProvider>
-        <AppContent />
+        <OnboardingProvider>
+          <AppContent />
+        </OnboardingProvider>
       </TripProvider>
     </UserProvider>
   )

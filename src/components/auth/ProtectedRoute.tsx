@@ -1,5 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useUser } from '../../contexts/UserContext'
+import { OnboardingCheck } from '../onboarding/OnboardingCheck'
 
 interface ProtectedRouteProps {
   children: React.ReactNode
@@ -12,5 +13,6 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     return <Navigate to="/login" replace />
   }
 
-  return <>{children}</>
+  // Check if user needs onboarding
+  return <OnboardingCheck>{children}</OnboardingCheck>
 }

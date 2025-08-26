@@ -1,10 +1,12 @@
 import { Link } from 'react-router-dom'
-import { MapPin, Calendar, Users } from 'lucide-react'
+import { MapPin, Calendar, Users, Sparkles } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture } from '../utils/date'
+import { useOnboarding } from '../contexts/OnboardingContext'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
+  const { resetOnboarding } = useOnboarding()
 
   console.log('📊 Dashboard: Trips loaded:', trips.length)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
@@ -40,6 +42,23 @@ export function Dashboard() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Temporary onboarding test button */}
+      <div className="mb-4 bg-purple-50 rounded-lg p-4 border border-purple-200">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="font-medium text-purple-900">Test Onboarding Flow</p>
+            <p className="text-sm text-purple-700">Click to see the new onboarding wizard</p>
+          </div>
+          <button
+            onClick={resetOnboarding}
+            className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
+          >
+            <Sparkles className="w-4 h-4 mr-2" />
+            Start Onboarding
+          </button>
+        </div>
+      </div>
+
       <section>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-gray-900">My Trips</h2>
