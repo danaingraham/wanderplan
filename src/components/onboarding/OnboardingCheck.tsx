@@ -8,12 +8,11 @@ interface OnboardingCheckProps {
 }
 
 export function OnboardingCheck({ children }: OnboardingCheckProps) {
-  const { isComplete, currentStep, selectedPath } = useOnboarding();
+  const { isComplete, currentStep } = useOnboarding();
   const { user } = useUser();
   
   // Check if user needs initial onboarding (first time user)
   const isFirstTimeUser = user && !localStorage.getItem('wanderplan_onboarding_complete');
-  const isInOnboardingFlow = selectedPath && currentStep !== 'success' && !isComplete;
   
   // Only show wizard for first time users or if explicitly in onboarding flow
   const needsOnboarding = isFirstTimeUser && !isComplete && currentStep !== 'success';

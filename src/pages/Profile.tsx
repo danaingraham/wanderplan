@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { useUser } from '../contexts/UserContext'
 import { useOnboarding } from '../contexts/OnboardingContext'
 import { PreferencesDisplay } from '../components/preferences/PreferencesDisplay'
@@ -20,8 +19,7 @@ import { Sparkles, RefreshCw, Edit, Mail, TrendingUp, X } from 'lucide-react'
 
 export function Profile() {
   const { user, logout } = useUser()
-  const navigate = useNavigate()
-  const { startWithGmail, currentStep, selectedPath, completeOnboarding } = useOnboarding()
+  const { startWithGmail, currentStep } = useOnboarding()
   const [showEditForm, setShowEditForm] = useState(false)
   const [showOnboardingModal, setShowOnboardingModal] = useState(false)
   const { preferences, loading, savePreferences } = useUserPreferences()
@@ -188,7 +186,7 @@ export function Profile() {
                                 />
                               </div>
                               <span className="text-sm font-semibold text-gray-600 w-10 text-right">
-                                {value}%
+                                {value as number}%
                               </span>
                             </div>
                           </div>
