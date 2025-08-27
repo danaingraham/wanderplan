@@ -18,6 +18,7 @@ import { ScheduleConflictModal } from '../components/dnd/ScheduleConflictModal'
 import { EditPlaceModal } from '../components/places/EditPlaceModal'
 import { AccommodationSection } from '../components/trips/AccommodationSection'
 import { PreferenceIndicator } from '../components/preferences/PreferenceIndicator'
+import { userActivityService } from '../services/userActivity'
 import type { Place } from '../types'
 
 // Helper function to convert 24-hour time to 12-hour format with AM/PM
@@ -434,6 +435,16 @@ export function TripDetail() {
     // Start with all days expanded
     setCollapsedDays(new Set())
   }, [])
+  
+  // Track trip view
+  useEffect(() => {
+    if (trip && id) {
+      userActivityService.trackActivity('trip_view', id, {
+        tripTitle: trip.title,
+        destination: trip.destination
+      })
+    }
+  }, [trip, id])
 
   const toggleDayCollapse = (day: number) => {
     setCollapsedDays(prev => {

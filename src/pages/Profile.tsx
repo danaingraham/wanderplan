@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useOnboarding } from '../contexts/OnboardingContext';
+import { useUser } from '../contexts/UserContext';
 import { TravelDNA } from '../components/dna/TravelDNA';
 import { TravelArchetypeCard } from '../components/dna/TravelArchetype';
 import { PreferenceCard, PreferenceItem } from '../components/preferences/PreferenceCard';
@@ -11,9 +13,11 @@ import {
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA';
-import { Sparkles, RefreshCw, Mail, X } from 'lucide-react';
+import { Sparkles, RefreshCw, Mail, X, LogOut, Settings } from 'lucide-react';
 
 export function Profile() {
+  const navigate = useNavigate();
+  const { user, logout } = useUser();
   const { startWithGmail, currentStep } = useOnboarding();
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const { preferences, savePreferences } = useUserPreferences();
@@ -74,6 +78,11 @@ export function Profile() {
 
   const toggleCard = (cardId: string) => {
     setExpandedCard(expandedCard === cardId ? null : cardId);
+  };
+
+  const handleLogout = () => {
+    logout();
+    navigate('/login');
   };
 
 
@@ -345,6 +354,33 @@ export function Profile() {
                   )}
                 />
               </PreferenceCard>
+            </div>
+
+            {/* Account Settings */}
+            <div className="mt-8 card">
+              <div className="flex items-center gap-2 mb-4">
+                <Settings className="w-5 h-5 text-gray-600" />
+                <h2 className="text-lg font-semibold">Account Settings</h2>
+              </div>
+              
+              {user && (
+                <div className="space-y-3">
+                  {/* User Info */}
+                  <div className="pb-3 border-b border-gray-200">
+                    <p className="text-sm text-gray-600">Signed in as</p>
+                    <p className="font-medium text-gray-900">{user.email}</p>
+                  </div>
+                  
+                  {/* Sign Out Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors w-full justify-center sm:justify-start sm:w-auto"
+                  >
+                    <LogOut className="w-4 h-4" />
+                    <span className="font-medium">Sign Out</span>
+                  </button>
+                </div>
+              )}
             </div>
         </div>
       )}

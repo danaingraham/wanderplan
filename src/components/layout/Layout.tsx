@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom'
 import { useState, useEffect } from 'react'
 import { Header } from './Header'
-import { MobileNav } from './MobileNav'
+import { MobileTabBar } from './MobileTabBar'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -35,18 +35,18 @@ export function Layout({ children }: LayoutProps) {
       {!isMobile && !isTripDetail && (
         <Header 
           context={{ isSettings: isSettings }}
-          showCreateTrip={!isSettings && location.pathname !== '/profile'}
+          showCreateTrip={false} // Create button is now in DesktopNav
         />
       )}
       
-      {/* Mobile: Show Header AND MobileNav on all pages except Trip Detail */}
+      {/* Mobile: Show simplified Header AND enhanced TabBar on all pages except Trip Detail */}
       {isMobile && !isTripDetail && (
         <>
           <Header 
             context={{ isSettings: isSettings }}
             showCreateTrip={false}
           />
-          <MobileNav />
+          <MobileTabBar />
         </>
       )}
       
@@ -55,7 +55,7 @@ export function Layout({ children }: LayoutProps) {
         isTripDetail 
           ? "" 
           : isMobile 
-            ? "pb-24" // Bottom padding for tab bar + FAB (header is sticky on mobile)
+            ? "pb-20" // Padding for mobile tab bar
             : "" // Desktop header is static, no padding needed
       }>
         {children}

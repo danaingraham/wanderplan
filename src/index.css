@@ -116,6 +116,15 @@
     animation: pulseSoft 2s infinite;
   }
   
+  /* Safe area padding for mobile devices */
+  .safe-area-pb {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-pt {
+    padding-top: env(safe-area-inset-top);
+  }
+  
   .animate-float {
     animation: float 3s ease-in-out infinite;
   }

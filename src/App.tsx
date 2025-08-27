@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { Layout } from './components/layout/Layout'
 import { ProtectedRoute } from './components/auth/ProtectedRoute'
 import { Dashboard } from './pages/Dashboard'
+import { MyTrips } from './pages/MyTrips'
 import { TripDetail } from './pages/TripDetail'
 import { NewTripCreation } from './pages/NewTripCreation'
 import { Settings } from './pages/Settings'
@@ -42,9 +43,10 @@ function AppContent() {
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
         
-        {/* Protected routes */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        {/* Protected routes - new structure */}
+        <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+        <Route path="/dashboard" element={<Navigate to="/" replace />} />
+        <Route path="/trips" element={<ProtectedRoute><Layout><MyTrips /></Layout></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><Layout><NewTripCreation /></Layout></ProtectedRoute>} />
         <Route path="/trip/:id" element={<ProtectedRoute><Layout><TripDetail /></Layout></ProtectedRoute>} />
         <Route path="/profile" element={<ProtectedRoute><Layout><Profile /></Layout></ProtectedRoute>} />

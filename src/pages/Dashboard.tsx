@@ -1,20 +1,48 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Calendar, Users, Sparkles } from 'lucide-react'
+import { MapPin, Calendar, Users, Sparkles, TrendingUp, ArrowRight, Plus } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture } from '../utils/date'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { calculateCompleteness } from '../utils/travelDNA'
 import { EmailVerificationBanner } from '../components/auth/EmailVerificationBanner'
+import { PersonalizedRecommendations } from '../components/personalization/PersonalizedRecommendations'
+import { TrendingDestinations } from '../components/personalization/TrendingDestinations'
+import { userActivityService } from '../services/userActivity'
+import { useEffect, useState } from 'react'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
   const { preferences } = useUserPreferences()
   const navigate = useNavigate()
+  const [isMobile, setIsMobile] = useState(false)
   
   const dnaCompleteness = preferences ? calculateCompleteness(preferences) : 0
   const hasDNA = dnaCompleteness > 0
 
-  console.log('📊 Dashboard: Trips loaded:', trips.length)
+  // Check viewport size
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 1024) // Use lg breakpoint to match navigation
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  // Track page view
+  useEffect(() => {
+    console.log('🏠 Dashboard: Component mounted')
+    userActivityService.trackActivity('trip_view', 'dashboard', {
+      tripTitle: 'Dashboard',
+      destination: 'Home'
+    })
+  }, [])
+
+  console.log('📊 Dashboard: Rendering with trips:', trips.length)
+  console.log('📊 Dashboard: Loading state:', loading)
+  console.log('📊 Dashboard: Preferences:', preferences)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
 
   // Sort trips by updated date (most recent first)
@@ -23,7 +51,7 @@ export function Dashboard() {
 
   if (loading) {
     return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
         <div className="animate-pulse">
           <div className="skeleton h-8 w-64 mb-2"></div>
           <div className="skeleton-text w-96 mb-8"></div>
@@ -51,7 +79,7 @@ export function Dashboard() {
       {/* Email Verification Banner */}
       <EmailVerificationBanner />
       
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-8">
       {/* Travel DNA Prompt - Show only if user hasn't created their DNA */}
       {!hasDNA && (
         <div className="mb-6 bg-gradient-to-r from-primary-50 to-secondary-50 rounded-lg p-6 border border-primary-200">
@@ -76,94 +104,43 @@ export function Dashboard() {
         </div>
       )}
 
-      <section>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">My Trips</h2>
-        </div>
+      {/* Personalized Sections */}
+      <PersonalizedRecommendations />
+      <TrendingDestinations />
 
-        {allTrips.length === 0 ? (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8 text-center">
-            <div className="max-w-md mx-auto">
-              <div className="bg-gray-100 rounded-full w-20 h-20 flex items-center justify-center mx-auto mb-4">
-                <MapPin className="h-10 w-10 text-gray-400" />
-              </div>
-              <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                No trip itineraries yet
-              </h3>
-              <p className="text-gray-600 mb-6">
-                Start planning your next adventure with AI-powered trip generation
+
+
+      {/* Call to Action - when no trips */}
+      {trips.length === 0 && (
+        <section className="mt-8">
+          <div className="bg-gradient-to-br from-primary-50 via-white to-secondary-50 rounded-2xl p-6 md:p-8 border border-primary-100 text-center">
+            <div className="max-w-2xl mx-auto">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900 mb-3">
+                Start Your Journey
+              </h2>
+              <p className="text-sm md:text-base text-gray-600 mb-6">
+                Create your first AI-powered itinerary and discover personalized travel recommendations
               </p>
-              <Link
-                to="/create"
-                className="inline-flex items-center px-6 py-3 bg-red-500 text-white font-medium rounded-lg hover:bg-red-600 transition-colors"
-              >
-                Generate Trip with AI
-              </Link>
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center">
+                <Link
+                  to="/create"
+                  className="inline-flex items-center justify-center px-5 sm:px-6 py-2.5 sm:py-3 bg-primary-500 text-white font-medium rounded-lg hover:bg-primary-600 transition-colors shadow-lg hover:shadow-xl"
+                >
+                  <Plus className="h-5 w-5 mr-2" />
+                  Create Your First Trip
+                </Link>
+                <Link
+                  to="/profile"
+                  className="inline-flex items-center justify-center px-5 sm:px-6 py-2.5 sm:py-3 bg-white text-primary-600 font-medium rounded-lg hover:bg-gray-50 transition-colors border border-primary-200"
+                >
+                  <Sparkles className="h-5 w-5 mr-2" />
+                  Create Travel DNA
+                </Link>
+              </div>
             </div>
           </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {allTrips.map((trip, index) => {
-              const isUpcoming = trip.start_date && isDateInFuture(trip.start_date)
-              
-              return (
-                <Link
-                  key={trip.id}
-                  to={`/trip/${trip.id}`}
-                  className="card card-hover group animate-slide-up"
-                  style={{animationDelay: `${index * 0.1}s`}}
-                >
-                  <div className="flex items-start justify-between mb-4">
-                    <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors">
-                      {trip.title}
-                    </h3>
-                    {isUpcoming ? (
-                      <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
-                        Upcoming
-                      </span>
-                    ) : trip.is_public ? (
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                        Public
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-2" />
-                      {trip.destination}
-                    </div>
-                    {trip.start_date && (
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-2" />
-                        {formatDate(trip.start_date)}
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <Users className="h-4 w-4 mr-2" />
-                      {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
-                    </div>
-                  </div>
-                  <div className="mt-4 flex flex-wrap gap-1">
-                    {trip.preferences.slice(0, 3).map(pref => (
-                      <span
-                        key={pref}
-                        className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
-                      >
-                        {pref}
-                      </span>
-                    ))}
-                    {trip.preferences.length > 3 && (
-                      <span className="text-xs text-gray-400">
-                        +{trip.preferences.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              )
-            })}
-          </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
     </>
   )
