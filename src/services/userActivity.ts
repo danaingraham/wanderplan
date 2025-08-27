@@ -1,5 +1,3 @@
-import { supabaseDb } from '../lib/supabaseDb'
-
 interface ActivityItem {
   id: string
   type: 'trip_view' | 'trip_create' | 'trip_edit' | 'place_add' | 'place_remove'

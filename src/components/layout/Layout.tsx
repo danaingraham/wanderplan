@@ -35,7 +35,6 @@ export function Layout({ children }: LayoutProps) {
       {!isMobile && !isTripDetail && (
         <Header 
           context={{ isSettings: isSettings }}
-          showCreateTrip={false} // Create button is now in DesktopNav
         />
       )}
       
@@ -44,7 +43,6 @@ export function Layout({ children }: LayoutProps) {
         <>
           <Header 
             context={{ isSettings: isSettings }}
-            showCreateTrip={false}
           />
           <MobileTabBar />
         </>

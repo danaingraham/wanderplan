@@ -1,35 +1,21 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { MapPin, Calendar, Users, Sparkles, TrendingUp, ArrowRight, Plus } from 'lucide-react'
+import { Sparkles, Plus } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
-import { formatDate, isDateInFuture } from '../utils/date'
 import { useUserPreferences } from '../hooks/useUserPreferences'
 import { calculateCompleteness } from '../utils/travelDNA'
 import { EmailVerificationBanner } from '../components/auth/EmailVerificationBanner'
 import { PersonalizedRecommendations } from '../components/personalization/PersonalizedRecommendations'
 import { TrendingDestinations } from '../components/personalization/TrendingDestinations'
 import { userActivityService } from '../services/userActivity'
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 
 export function Dashboard() {
   const { trips, loading } = useTrips()
   const { preferences } = useUserPreferences()
   const navigate = useNavigate()
-  const [isMobile, setIsMobile] = useState(false)
   
   const dnaCompleteness = preferences ? calculateCompleteness(preferences) : 0
   const hasDNA = dnaCompleteness > 0
-
-  // Check viewport size
-  useEffect(() => {
-    const checkMobile = () => {
-      setIsMobile(window.innerWidth < 1024) // Use lg breakpoint to match navigation
-    }
-    
-    checkMobile()
-    window.addEventListener('resize', checkMobile)
-    
-    return () => window.removeEventListener('resize', checkMobile)
-  }, [])
 
   // Track page view
   useEffect(() => {
@@ -44,10 +30,6 @@ export function Dashboard() {
   console.log('📊 Dashboard: Loading state:', loading)
   console.log('📊 Dashboard: Preferences:', preferences)
   console.log('📊 Dashboard: Trip details:', trips.map(trip => ({ id: trip.id, title: trip.title, created_by: trip.created_by })))
-
-  // Sort trips by updated date (most recent first)
-  const allTrips = trips
-    .sort((a, b) => new Date(b.updated_date).getTime() - new Date(a.updated_date).getTime())
 
   if (loading) {
     return (
