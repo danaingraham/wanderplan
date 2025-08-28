@@ -5,7 +5,7 @@ import { useTrips } from '../contexts/TripContext'
 import { formatDate, isDateInFuture, isDateInPast, isDateToday, getDaysBetween } from '../utils/date'
 import { cn } from '../utils/cn'
 import { userActivityService } from '../services/userActivity'
-import { DestinationCard } from '../components/cards/DestinationCard'
+import { TripCard } from '../components/cards/TripCard'
 import { CardSkeleton } from '../components/cards/CardSkeleton'
 
 type ViewMode = 'grid' | 'list'
@@ -128,24 +128,19 @@ export function MyTrips() {
             // Count places for this trip
             const tripPlaces = places.filter(p => p.trip_id === trip.id).length
             
-            // Format metadata
-            const metadata = trip.trip_type ? 
-              `${trip.trip_type.charAt(0).toUpperCase() + trip.trip_type.slice(1)} • ${duration || 7} days` : 
-              `${duration || 7} days`
-            
             return (
-              <DestinationCard
+              <TripCard
                 key={trip.id}
+                id={trip.id}
+                title={trip.title}
                 destination={trip.destination}
-                displayTitle={trip.title}
-                metadata={metadata}
-                href={`/trip/${trip.id}`}
+                startDate={trip.start_date}
+                endDate={trip.end_date}
+                placeCount={tripPlaces}
+                duration={duration}
                 status={status}
+                tripType={trip.trip_type}
                 size="medium"
-                infoCards={[
-                  { type: 'places', value: tripPlaces },
-                  { type: 'duration', value: duration || 7 }
-                ]}
               />
             )
           })}
