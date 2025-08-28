@@ -517,7 +517,7 @@ export function TripDetail() {
   const handleDeleteTrip = () => {
     if (id) {
       deleteTrip(id)
-      navigate('/dashboard') // Navigate to My Trips using React Router
+      navigate('/my-trips') // Navigate to My Trips after deletion
     }
   }
 
@@ -560,7 +560,7 @@ export function TripDetail() {
 
   // Handlers for TripDetailTopChrome
   const handleBack = () => {
-    navigate('/dashboard') // Navigate to My Trips
+    navigate('/my-trips') // Navigate back to My Trips page
   }
 
   const handleAvatarClick = () => {

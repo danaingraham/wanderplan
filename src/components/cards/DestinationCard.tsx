@@ -12,6 +12,7 @@ interface InfoCard {
 
 interface DestinationCardProps {
   destination: string
+  displayTitle?: string // Optional: if different from destination (e.g., for trip titles)
   country?: string
   metadata?: string // e.g., "Adventure • 7 days"
   image?: string | null
@@ -28,6 +29,7 @@ interface DestinationCardProps {
 
 export function DestinationCard({
   destination,
+  displayTitle,
   country,
   metadata,
   image: providedImage,
@@ -42,6 +44,7 @@ export function DestinationCard({
   themeColor
 }: DestinationCardProps) {
   const [image, setImage] = useState<string | null>(providedImage || null)
+  const [isLoading, setIsLoading] = useState(!providedImage)
   const gradient = getDestinationGradient(destination)
   
   // Define size classes
@@ -62,8 +65,11 @@ export function DestinationCard({
     if (!providedImage && destination) {
       const loadImage = async () => {
         try {
+          // Use destination for image search, with country if available
+          const searchQuery = country ? `${destination}, ${country}` : destination
+          
           const fetchedImage = await getDestinationImage(
-            country ? `${destination}, ${country}` : destination,
+            searchQuery,
             size === 'large' ? 'large' : 'small'
           )
           if (fetchedImage) {
@@ -73,8 +79,11 @@ export function DestinationCard({
           console.log(`Using gradient fallback for ${destination}`)
           // Image fetch failed, we'll use gradient fallback
         }
+        setIsLoading(false)
       }
       loadImage()
+    } else if (providedImage) {
+      setIsLoading(false)
     }
   }, [destination, country, providedImage, size])
 
@@ -98,8 +107,10 @@ export function DestinationCard({
   const cardContent = (
     <>
       {/* Hero Image Section */}
-      <div className={cn("relative overflow-hidden", sizeClasses[size])}>
-        {image ? (
+      <div className={cn("relative overflow-hidden", sizeClasses[size])} style={{ backgroundColor: cardTheme }}>
+        {isLoading ? (
+          <div className="w-full h-full animate-pulse bg-gray-200" />
+        ) : image ? (
           <>
             <img
               src={image}
@@ -141,7 +152,7 @@ export function DestinationCard({
         {/* Destination Text Overlay */}
         <div className="absolute bottom-4 left-4 right-4">
           <h3 className={cn("font-bold text-white drop-shadow-lg", textSizeClasses[size])}>
-            {destination.toUpperCase()}
+            {(displayTitle || destination).toUpperCase()}
           </h3>
           {country && (
             <p className="text-white/90 text-sm mt-1">{country}</p>

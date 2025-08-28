@@ -136,7 +136,8 @@ export function MyTrips() {
             return (
               <DestinationCard
                 key={trip.id}
-                destination={trip.title}
+                destination={trip.destination}
+                displayTitle={trip.title}
                 metadata={metadata}
                 href={`/trip/${trip.id}`}
                 status={status}
