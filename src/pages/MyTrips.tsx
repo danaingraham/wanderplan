@@ -144,8 +144,7 @@ export function MyTrips() {
                 size="medium"
                 infoCards={[
                   { type: 'places', value: tripPlaces },
-                  ...(trip.start_date ? [{ type: 'season' as const, value: formatDate(trip.start_date) }] : []),
-                  ...(duration > 0 ? [{ type: 'duration' as const, value: duration }] : [])
+                  { type: 'duration', value: duration || 7 }
                 ]}
               />
             )
