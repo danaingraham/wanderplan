@@ -42,7 +42,6 @@ export function DestinationCard({
   themeColor
 }: DestinationCardProps) {
   const [image, setImage] = useState<string | null>(providedImage || null)
-  const [isLoading, setIsLoading] = useState(!providedImage)
   const gradient = getDestinationGradient(destination)
   
   // Define size classes
@@ -62,12 +61,18 @@ export function DestinationCard({
   useEffect(() => {
     if (!providedImage && destination) {
       const loadImage = async () => {
-        const fetchedImage = await getDestinationImage(
-          country ? `${destination}, ${country}` : destination,
-          size === 'large' ? 'large' : 'small'
-        )
-        setImage(fetchedImage)
-        setIsLoading(false)
+        try {
+          const fetchedImage = await getDestinationImage(
+            country ? `${destination}, ${country}` : destination,
+            size === 'large' ? 'large' : 'small'
+          )
+          if (fetchedImage) {
+            setImage(fetchedImage)
+          }
+        } catch (error) {
+          console.log(`Using gradient fallback for ${destination}`)
+          // Image fetch failed, we'll use gradient fallback
+        }
       }
       loadImage()
     }
@@ -93,10 +98,8 @@ export function DestinationCard({
   const cardContent = (
     <>
       {/* Hero Image Section */}
-      <div className={cn("relative overflow-hidden", sizeClasses[size])} style={{ backgroundColor: cardTheme }}>
-        {isLoading ? (
-          <div className="w-full h-full animate-pulse bg-gray-200" />
-        ) : image ? (
+      <div className={cn("relative overflow-hidden", sizeClasses[size])}>
+        {image ? (
           <>
             <img
               src={image}

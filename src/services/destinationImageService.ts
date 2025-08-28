@@ -1,4 +1,5 @@
 import { googlePlacesService } from './googlePlaces'
+import { getDestinationImageUnsplash } from './unsplash'
 
 // Cache for destination images to avoid repeated API calls
 // Separate caches for different sizes
@@ -17,7 +18,7 @@ export async function getDestinationImage(destination: string, size: 'small' | '
   }
   
   try {
-    // Get autocomplete predictions for the destination
+    // Try Google Places first
     const predictions = await googlePlacesService.getAutocompletePredictions(destination)
     
     if (predictions.length > 0) {
@@ -35,7 +36,19 @@ export async function getDestinationImage(destination: string, size: 'small' | '
       }
     }
   } catch (error) {
-    console.error('Error fetching destination image:', error)
+    console.log('Google Places failed, falling back to Unsplash for:', destination)
+  }
+  
+  // Fallback to Unsplash if Google Places fails or returns no photos
+  try {
+    const unsplashUrl = getDestinationImageUnsplash(destination, size)
+    
+    // Cache the Unsplash URL
+    cache.set(cacheKey, unsplashUrl)
+    
+    return unsplashUrl
+  } catch (error) {
+    console.error('Error fetching destination image from both sources:', error)
   }
   
   return null
@@ -44,7 +57,7 @@ export async function getDestinationImage(destination: string, size: 'small' | '
 // Helper to get a fallback gradient based on destination name
 export function getDestinationGradient(destination?: string): string {
   if (!destination) {
-    return 'from-red-100 to-red-200'
+    return 'from-primary-400 to-secondary-400'
   }
   
   // Use destination hash to generate consistent colors
@@ -53,15 +66,18 @@ export function getDestinationGradient(destination?: string): string {
     hash = destination.charCodeAt(i) + ((hash << 5) - hash)
   }
   
+  // More vibrant gradients that look good with overlaid text
   const gradients = [
-    'from-blue-100 to-blue-200',
-    'from-green-100 to-green-200',
-    'from-purple-100 to-purple-200',
-    'from-pink-100 to-pink-200',
-    'from-indigo-100 to-indigo-200',
-    'from-yellow-100 to-yellow-200',
-    'from-red-100 to-red-200',
-    'from-teal-100 to-teal-200',
+    'from-blue-400 to-indigo-600',
+    'from-green-400 to-emerald-600',
+    'from-purple-400 to-pink-600',
+    'from-orange-400 to-red-600',
+    'from-teal-400 to-cyan-600',
+    'from-amber-400 to-orange-600',
+    'from-rose-400 to-pink-600',
+    'from-violet-400 to-purple-600',
+    'from-sky-400 to-blue-600',
+    'from-lime-400 to-green-600',
   ]
   
   return gradients[Math.abs(hash) % gradients.length]
