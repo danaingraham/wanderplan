@@ -36,6 +36,26 @@ export interface IEmailParser {
 }
 
 /**
+ * Detection signal for flexible parsing
+ */
+export interface DetectionSignal {
+  match: boolean;
+  confidence: number;
+  value?: any;
+  source?: string;
+}
+
+export interface DetectionSignals {
+  domain?: DetectionSignal;
+  subject?: DetectionSignal;
+  content?: DetectionSignal;
+  structure?: DetectionSignal;
+  senderHistory?: DetectionSignal;
+  brand?: DetectionSignal;
+  [key: string]: DetectionSignal | undefined;
+}
+
+/**
  * Abstract base class for email parsers with common functionality
  */
 export abstract class BaseEmailParser implements IEmailParser {
@@ -44,7 +64,56 @@ export abstract class BaseEmailParser implements IEmailParser {
   readonly priority: number = 50; // Default medium priority
   
   /**
-   * Check if email is from this provider's domain
+   * Get detection signals for flexible parsing
+   */
+  protected getDetectionSignals(email: EmailMessage): DetectionSignals {
+    return {
+      domain: this.checkDomainSignal(email),
+      subject: this.checkSubjectSignal(email),
+      content: this.checkContentSignal(email),
+      structure: this.checkStructureSignal(email)
+    };
+  }
+
+  /**
+   * Check if we have minimum signals for parsing
+   */
+  protected hasMinimumSignals(signals: DetectionSignals, threshold = 2): boolean {
+    const strongSignals = Object.values(signals)
+      .filter(s => s && s.confidence > 0.5).length;
+    return strongSignals >= threshold;
+  }
+
+  /**
+   * Check domain signal (can be overridden by subclasses)
+   */
+  protected checkDomainSignal(_email: EmailMessage): DetectionSignal {
+    return { match: false, confidence: 0 };
+  }
+
+  /**
+   * Check subject signal (can be overridden by subclasses)
+   */
+  protected checkSubjectSignal(_email: EmailMessage): DetectionSignal {
+    return { match: false, confidence: 0 };
+  }
+
+  /**
+   * Check content signal (can be overridden by subclasses)
+   */
+  protected checkContentSignal(_email: EmailMessage): DetectionSignal {
+    return { match: false, confidence: 0 };
+  }
+
+  /**
+   * Check structure signal (can be overridden by subclasses)
+   */
+  protected checkStructureSignal(_email: EmailMessage): DetectionSignal {
+    return { match: false, confidence: 0 };
+  }
+
+  /**
+   * Check if email is from this provider's domain (legacy method)
    */
   protected isFromDomain(email: EmailMessage, domains: string[]): boolean {
     const from = email.from.toLowerCase();

@@ -7,6 +7,9 @@ export { BaseEmailParser } from './base/ParserInterface';
 export { AirbnbParser } from './providers/airbnbParser';
 export { BookingParser } from './providers/bookingParser';
 export { AirlineParser } from './providers/airlineParser';
+export { HotelChainParser } from './providers/hotelChainParser';
+export { VacationRentalParser } from './providers/vacationRentalParser';
+export { RestaurantParser } from './providers/restaurantParser';
 
 // AI fallback parser
 export { AIFallbackParser } from './aiParser';
@@ -16,6 +19,9 @@ import { parserRegistry } from './base/ParserRegistry';
 import { AirbnbParser } from './providers/airbnbParser';
 import { BookingParser } from './providers/bookingParser';
 import { AirlineParser } from './providers/airlineParser';
+import { HotelChainParser } from './providers/hotelChainParser';
+import { VacationRentalParser } from './providers/vacationRentalParser';
+import { RestaurantParser } from './providers/restaurantParser';
 import { AIFallbackParser } from './aiParser';
 import type { TravelBooking } from '../../../types/travelBooking';
 
@@ -36,6 +42,11 @@ export function initializeParsers() {
   parserRegistry.register(new AirbnbParser());
   parserRegistry.register(new BookingParser());
   parserRegistry.register(new AirlineParser());
+  
+  // Register new flexible parsers
+  parserRegistry.register(new HotelChainParser());
+  parserRegistry.register(new VacationRentalParser());
+  parserRegistry.register(new RestaurantParser());
   
   // Note: AI fallback parser should be created on-demand to avoid
   // initializing OpenAI unnecessarily

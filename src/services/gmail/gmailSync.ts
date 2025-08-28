@@ -61,24 +61,39 @@ class GmailSyncService {
       // Log sync start
       await this.logSyncStart(userId, 'initial')
 
-      // Define search queries for travel bookings
+      // Define search queries for travel bookings - using flexible patterns
       const searchQueries = [
-        'from:noreply@airbnb.com subject:"reservation confirmed"',
-        'from:booking.com subject:"booking confirmation"',
-        'from:hotels.com subject:"booking confirmation"',
-        'from:noreply@united.com subject:"flight confirmation"',
-        'from:noreply@delta.com subject:"flight confirmation"',
-        'from:no-reply@opentable.com subject:"reservation"',
-        'from:uber.com subject:"trip receipt"',
-        'from:lyft.com subject:"ride receipt"',
-        'from:viator.com subject:"booking confirmation"',
-        'from:expedia.com subject:"itinerary"'
+        // Broad category searches that catch most travel emails
+        'subject:(reservation OR booking OR confirmation OR itinerary)',
+        'subject:(flight OR airline OR boarding OR "e-ticket")',
+        'subject:(hotel OR accommodation OR "check-in" OR resort)',
+        'subject:(restaurant OR dining OR table)',
+        'subject:(tour OR activity OR experience OR ticket OR admission)',
+        'subject:(uber OR lyft OR "ride receipt" OR taxi)',
+        'subject:(rental OR "car hire" OR hertz OR avis)',
+        
+        // Specific providers (keeping some for high-confidence matches)
+        'from:airbnb subject:(confirmation OR reserved)',
+        'from:booking.com subject:booking',
+        'from:vrbo subject:(booking OR reservation)',
+        '(marriott OR hilton OR hyatt OR "four seasons") subject:confirmation',
+        
+        // Date-based patterns that indicate travel
+        '"check-in" AND "check-out"',
+        '"departure" AND "arrival"',
+        '"boarding time" OR "boarding pass"',
+        
+        // Confirmation patterns
+        'subject:"confirmation number"',
+        'subject:"booking reference"',
+        'subject:"reservation code"',
+        'subject:"PNR" OR subject:"record locator"'
       ]
 
-      // Add date filter (last 2 years)
-      const twoYearsAgo = new Date()
-      twoYearsAgo.setFullYear(twoYearsAgo.getFullYear() - 2)
-      const dateFilter = `after:${Math.floor(twoYearsAgo.getTime() / 1000)}`
+      // Add date filter (last 5 years)
+      const fiveYearsAgo = new Date()
+      fiveYearsAgo.setFullYear(fiveYearsAgo.getFullYear() - 5)
+      const dateFilter = `after:${Math.floor(fiveYearsAgo.getTime() / 1000)}`
 
       // Fetch and process emails for each query
       for (const baseQuery of searchQueries) {
@@ -163,8 +178,8 @@ class GmailSyncService {
       // Create date filter for emails since last sync
       const dateFilter = `after:${Math.floor(new Date(lastSyncDate).getTime() / 1000)}`
       
-      // Use a broader query for incremental sync
-      const query = `(from:airbnb.com OR from:booking.com OR from:hotels.com OR from:united.com OR from:delta.com OR from:opentable.com) ${dateFilter}`
+      // Use a broader query for incremental sync - catch any travel-related emails
+      const query = `(subject:(reservation OR booking OR confirmation OR flight OR hotel OR restaurant OR tour) OR "check-in" OR "departure") ${dateFilter}`
       
       console.log(`📧 Incremental sync query: ${query}`)
       
