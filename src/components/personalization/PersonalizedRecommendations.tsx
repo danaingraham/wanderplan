@@ -48,7 +48,7 @@ export function PersonalizedRecommendations() {
           match: 85,
           highlights: ['Amazing street food', 'Rich culture', 'Great value'],
           estimatedBudget: 800,
-          bestTimeToVisit: 'Oct - May',
+          bestTimeToVisit: 'Oct-May',
           duration: 5,
           icon: DollarSign
         })
@@ -61,7 +61,7 @@ export function PersonalizedRecommendations() {
           match: 78,
           highlights: ['Historic trams', 'Coastal views', 'Vibrant nightlife'],
           estimatedBudget: 2200,
-          bestTimeToVisit: 'Mar - Oct',
+          bestTimeToVisit: 'Mar-Oct',
           duration: 7,
           icon: DollarSign
         })
@@ -74,7 +74,7 @@ export function PersonalizedRecommendations() {
           match: 82,
           highlights: ['Michelin dining', 'Luxury hotels', 'Unique culture'],
           estimatedBudget: 4500,
-          bestTimeToVisit: 'Apr - May',
+          bestTimeToVisit: 'Apr-May',
           duration: 10,
           icon: Star
         })
@@ -95,7 +95,7 @@ export function PersonalizedRecommendations() {
           reason: 'Adventure capital matches your style',
           match: 92,
           highlights: ['Bungee jumping', 'Hiking trails', 'Stunning landscapes'],
-          bestTimeToVisit: 'Dec - Feb',
+          bestTimeToVisit: 'Dec-Feb',
           duration: 7,
           icon: TrendingUp
         })
@@ -109,7 +109,7 @@ export function PersonalizedRecommendations() {
           reason: 'Ultimate relaxation destination',
           match: 88,
           highlights: ['Beach resorts', 'Spa retreats', 'Yoga centers'],
-          bestTimeToVisit: 'Apr - Oct',
+          bestTimeToVisit: 'Apr-Oct',
           duration: 10,
           icon: Clock
         })
@@ -123,7 +123,7 @@ export function PersonalizedRecommendations() {
           reason: 'Rich cultural heritage',
           match: 86,
           highlights: ['Historic sites', 'Grand Bazaar', 'Diverse cuisine'],
-          bestTimeToVisit: 'Apr - May',
+          bestTimeToVisit: 'Apr-May',
           duration: 5,
           icon: MapPin
         })
@@ -139,7 +139,7 @@ export function PersonalizedRecommendations() {
         match: 90,
         highlights: ['5-star hotels', 'World-class shopping', 'Fine dining'],
         estimatedBudget: 5000,
-        bestTimeToVisit: 'Nov - Mar',
+        bestTimeToVisit: 'Nov-Mar',
         icon: Star
       })
     } else if (preferences.travel_style?.includes('budget')) {
@@ -150,7 +150,7 @@ export function PersonalizedRecommendations() {
         match: 87,
         highlights: ['Street markets', 'Affordable luxury', 'Vibrant culture'],
         estimatedBudget: 1200,
-        bestTimeToVisit: 'Nov - Feb',
+        bestTimeToVisit: 'Nov-Feb',
         icon: DollarSign
       })
     }

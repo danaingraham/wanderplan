@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Calendar, DollarSign, Users, Clock } from 'lucide-react'
+import { MapPin, Calendar, Clock } from 'lucide-react'
 import { getDestinationImage, getDestinationGradient } from '../../services/destinationImageService'
 import { cn } from '../../utils/cn'
 
@@ -124,19 +124,6 @@ export function DestinationCard({
           </div>
         )}
 
-        {trending && (
-          <div className="absolute top-3 left-3">
-            <div className={cn(
-              "px-2 py-1 rounded-full text-sm font-semibold backdrop-blur-sm",
-              trending === 'rising' && "bg-orange-500/90 text-white",
-              trending === 'popular' && "bg-blue-500/90 text-white",
-              trending === 'emerging' && "bg-green-500/90 text-white"
-            )}>
-              {trending === 'emerging' ? 'New' : trending}
-            </div>
-          </div>
-        )}
-
         {status && (
           <div className="absolute top-3 left-3">
             <div className={cn(
@@ -197,8 +184,14 @@ export function DestinationCard({
                 
                 {card.type === 'budget' && (
                   <div className="flex flex-col items-center">
-                    <DollarSign className="w-4 h-4 mb-1 text-gray-600" />
-                    <span className="text-sm font-semibold">${card.value}</span>
+                    <span className="text-xl font-bold" style={{ color: cardTheme }}>
+                      {typeof card.value === 'number' 
+                        ? card.value <= 1000 ? '$' 
+                        : card.value <= 2000 ? '$$' 
+                        : card.value <= 3500 ? '$$$' 
+                        : '$$$$'
+                        : card.value}
+                    </span>
                     <span className="text-xs text-gray-500">Budget</span>
                   </div>
                 )}
@@ -219,13 +212,6 @@ export function DestinationCard({
                   </div>
                 )}
                 
-                {card.type === 'travelers' && (
-                  <div className="flex flex-col items-center">
-                    <Users className="w-4 h-4 mb-1 text-gray-600" />
-                    <span className="text-sm font-semibold">{card.value}</span>
-                    <span className="text-xs text-gray-500">Travelers</span>
-                  </div>
-                )}
               </div>
             ))}
           </div>

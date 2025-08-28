@@ -175,23 +175,32 @@ export function TrendingDestinations() {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filteredDestinations.slice(0, 6).map((destination) => (
-          <DestinationCard
-            key={destination.id}
-            destination={destination.name}
-            country={destination.country}
-            metadata={`${destination.tags[0]} • ${destination.duration} days`}
-            href={`/create?destination=${encodeURIComponent(`${destination.name}, ${destination.country}`)}`}
-            trending={destination.trending}
-            matchPercentage={destination.matchScore && destination.matchScore > 80 ? destination.matchScore : undefined}
-            size="medium"
-            infoCards={[
-              { type: 'season', value: destination.season.charAt(0).toUpperCase() + destination.season.slice(1) },
-              { type: 'budget', value: destination.budget || 2000 },
-              { type: 'travelers', value: `${(destination.travelers / 1000).toFixed(0)}k` }
-            ]}
-          />
-        ))}
+        {filteredDestinations.slice(0, 6).map((destination) => {
+          // Convert season to specific months
+          const seasonMonths = {
+            spring: 'Mar-May',
+            summer: 'Jun-Aug',
+            fall: 'Sep-Nov',
+            winter: 'Dec-Feb'
+          }
+          
+          return (
+            <DestinationCard
+              key={destination.id}
+              destination={destination.name}
+              country={destination.country}
+              metadata={`${destination.tags[0]} • ${destination.duration} days`}
+              href={`/create?destination=${encodeURIComponent(`${destination.name}, ${destination.country}`)}`}
+              matchPercentage={destination.matchScore && destination.matchScore > 80 ? destination.matchScore : undefined}
+              size="medium"
+              infoCards={[
+                { type: 'season', value: seasonMonths[destination.season] || 'Year-round' },
+                { type: 'budget', value: destination.budget || 2000 },
+                { type: 'places', value: Math.floor(destination.duration * 3) }
+              ]}
+            />
+          )
+        })}
       </div>
     </section>
   )
