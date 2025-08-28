@@ -14,6 +14,7 @@ import { Signup } from './pages/Signup'
 import { ForgotPassword } from './pages/ForgotPassword'
 import { ResetPassword } from './pages/ResetPassword'
 import { AuthCallback } from './pages/AuthCallback'
+import GoogleCallback from './pages/auth/GoogleCallback'
 import { UserProvider, useUser } from './contexts/UserContext'
 import { TripProvider } from './contexts/TripContext'
 import { OnboardingProvider } from './contexts/OnboardingContext'
@@ -42,6 +43,7 @@ function AppContent() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
         <Route path="/auth/callback" element={<AuthCallback />} />
+        <Route path="/auth/google/callback" element={<ProtectedRoute><GoogleCallback /></ProtectedRoute>} />
         
         {/* Protected routes - new structure */}
         <Route path="/" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />

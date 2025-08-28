@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useOnboarding } from '../contexts/OnboardingContext';
 import { useUser } from '../contexts/UserContext';
 import { TravelDNA } from '../components/dna/TravelDNA';
@@ -7,22 +7,30 @@ import { TravelArchetypeCard } from '../components/dna/TravelArchetype';
 import { PreferenceCard, PreferenceItem } from '../components/preferences/PreferenceCard';
 import { OnboardingWizard } from '../components/onboarding/OnboardingWizard';
 import { useUserPreferences } from '../hooks/useUserPreferences';
+import { gmailAuthService } from '../services/gmail/gmailAuthService';
+import { gmailSyncService } from '../services/gmail/gmailSync';
+import { googleAuthService } from '../services/googleAuthService';
 import { 
   calculateDNAScores, 
   determineArchetype, 
   calculateCompleteness,
   updateDNA 
 } from '../utils/travelDNA';
-import { Sparkles, RefreshCw, Mail, X, LogOut, Settings } from 'lucide-react';
+import { Sparkles, RefreshCw, Mail, X, LogOut, Settings, CheckCircle, AlertCircle } from 'lucide-react';
 
 export function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, logout } = useUser();
-  const { startWithGmail, currentStep } = useOnboarding();
+  const { currentStep } = useOnboarding();
   const [showOnboardingModal, setShowOnboardingModal] = useState(false);
   const { preferences, savePreferences } = useUserPreferences();
   const [expandedCard, setExpandedCard] = useState<string | null>(null);
   const [dnaUpdateKey, setDnaUpdateKey] = useState(0); // For forcing DNA animation
+  const [gmailConnected, setGmailConnected] = useState(false);
+  const [checkingGmail, setCheckingGmail] = useState(true);
+  const [syncingGmail, setSyncingGmail] = useState(false);
+  const [connectionMessage, setConnectionMessage] = useState<string | null>(null);
 
   // Calculate DNA from preferences
   const dnaData = preferences ? {
@@ -30,6 +38,39 @@ export function Profile() {
     archetype: preferences.travel_archetype || determineArchetype(preferences.dna_scores || calculateDNAScores(preferences)),
     completeness: preferences.dna_completeness || calculateCompleteness(preferences)
   } : null;
+
+  // Check Gmail connection status on mount
+  useEffect(() => {
+    const checkGmailConnection = async () => {
+      if (user?.id) {
+        try {
+          const status = await gmailAuthService.getConnectionStatus(user.id);
+          setGmailConnected(status.isConnected);
+        } catch (error) {
+          console.error('Failed to check Gmail connection:', error);
+        } finally {
+          setCheckingGmail(false);
+        }
+      } else {
+        setCheckingGmail(false);
+      }
+    };
+
+    checkGmailConnection();
+  }, [user]);
+
+  // Handle OAuth callback result
+  useEffect(() => {
+    const gmailParam = searchParams.get('gmail');
+    if (gmailParam === 'connected') {
+      setConnectionMessage('Gmail connected successfully!');
+      setGmailConnected(true);
+      setTimeout(() => setConnectionMessage(null), 5000);
+    } else if (gmailParam === 'error') {
+      setConnectionMessage('Failed to connect Gmail. Please try again.');
+      setTimeout(() => setConnectionMessage(null), 5000);
+    }
+  }, [searchParams]);
 
   // Update DNA when preferences change
   useEffect(() => {
@@ -39,9 +80,40 @@ export function Profile() {
     }
   }, [preferences]);
 
+  const handleConnectGmail = async () => {
+    // Redirect to Google OAuth
+    const authUrl = await googleAuthService.authorizeGmail();
+    window.location.href = authUrl;
+  };
+
+  const handleSyncGmail = async () => {
+    if (!user?.id) return;
+    
+    setSyncingGmail(true);
+    try {
+      const result = await gmailSyncService.performInitialSync(user.id);
+      if (result.success) {
+        setConnectionMessage(`Synced ${result.bookingsFound} bookings from ${result.emailsFetched} emails`);
+        // Refresh preferences to show new data
+        window.location.reload();
+      } else {
+        setConnectionMessage('Sync failed. Please try again.');
+      }
+    } catch (error) {
+      console.error('Gmail sync failed:', error);
+      setConnectionMessage('Failed to sync Gmail. Please try again.');
+    } finally {
+      setSyncingGmail(false);
+      setTimeout(() => setConnectionMessage(null), 5000);
+    }
+  };
+
   const handleCreateDNA = () => {
-    startWithGmail();
-    setShowOnboardingModal(true);
+    if (gmailConnected) {
+      handleSyncGmail();
+    } else {
+      handleConnectGmail();
+    }
   };
 
   // Close modal when onboarding completes
@@ -113,13 +185,39 @@ export function Profile() {
             </div>
 
             <div className="max-w-xs mx-auto">
+              {connectionMessage && (
+                <div className={`mb-4 p-3 rounded-lg text-sm ${
+                  connectionMessage.includes('success') || connectionMessage.includes('Synced') 
+                    ? 'bg-green-50 text-green-800' 
+                    : 'bg-red-50 text-red-800'
+                }`}>
+                  {connectionMessage}
+                </div>
+              )}
               <button
                 onClick={handleCreateDNA}
-                className="w-full p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center"
+                disabled={checkingGmail || syncingGmail}
+                className="w-full p-6 bg-white border-2 border-gray-200 rounded-lg hover:border-primary-400 hover:shadow-lg transition-all group flex flex-col items-center justify-center text-center disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Mail className="w-8 h-8 text-primary-600 mb-3" />
-                <div className="font-semibold">Sync Gmail</div>
-                <div className="text-xs text-gray-600 mt-1">Auto-detect from past trips</div>
+                {syncingGmail ? (
+                  <>
+                    <RefreshCw className="w-8 h-8 text-primary-600 mb-3 animate-spin" />
+                    <div className="font-semibold">Syncing...</div>
+                    <div className="text-xs text-gray-600 mt-1">Please wait</div>
+                  </>
+                ) : gmailConnected ? (
+                  <>
+                    <CheckCircle className="w-8 h-8 text-green-600 mb-3" />
+                    <div className="font-semibold">Sync Travel History</div>
+                    <div className="text-xs text-gray-600 mt-1">Gmail connected - Click to sync</div>
+                  </>
+                ) : (
+                  <>
+                    <Mail className="w-8 h-8 text-primary-600 mb-3" />
+                    <div className="font-semibold">Connect Gmail</div>
+                    <div className="text-xs text-gray-600 mt-1">Auto-detect from past trips</div>
+                  </>
+                )}
               </button>
             </div>
 
@@ -136,6 +234,23 @@ export function Profile() {
       ) : (
         // Show existing Travel DNA with integrated preferences
         <div className="space-y-6">
+            {/* Connection Status Message */}
+            {connectionMessage && (
+              <div className={`p-4 rounded-lg ${
+                connectionMessage.includes('success') || connectionMessage.includes('Synced') 
+                  ? 'bg-green-50 text-green-800' 
+                  : 'bg-red-50 text-red-800'
+              }`}>
+                <div className="flex items-center">
+                  {connectionMessage.includes('success') || connectionMessage.includes('Synced') 
+                    ? <CheckCircle className="w-5 h-5 mr-2" />
+                    : <AlertCircle className="w-5 h-5 mr-2" />
+                  }
+                  {connectionMessage}
+                </div>
+              </div>
+            )}
+            
             {/* Archetype Card */}
             <TravelArchetypeCard 
               archetype={dnaData.archetype} 
@@ -149,11 +264,26 @@ export function Profile() {
                 <div className="flex items-center gap-2">
                   <button
                     onClick={handleCreateDNA}
-                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors"
-                    title="Sync Gmail to update preferences"
+                    disabled={checkingGmail || syncingGmail}
+                    className="flex items-center gap-1 px-3 py-1.5 text-sm bg-primary-50 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={gmailConnected ? "Sync travel history from Gmail" : "Connect Gmail account"}
                   >
-                    <Mail className="w-4 h-4" />
-                    <span className="hidden sm:inline">Sync Gmail</span>
+                    {syncingGmail ? (
+                      <>
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                        <span className="hidden sm:inline">Syncing...</span>
+                      </>
+                    ) : gmailConnected ? (
+                      <>
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="hidden sm:inline">Sync Gmail</span>
+                      </>
+                    ) : (
+                      <>
+                        <Mail className="w-4 h-4" />
+                        <span className="hidden sm:inline">Connect Gmail</span>
+                      </>
+                    )}
                   </button>
                   <button
                     onClick={handleUpdateDNA}

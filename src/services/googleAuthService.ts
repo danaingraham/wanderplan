@@ -6,6 +6,7 @@ export interface GoogleAuthResponse {
   success: boolean
   user?: GoogleUser
   error?: string
+  needsGmailScope?: boolean
 }
 
 export interface GoogleUser {
@@ -17,8 +18,16 @@ export interface GoogleUser {
   family_name?: string
 }
 
+// Gmail OAuth2 scopes
+const GMAIL_SCOPES = [
+  'https://www.googleapis.com/auth/gmail.readonly',
+  'https://www.googleapis.com/auth/userinfo.email',
+  'https://www.googleapis.com/auth/userinfo.profile'
+]
+
 class GoogleAuthService {
   private isInitialized = false
+  // private isGmailMode = false // Track if we're in Gmail auth mode - kept for future use
 
   async initialize(): Promise<void> {
     if (this.isInitialized || !isGoogleOAuthConfigured()) {
@@ -34,6 +43,33 @@ class GoogleAuthService {
       console.error('❌ Failed to initialize Google OAuth:', error)
       throw error
     }
+  }
+
+  /**
+   * Initialize OAuth for Gmail access
+   * This will redirect to Google OAuth consent screen
+   */
+  async authorizeGmail(): Promise<string> {
+    const params = new URLSearchParams({
+      client_id: API_CONFIG.google.clientId,
+      redirect_uri: `${window.location.origin}/auth/google/callback`,
+      response_type: 'code',
+      scope: GMAIL_SCOPES.join(' '),
+      access_type: 'offline', // Request refresh token
+      prompt: 'consent', // Force consent screen to ensure refresh token
+      state: this.generateState() // CSRF protection
+    })
+
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    return authUrl
+  }
+
+  /**
+   * Generate state parameter for CSRF protection
+   */
+  private generateState(): string {
+    return Math.random().toString(36).substring(2, 15) + 
+           Math.random().toString(36).substring(2, 15)
   }
 
   private loadGoogleIdentityServices(): Promise<void> {
