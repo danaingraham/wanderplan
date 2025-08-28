@@ -25,13 +25,14 @@ export function TravelDNA({
 
   // Mobile-first sizing with proper padding for labels
   const sizeConfig = {
-    sm: { width: 300, height: 300, fontSize: 12, dotSize: 5, labelOffset: 5 },
-    md: { width: 360, height: 360, fontSize: 13, dotSize: 6, labelOffset: 10 },
-    lg: { width: 420, height: 420, fontSize: 14, dotSize: 6, labelOffset: 15 }
+    sm: { width: 300, height: 300, fontSize: 12, dotSize: 5, labelOffset: 25 },
+    md: { width: 360, height: 360, fontSize: 13, dotSize: 6, labelOffset: 30 },
+    lg: { width: 420, height: 420, fontSize: 14, dotSize: 7, labelOffset: 35 }
   }[size];
 
   const center = sizeConfig.width / 2;
-  const maxRadius = (size === 'sm' ? 90 : size === 'md' ? 110 : 130);
+  // Make the radar chart use more of the available space
+  const maxRadius = (size === 'sm' ? 120 : size === 'md' ? 140 : 160);
   const angleStep = (Math.PI * 2) / dimensions.length;
 
   // Calculate polygon points for the radar chart
