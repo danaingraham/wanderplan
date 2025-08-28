@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { MapPin, Calendar, Hash } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { cn } from '../../utils/cn'
 import { formatDate } from '../../utils/date'
 import { getDestinationImage, getDestinationGradient } from '../../services/destinationImageService'
@@ -113,43 +113,38 @@ export function TripCard({
           <h3 className="text-2xl font-bold text-white mb-1 drop-shadow-lg">
             {title}
           </h3>
-          <div className="flex items-center text-white/90 text-sm">
+          <div className="flex items-center text-white/90 text-sm mb-1">
             <MapPin className="w-4 h-4 mr-1" />
             <span>{destination}</span>
           </div>
+          {tripType && (
+            <div className="text-white/80 text-xs capitalize">
+              {tripType} trip
+            </div>
+          )}
         </div>
       </div>
 
       {/* Info Section */}
       <div className="p-4 bg-gray-50 border-t border-gray-100">
-        <div className="flex items-center justify-between text-sm">
-          <div className="flex items-center gap-4 text-gray-600">
-            {startDate && (
-              <div className="flex items-center">
-                <Calendar className="w-4 h-4 mr-1.5 text-gray-400" />
-                <span className="font-medium">{formatDate(startDate, 'MMM d')}</span>
-                {endDate && startDate !== endDate && (
-                  <span className="text-gray-500"> - {formatDate(endDate, 'MMM d')}</span>
-                )}
-              </div>
-            )}
-            
-            <div className="flex items-center">
-              <Hash className="w-4 h-4 mr-1.5 text-gray-400" />
-              <span className="font-medium">{placeCount} places</span>
+        <div className="grid grid-cols-3 gap-4 text-sm text-gray-600">
+          {startDate && (
+            <div className="flex items-center justify-center">
+              <span>{formatDate(startDate, 'MMM d')}</span>
+              {endDate && startDate !== endDate && (
+                <span> - {formatDate(endDate, 'MMM d')}</span>
+              )}
             </div>
-
-            {duration > 0 && (
-              <div className="flex items-center text-gray-500">
-                <span>{duration} {duration === 1 ? 'day' : 'days'}</span>
-              </div>
-            )}
+          )}
+          
+          <div className="flex items-center justify-center">
+            <span>{placeCount} {placeCount === 1 ? 'place' : 'places'}</span>
           </div>
 
-          {tripType && (
-            <span className="text-xs text-gray-500 capitalize">
-              {tripType} trip
-            </span>
+          {duration > 0 && (
+            <div className="flex items-center justify-center">
+              <span>{duration} {duration === 1 ? 'day' : 'days'}</span>
+            </div>
           )}
         </div>
       </div>
