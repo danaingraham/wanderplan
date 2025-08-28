@@ -3,19 +3,39 @@
 @tailwind components;
 @tailwind utilities;
 
-/* Design System Tokens - Reverted to original */
+/* Enhanced Design System */
 :root {
   /* Brand Colors */
-  --color-primary: #ff6b6b; /* Original coral/red */
-  --color-secondary: #36cfcf; /* Original teal */
-  --color-accent: #f6c453; /* Original accent */
-  --color-bg: #f9fafb; /* Original gray background */
+  --color-primary: #ff6b6b; /* Coral/red */
+  --color-secondary: #36cfcf; /* Teal */
+  --color-accent: #f6c453; /* Accent */
+  --color-bg: #f9fafb; /* Gray background */
   --color-text: #111827;
   
   /* Semantic Colors */
   --color-muted: #6B7280;
   --color-border: #e5e7eb;
   --color-surface: #FFFFFF;
+  
+  /* Theme Colors */
+  --color-sage: #8B9A7B;
+  --color-dusty-blue: #7B8FA6;
+  --color-terracotta: #C87D5D;
+  --color-sand: #D4B5A0;
+  --color-forest: #4A6741;
+  
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1);
+  
+  /* Border Radius */
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+  --radius-2xl: 1.5rem;
 }
 
 @layer base {

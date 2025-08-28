@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { MapPin, Calendar, Users, Grid, List, Clock } from 'lucide-react'
+import { MapPin, Grid, List } from 'lucide-react'
 import { useTrips } from '../contexts/TripContext'
-import { formatDate, isDateInFuture, isDateInPast, isDateToday } from '../utils/date'
+import { formatDate, isDateInFuture, isDateInPast, isDateToday, getDaysBetween } from '../utils/date'
 import { cn } from '../utils/cn'
 import { userActivityService } from '../services/userActivity'
+import { DestinationCard } from '../components/cards/DestinationCard'
+import { CardSkeleton } from '../components/cards/CardSkeleton'
 
 type ViewMode = 'grid' | 'list'
 
 export function MyTrips() {
-  const { trips, loading } = useTrips()
+  const { trips, places, loading } = useTrips()
   const [viewMode, setViewMode] = useState<ViewMode>('grid')
 
   // Track page view
@@ -32,19 +34,14 @@ export function MyTrips() {
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="animate-pulse">
-          <div className="skeleton h-8 w-32 mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[...Array(6)].map((_, i) => (
-              <div key={i} className="card">
-                <div className="skeleton h-6 w-48 mb-4"></div>
-                <div className="space-y-2">
-                  <div className="skeleton-text w-full"></div>
-                  <div className="skeleton-text w-3/4"></div>
-                </div>
-              </div>
-            ))}
-          </div>
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">My Trips</h1>
+          <p className="text-gray-600">Manage and organize your travel itineraries</p>
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, i) => (
+            <CardSkeleton key={i} size="medium" />
+          ))}
         </div>
       </div>
     )
@@ -54,7 +51,7 @@ export function MyTrips() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Page Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">All Trips</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">My Trips</h1>
         <p className="text-gray-600">Manage and organize your travel itineraries</p>
       </div>
 
@@ -111,146 +108,117 @@ export function MyTrips() {
         </div>
       ) : viewMode === 'grid' ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {sortedTrips.map((trip, index) => {
+          {sortedTrips.map((trip) => {
             const isToday = trip.start_date && isDateToday(trip.start_date)
             const isUpcoming = trip.start_date && !isToday && isDateInFuture(trip.start_date)
             const isPast = trip.start_date && !isToday && isDateInPast(trip.start_date)
             
+            // Calculate trip duration
+            const duration = trip.start_date && trip.end_date 
+              ? getDaysBetween(trip.start_date, trip.end_date) + 1
+              : 0
+            
+            // Determine status
+            let status: 'upcoming' | 'past' | 'today' | 'draft' | undefined
+            if (isToday) status = 'today'
+            else if (isUpcoming) status = 'upcoming'
+            else if (isPast) status = 'past'
+            else if (!trip.start_date) status = 'draft'
+            
+            // Count places for this trip
+            const tripPlaces = places.filter(p => p.trip_id === trip.id).length
+            
+            // Format metadata
+            const metadata = trip.trip_type ? 
+              `${trip.trip_type.charAt(0).toUpperCase() + trip.trip_type.slice(1)} • ${duration || 7} days` : 
+              `${duration || 7} days`
+            
             return (
-              <Link
+              <DestinationCard
                 key={trip.id}
-                to={`/trip/${trip.id}`}
-                className="card card-hover group animate-slide-up"
-                style={{animationDelay: `${Math.min(index * 0.05, 0.3)}s`}}
-              >
-                {/* Status Badge */}
-                <div className="flex items-start justify-between mb-4">
-                  <h3 className="font-semibold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-2">
-                    {trip.title}
-                  </h3>
-                  {isToday && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full flex-shrink-0">
-                      Today
-                    </span>
-                  )}
-                  {isUpcoming && (
-                    <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full flex-shrink-0">
-                      Upcoming
-                    </span>
-                  )}
-                  {isPast && (
-                    <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full flex-shrink-0">
-                      Past
-                    </span>
-                  )}
-                  {!trip.start_date && (
-                    <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full flex-shrink-0">
-                      Draft
-                    </span>
-                  )}
-                </div>
-
-                {/* Trip Details */}
-                <div className="space-y-2 text-sm text-gray-600">
-                  <div className="flex items-center">
-                    <MapPin className="h-4 w-4 mr-2 flex-shrink-0" />
-                    <span className="truncate">{trip.destination}</span>
-                  </div>
-                  {trip.start_date && (
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-2 flex-shrink-0" />
-                      {formatDate(trip.start_date)}
-                    </div>
-                  )}
-                  <div className="flex items-center">
-                    <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-                    {trip.group_size} {trip.group_size === 1 ? 'person' : 'people'}
-                  </div>
-                </div>
-
-                {/* Tags */}
-                {trip.preferences.length > 0 && (
-                  <div className="mt-4 flex flex-wrap gap-1">
-                    {trip.preferences.slice(0, 3).map(pref => (
-                      <span
-                        key={pref}
-                        className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full"
-                      >
-                        {pref}
-                      </span>
-                    ))}
-                    {trip.preferences.length > 3 && (
-                      <span className="text-xs text-gray-400">
-                        +{trip.preferences.length - 3} more
-                      </span>
-                    )}
-                  </div>
-                )}
-              </Link>
+                destination={trip.title}
+                metadata={metadata}
+                href={`/trip/${trip.id}`}
+                status={status}
+                size="medium"
+                infoCards={[
+                  { type: 'places', value: tripPlaces },
+                  { type: 'travelers', value: trip.group_size },
+                  ...(trip.start_date ? [{ type: 'season' as const, value: formatDate(trip.start_date) }] : [])
+                ]}
+              />
             )
           })}
         </div>
       ) : (
-        // List View
+        // List View with cleaner design
         <div className="space-y-3">
           {sortedTrips.map((trip) => {
             const isToday = trip.start_date && isDateToday(trip.start_date)
             const isUpcoming = trip.start_date && !isToday && isDateInFuture(trip.start_date)
             const isPast = trip.start_date && !isToday && isDateInPast(trip.start_date)
             
+            const duration = trip.start_date && trip.end_date 
+              ? getDaysBetween(trip.start_date, trip.end_date) + 1
+              : 0
+            
+            const tripPlaces = places.filter(p => p.trip_id === trip.id).length
+            
             return (
               <Link
                 key={trip.id}
                 to={`/trip/${trip.id}`}
-                className="block bg-white rounded-lg shadow-sm border border-gray-200 p-4 hover:shadow-md hover:border-primary-200 transition-all"
+                className="block bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-lg hover:border-primary-200 transition-all"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
-                      <h3 className="font-semibold text-gray-900 truncate">
-                        {trip.title}
+                    <div className="flex items-center gap-3 mb-3">
+                      <h3 className="text-xl font-bold text-gray-900 truncate">
+                        {trip.title.toUpperCase()}
                       </h3>
                       {isToday && (
-                        <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-blue-500/90 text-white px-2 py-1 rounded-full">
                           Today
                         </span>
                       )}
                       {isUpcoming && (
-                        <span className="text-xs bg-green-100 text-green-800 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-green-500/90 text-white px-2 py-1 rounded-full">
                           Upcoming
                         </span>
                       )}
                       {isPast && (
-                        <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-gray-400/90 text-white px-2 py-1 rounded-full">
                           Past
                         </span>
                       )}
                       {!trip.start_date && (
-                        <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full">
+                        <span className="text-xs bg-yellow-500/90 text-white px-2 py-1 rounded-full">
                           Draft
                         </span>
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-4 text-sm text-gray-600">
+                    <div className="flex items-center gap-6 text-sm text-gray-600">
                       <div className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {trip.destination}
+                        <MapPin className="h-4 w-4 mr-1.5 text-gray-400" />
+                        <span className="font-medium">{trip.destination}</span>
                       </div>
                       {trip.start_date && (
                         <div className="flex items-center">
-                          <Calendar className="h-3 w-3 mr-1" />
-                          {formatDate(trip.start_date)}
+                          <span className="font-medium">{formatDate(trip.start_date)}</span>
+                          {duration > 0 && (
+                            <span className="ml-1 text-gray-500">• {duration} days</span>
+                          )}
                         </div>
                       )}
                       <div className="flex items-center">
-                        <Users className="h-3 w-3 mr-1" />
-                        {trip.group_size}
+                        <span className="font-medium">{trip.group_size} {trip.group_size === 1 ? 'traveler' : 'travelers'}</span>
                       </div>
-                      <div className="flex items-center text-gray-400">
-                        <Clock className="h-3 w-3 mr-1" />
-                        Updated {formatDate(trip.updated_date)}
-                      </div>
+                      {tripPlaces > 0 && (
+                        <div className="flex items-center">
+                          <span className="font-medium">{tripPlaces} places</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                   

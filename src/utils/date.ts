@@ -1,4 +1,4 @@
-import { format, formatDistance, formatDistanceToNow, isAfter, isBefore, parseISO, startOfDay, endOfDay, isToday } from 'date-fns'
+import { format, formatDistance, formatDistanceToNow, isAfter, isBefore, parseISO, startOfDay, endOfDay, isToday, differenceInDays } from 'date-fns'
 
 export const formatDate = (date: string | Date, formatStr = 'MMM dd, yyyy'): string => {
   const dateObj = typeof date === 'string' ? parseISO(date) : date
@@ -37,6 +37,12 @@ export const isDateInPast = (date: string | Date): boolean => {
 export const isDateToday = (date: string | Date): boolean => {
   const dateObj = typeof date === 'string' ? parseISO(date) : date
   return isToday(dateObj)
+}
+
+export const getDaysBetween = (startDate: string | Date, endDate: string | Date): number => {
+  const start = typeof startDate === 'string' ? parseISO(startDate) : startDate
+  const end = typeof endDate === 'string' ? parseISO(endDate) : endDate
+  return differenceInDays(end, start)
 }
 
 export { formatDistanceToNow }

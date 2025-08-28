@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
-import { TrendingUp, Users, Calendar, Sun, Snowflake, Leaf, Flower } from 'lucide-react'
 import { useUserPreferences } from '../../hooks/useUserPreferences'
+import { DestinationCard } from '../cards/DestinationCard'
+import { CardSkeleton } from '../cards/CardSkeleton'
 
 interface TrendingDestination {
   id: string
@@ -13,27 +13,15 @@ interface TrendingDestination {
   matchScore?: number
   tags: string[]
   imageUrl?: string
-}
-
-const SeasonIcon = ({ season }: { season: string }) => {
-  switch (season) {
-    case 'summer':
-      return <Sun className="w-4 h-4" />
-    case 'winter':
-      return <Snowflake className="w-4 h-4" />
-    case 'fall':
-      return <Leaf className="w-4 h-4" />
-    case 'spring':
-      return <Flower className="w-4 h-4" />
-    default:
-      return <Calendar className="w-4 h-4" />
-  }
+  duration: number
+  budget?: number
 }
 
 export function TrendingDestinations() {
   const { preferences } = useUserPreferences()
   const [destinations, setDestinations] = useState<TrendingDestination[]>([])
   const [filter, setFilter] = useState<'all' | 'rising' | 'popular' | 'emerging'>('all')
+  const [loading, setLoading] = useState(true)
   
   useEffect(() => {
     loadTrendingDestinations()
@@ -57,7 +45,9 @@ export function TrendingDestinations() {
         trending: 'rising',
         travelers: 15420,
         tags: ['cultural', 'photography', 'food'],
-        matchScore: preferences?.activity_types?.includes('cultural') ? 92 : 75
+        matchScore: preferences?.activity_types?.includes('cultural') ? 92 : 75,
+        duration: 7,
+        budget: 2500
       },
       {
         id: '2',
@@ -67,7 +57,9 @@ export function TrendingDestinations() {
         trending: 'popular',
         travelers: 28300,
         tags: ['adventure', 'nature', 'northern lights'],
-        matchScore: preferences?.activity_types?.includes('adventure') ? 88 : 70
+        matchScore: preferences?.activity_types?.includes('adventure') ? 88 : 70,
+        duration: 5,
+        budget: 3200
       },
       {
         id: '3',
@@ -77,7 +69,9 @@ export function TrendingDestinations() {
         trending: 'emerging',
         travelers: 8200,
         tags: ['cultural', 'markets', 'desert'],
-        matchScore: preferences?.travel_style?.includes('cultural') ? 85 : 68
+        matchScore: preferences?.travel_style?.includes('cultural') ? 85 : 68,
+        duration: 6,
+        budget: 1800
       },
       {
         id: '4',
@@ -87,7 +81,9 @@ export function TrendingDestinations() {
         trending: 'rising',
         travelers: 12100,
         tags: ['adventure', 'hiking', 'wildlife'],
-        matchScore: preferences?.activity_types?.includes('adventure') ? 94 : 72
+        matchScore: preferences?.activity_types?.includes('adventure') ? 94 : 72,
+        duration: 10,
+        budget: 4000
       },
       {
         id: '5',
@@ -97,7 +93,9 @@ export function TrendingDestinations() {
         trending: 'popular',
         travelers: 31500,
         tags: ['urban', 'food', 'technology'],
-        matchScore: preferences?.travel_style?.includes('urban') ? 86 : 74
+        matchScore: preferences?.travel_style?.includes('urban') ? 86 : 74,
+        duration: 5,
+        budget: 2000
       },
       {
         id: '6',
@@ -107,7 +105,9 @@ export function TrendingDestinations() {
         trending: 'popular',
         travelers: 42000,
         tags: ['relaxation', 'romance', 'photography'],
-        matchScore: preferences?.activity_types?.includes('relaxation') ? 90 : 78
+        matchScore: preferences?.activity_types?.includes('relaxation') ? 90 : 78,
+        duration: 4,
+        budget: 2800
       }
     ]
 
@@ -124,55 +124,45 @@ export function TrendingDestinations() {
     })
 
     setDestinations(mockDestinations)
+    setLoading(false)
   }
 
   const filteredDestinations = filter === 'all' 
     ? destinations 
     : destinations.filter(d => d.trending === filter)
 
-  const getTrendingBadgeColor = (trending: string) => {
-    switch (trending) {
-      case 'rising':
-        return 'bg-orange-100 text-orange-800'
-      case 'popular':
-        return 'bg-blue-100 text-blue-800'
-      case 'emerging':
-        return 'bg-green-100 text-green-800'
-      default:
-        return 'bg-gray-100 text-gray-800'
-    }
-  }
-
-  // Always show the section even if no destinations for debugging
-  if (!destinations || destinations.length === 0) {
+  if (loading) {
     return (
       <section className="mb-8">
-        <h2 className="text-xl font-semibold text-gray-900 flex items-center mb-4">
-          <TrendingUp className="w-5 h-5 mr-2 text-gray-500" />
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
           Trending Destinations
         </h2>
-        <div className="text-sm text-gray-500 bg-gray-50 rounded-lg p-4">
-          Loading trending destinations...
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3].map((i) => (
+            <CardSkeleton key={i} size="medium" />
+          ))}
         </div>
       </section>
     )
   }
 
+  if (!destinations || destinations.length === 0) {
+    return null
+  }
+
   return (
-    <section className="mb-6">
-      <div className="flex items-center justify-between mb-3">
-        <h2 className="text-lg sm:text-xl font-semibold text-gray-900 flex items-center">
-          <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2 text-gray-500" />
-          <span className="hidden sm:inline">Trending Destinations</span>
-          <span className="sm:hidden">Trending</span>
+    <section className="mb-8">
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold text-gray-900">
+          Trending Destinations
         </h2>
         
-        <div className="flex gap-1 sm:gap-2">
+        <div className="flex gap-2">
           {(['all', 'rising', 'popular', 'emerging'] as const).map((option) => (
             <button
               key={option}
               onClick={() => setFilter(option)}
-              className={`px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs rounded-full capitalize transition-colors ${
+              className={`px-3 py-1 text-xs rounded-full capitalize transition-colors ${
                 filter === option
                   ? 'bg-primary-500 text-white'
                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -184,55 +174,23 @@ export function TrendingDestinations() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         {filteredDestinations.slice(0, 6).map((destination) => (
-          <Link
+          <DestinationCard
             key={destination.id}
-            to={`/create?destination=${encodeURIComponent(`${destination.name}, ${destination.country}`)}`}
-            className="bg-white rounded-lg sm:rounded-xl shadow-sm border border-gray-200 p-3 sm:p-4 transition-all hover:shadow-md group"
-          >
-            <div className="flex items-start justify-between mb-2 sm:mb-3">
-              <div className="min-w-0">
-                <h3 className="text-sm sm:text-base font-semibold text-gray-900 group-hover:text-primary-600 transition-colors truncate">
-                  {destination.name}
-                </h3>
-                <p className="text-xs sm:text-sm text-gray-600">{destination.country}</p>
-              </div>
-              
-              <span className={`text-[10px] sm:text-xs px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full capitalize ${getTrendingBadgeColor(destination.trending)}`}>
-                {destination.trending === 'emerging' ? 'new' : destination.trending}
-              </span>
-            </div>
-
-            <div className="flex items-center gap-2 sm:gap-4 text-[10px] sm:text-xs text-gray-500 mb-2 sm:mb-3">
-              <div className="flex items-center">
-                <SeasonIcon season={destination.season} />
-                <span className="ml-0.5 sm:ml-1 capitalize">{destination.season}</span>
-              </div>
-              
-              <div className="flex items-center">
-                <Users className="w-3 h-3 sm:w-4 sm:h-4 mr-0.5 sm:mr-1" />
-                {(destination.travelers / 1000).toFixed(0)}k
-              </div>
-              
-              {destination.matchScore && destination.matchScore > 80 && (
-                <div className="flex items-center text-green-600 font-medium">
-                  {destination.matchScore}% match
-                </div>
-              )}
-            </div>
-
-            <div className="flex flex-wrap gap-1">
-              {destination.tags.slice(0, 3).map((tag) => (
-                <span
-                  key={tag}
-                  className="text-[10px] sm:text-xs bg-gray-100 text-gray-600 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-full"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </Link>
+            destination={destination.name}
+            country={destination.country}
+            metadata={`${destination.tags[0]} • ${destination.duration} days`}
+            href={`/create?destination=${encodeURIComponent(`${destination.name}, ${destination.country}`)}`}
+            trending={destination.trending}
+            matchPercentage={destination.matchScore && destination.matchScore > 80 ? destination.matchScore : undefined}
+            size="medium"
+            infoCards={[
+              { type: 'season', value: destination.season.charAt(0).toUpperCase() + destination.season.slice(1) },
+              { type: 'budget', value: destination.budget || 2000 },
+              { type: 'travelers', value: `${(destination.travelers / 1000).toFixed(0)}k` }
+            ]}
+          />
         ))}
       </div>
     </section>
