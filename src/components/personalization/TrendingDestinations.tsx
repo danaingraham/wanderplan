@@ -194,9 +194,9 @@ export function TrendingDestinations() {
               matchPercentage={destination.matchScore && destination.matchScore > 80 ? destination.matchScore : undefined}
               size="medium"
               infoCards={[
-                { type: 'season', value: seasonMonths[destination.season] || 'Year-round' },
+                { type: 'places', value: Math.floor(destination.duration * 3) },
                 { type: 'budget', value: destination.budget || 2000 },
-                { type: 'places', value: Math.floor(destination.duration * 3) }
+                { type: 'season', value: seasonMonths[destination.season] || 'Year-round' }
               ]}
             />
           )
