@@ -58,18 +58,26 @@ export function TripProvider({ children }: { children: ReactNode }) {
   const [places, setPlaces] = useState<Place[]>([])
   const [draftTrips, setDraftTrips] = useState<DraftTrip[]>([])
   const [loading, setLoading] = useState(true)
+  const [isDeletingPlace, setIsDeletingPlace] = useState(false)
   const { user } = useUser()
 
   const generateId = () => `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
 
   useEffect(() => {
     refreshData()
-  }, [user])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]) // Don't include isDeletingPlace in deps - we check it inside refreshData
 
   const refreshData = () => {
     log('🔄 TripContext: Refreshing data from storage')
     log('🔄 TripContext: Current user:', user?.id)
-    
+
+    // Don't refresh if we're in the middle of a deletion operation
+    if (isDeletingPlace) {
+      log('🔄 TripContext: Skipping refresh - deletion in progress')
+      return
+    }
+
     // Don't load data if user isn't ready yet - this prevents data loss
     if (!user) {
       log('🔄 TripContext: No user yet, skipping data load to prevent data loss')
@@ -79,7 +87,7 @@ export function TripProvider({ children }: { children: ReactNode }) {
       setLoading(false)
       return
     }
-    
+
     setLoading(true)
     
     // ALWAYS load from localStorage - this ensures the app works
@@ -225,39 +233,88 @@ export function TripProvider({ children }: { children: ReactNode }) {
   }
 
   const updatePlace = (id: string, updates: Partial<Place>) => {
-    const updatedPlaces = places.map(place =>
+    // Update localStorage first, then React state
+    const currentPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
+    const updatedPlaces = currentPlaces.map(place =>
       place.id === id
         ? { ...place, ...updates, updated_date: new Date().toISOString() }
         : place
     )
-    setPlaces(updatedPlaces)
+
     storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+
+    setPlaces(currentPlaces =>
+      currentPlaces.map(place =>
+        place.id === id
+          ? { ...place, ...updates, updated_date: new Date().toISOString() }
+          : place
+      )
+    )
   }
 
   const bulkUpdatePlaces = (updates: Array<{ id: string, updates: Partial<Place> }>) => {
     if (updates.length === 0) return
-    
+
     log('🔄 TripContext: Bulk updating', updates.length, 'places')
-    
+
     const updateMap = new Map(updates.map(u => [u.id, u.updates]))
-    
-    const updatedPlaces = places.map(place => {
+
+    // Update localStorage first
+    const currentPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
+    const updatedPlaces = currentPlaces.map(place => {
       const placeUpdates = updateMap.get(place.id)
-      return placeUpdates 
+      return placeUpdates
         ? { ...place, ...placeUpdates, updated_date: new Date().toISOString() }
         : place
     })
-    
-    setPlaces(updatedPlaces)
+
     storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
-    
+
+    // Then update React state
+    setPlaces(currentPlaces => {
+      return currentPlaces.map(place => {
+        const placeUpdates = updateMap.get(place.id)
+        return placeUpdates
+          ? { ...place, ...placeUpdates, updated_date: new Date().toISOString() }
+          : place
+      })
+    })
+
     log('✅ TripContext: Bulk update completed')
   }
 
   const deletePlace = (id: string) => {
-    const updatedPlaces = places.filter(place => place.id !== id)
-    setPlaces(updatedPlaces)
-    storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+    log('🗑️ TripContext: Deleting place with ID:', id)
+    setIsDeletingPlace(true)
+
+    try {
+      // CRITICAL: Update localStorage FIRST before updating React state
+      // This prevents refreshData from restoring the deleted item from stale storage
+      const currentPlaces = storage.get<Place[]>(STORAGE_KEYS.PLACES) || []
+      const updatedPlaces = currentPlaces.filter(place => place.id !== id)
+
+      log('🗑️ TripContext: Places before deletion:', currentPlaces.length)
+      log('🗑️ TripContext: Places after deletion:', updatedPlaces.length)
+
+      // Save to localStorage first
+      storage.set(STORAGE_KEYS.PLACES, updatedPlaces)
+
+      // Then update React state using functional update to ensure latest state
+      setPlaces(currentPlaces => {
+        const filtered = currentPlaces.filter(place => place.id !== id)
+        log('🗑️ TripContext: React state updated - new count:', filtered.length)
+        return filtered
+      })
+
+      log('✅ TripContext: Place deletion completed successfully')
+    } catch (error) {
+      log('❌ TripContext: Error deleting place:', error)
+    } finally {
+      // Reset deletion flag after a small delay to ensure all updates complete
+      setTimeout(() => {
+        setIsDeletingPlace(false)
+      }, 100)
+    }
   }
 
   const getPlacesByTrip = useCallback((tripId: string): Place[] => {

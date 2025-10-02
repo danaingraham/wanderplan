@@ -77,17 +77,18 @@ export function DragDropProvider({
 
   const handleDragEnd = (event: DragEndEvent) => {
     const { active, over } = event
-    
+
     setDraggedPlace(null)
-    
+
     if (!over || active.id === over.id) {
       return
     }
 
     const draggedPlace = places.find(p => p.id === active.id)
     const targetPlace = places.find(p => p.id === over.id)
-    
+
     if (!draggedPlace || !targetPlace) {
+      console.log('⚠️ DragDropProvider: Dragged or target place not found - possibly deleted')
       return
     }
 

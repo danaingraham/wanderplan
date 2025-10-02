@@ -88,15 +88,15 @@ interface PlaceItemProps {
   onEdit: (place: Place) => void
 }
 
-const PlaceItem = ({ 
-  place, 
+const PlaceItem = ({
+  place,
   sequenceNumber,
   onEdit
 }: PlaceItemProps) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
   const [expandedState, setExpandedState] = useState(false)  // Local state for expand/collapse
-  const { deletePlace } = useTrips()
+  const { deletePlace, getPlacesByDay, bulkUpdatePlaces } = useTrips()
 
   // Fetch photo from Google Places
   useEffect(() => {
@@ -121,7 +121,28 @@ const PlaceItem = ({
 
   const handleDelete = () => {
     if (confirm(`Are you sure you want to remove "${place.name}" from your itinerary?`)) {
+      console.log('🗑️ PlaceItem: Deleting place:', place.id, place.name)
+
+      // Get all places for this trip and day
+      const dayPlaces = getPlacesByDay(place.trip_id, place.day)
+        .sort((a, b) => a.order - b.order)
+
+      // Find places that come after this one (before deletion)
+      const placesAfter = dayPlaces.filter(p => p.order > place.order && p.id !== place.id)
+
+      // Delete the place first
       deletePlace(place.id)
+
+      // Then update the order of places that came after it to fill the gap
+      if (placesAfter.length > 0) {
+        const orderUpdates = placesAfter.map(p => ({
+          id: p.id,
+          updates: { order: p.order - 1 }
+        }))
+
+        console.log('🔄 PlaceItem: Reordering', placesAfter.length, 'places after deletion')
+        bulkUpdatePlaces(orderUpdates)
+      }
     }
   }
 

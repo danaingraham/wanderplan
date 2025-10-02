@@ -7,8 +7,9 @@ import { TravelArchetypeCard } from '../components/dna/TravelArchetype';
 import { PreferenceCard, PreferenceItem } from '../components/preferences/PreferenceCard';
 import { OnboardingWizard } from '../components/onboarding/OnboardingWizard';
 import { useUserPreferences } from '../hooks/useUserPreferences';
-import { gmailAuthService } from '../services/gmail/gmailAuthService';
-import { gmailSyncService } from '../services/gmail/gmailSync';
+// TODO: Re-enable Gmail integration
+// import { gmailAuthService } from '../services/gmail/gmailAuthService';
+// import { gmailSyncService } from '../services/gmail/gmailSync';
 import { googleAuthService } from '../services/googleAuthService';
 import { 
   calculateDNAScores, 
@@ -44,8 +45,10 @@ export function Profile() {
     const checkGmailConnection = async () => {
       if (user?.id) {
         try {
-          const status = await gmailAuthService.getConnectionStatus(user.id);
-          setGmailConnected(status.isConnected);
+          // TODO: Re-enable Gmail integration
+          // const status = await gmailAuthService.getConnectionStatus(user.id);
+          // setGmailConnected(status.isConnected);
+          setGmailConnected(false); // Temporarily disabled
         } catch (error) {
           console.error('Failed to check Gmail connection:', error);
         } finally {
@@ -88,12 +91,14 @@ export function Profile() {
 
   const handleSyncGmail = async () => {
     if (!user?.id) return;
-    
+
     setSyncingGmail(true);
     try {
-      const result = await gmailSyncService.performInitialSync(user.id);
+      // TODO: Re-enable Gmail integration
+      // const result = await gmailSyncService.performInitialSync(user.id);
+      const result = { success: false, message: 'Gmail integration temporarily disabled' }; // Temporarily disabled
       if (result.success) {
-        setConnectionMessage(`Synced ${result.bookingsFound} bookings from ${result.emailsFetched} emails`);
+        // setConnectionMessage(`Synced ${result.bookingsFound} bookings from ${result.emailsFetched} emails`);
         // Refresh preferences to show new data
         window.location.reload();
       } else {

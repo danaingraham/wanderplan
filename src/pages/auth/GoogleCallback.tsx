@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { gmailAuthService } from '../../services/gmail/gmailAuthService'
+// TODO: Re-enable Gmail integration
+// import { gmailAuthService } from '../../services/gmail/gmailAuthService'
 import { useUser } from '../../contexts/UserContext'
 
 export default function GoogleCallback() {
@@ -31,15 +32,17 @@ export default function GoogleCallback() {
 
         console.log('📧 Processing Gmail authorization...')
 
+        // TODO: Re-enable Gmail integration
         // Exchange code for tokens and save connection
-        const success = await gmailAuthService.handleOAuthCallback(code, user.id)
+        // const success = await gmailAuthService.handleOAuthCallback(code, user.id)
+        const success = false // Temporarily disabled
 
         if (success) {
           console.log('✅ Gmail connected successfully')
           // Redirect to profile page with success message
           navigate('/profile?gmail=connected')
         } else {
-          throw new Error('Failed to connect Gmail')
+          throw new Error('Gmail integration temporarily disabled')
         }
       } catch (error) {
         console.error('OAuth callback error:', error)
