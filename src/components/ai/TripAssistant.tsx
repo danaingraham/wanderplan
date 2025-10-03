@@ -200,16 +200,21 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
 
   const executeAction = (action: ItineraryAction) => {
     console.log('🎬 Executing action:', action.type, action.description, action.data)
+    console.log('🎬 Current places count:', places.length)
     try {
       switch (action.type) {
         case 'add':
+          const dayPlaces = places.filter(p => p.day === action.data.day)
+          console.log(`🎬 Adding place to day ${action.data.day}, existing places on this day:`, dayPlaces.length)
           const newPlace = {
             ...action.data,
             trip_id: trip.id,
             // Calculate proper order based on day and existing places
-            order: places.filter(p => p.day === action.data.day).length
+            order: dayPlaces.length
           }
-          onCreatePlace(newPlace)
+          console.log('🎬 Creating place with order:', newPlace.order, newPlace)
+          const placeId = onCreatePlace(newPlace)
+          console.log('🎬 Place created with ID:', placeId)
           break
         
         case 'update':

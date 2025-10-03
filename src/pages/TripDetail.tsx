@@ -1244,7 +1244,7 @@ export function TripDetail() {
                     </div>
                   )}
                   <TripMap
-                    places={places}
+                    places={regularPlaces}
                     selectedDay={mapSelectedDay}
                     className="h-full"
                   />
@@ -1419,7 +1419,7 @@ export function TripDetail() {
                           ))}
                         </select>
                       </div>
-                      
+
                       {/* Desktop: Pills positioned to avoid zoom controls */}
                       <div className="hidden sm:block absolute top-3 right-3" style={{ zIndex: 500 }}>
                         <div className="flex flex-wrap gap-2 justify-end">
@@ -1451,7 +1451,7 @@ export function TripDetail() {
                     </>
                   )}
                   <TripMap
-                    places={places}
+                    places={regularPlaces}
                     selectedDay={mapSelectedDay}
                     className="h-full"
                   />
