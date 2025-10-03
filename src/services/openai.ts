@@ -416,7 +416,12 @@ FINAL REMINDER: ALL places must be in ${request.destination} or immediate vicini
     }
   }
 
-  async getTripAdviceWithActions(trip: Trip, places: Place[], question: string): Promise<{
+  async getTripAdviceWithActions(
+    trip: Trip,
+    places: Place[],
+    question: string,
+    conversationHistory?: Array<{ role: 'user' | 'assistant'; content: string }>
+  ): Promise<{
     response: string
     actions?: Array<{
       type: 'add' | 'update' | 'remove' | 'reorder'
@@ -445,6 +450,18 @@ ${places.map(place =>
 
     const systemPrompt = `You are a DIRECT, action-oriented travel assistant. Execute user requests immediately without lengthy explanations or offering multiple options. Use a one-shot interaction model: understand the request, take action, and confirm completion briefly.
 
+CRITICAL: You MUST ALWAYS respond with valid JSON in this exact format:
+{
+  "response": "Your message to the user",
+  "actions": [array of action objects, can be empty]
+}
+
+CONVERSATION CONTEXT:
+- You have access to the full conversation history
+- When the user says "that", "it", "this place", etc., refer to the most recent place or suggestion mentioned
+- Pay close attention to what was just discussed in previous messages
+- ALWAYS use the exact place name from your previous response when the user references it
+
 CORE BEHAVIOR - ONE-SHOT EXECUTION:
 - IMMEDIATELY execute requested changes without asking for clarification
 - Give SHORT confirmations (1-2 sentences max)
@@ -453,20 +470,24 @@ CORE BEHAVIOR - ONE-SHOT EXECUTION:
 - Just DO what the user asks and confirm it's done
 
 AUTO-EXECUTE THESE PATTERNS:
-1. "add [place]" → ADD it immediately to the best time slot
-2. "remove [place]" → REMOVE it immediately  
-3. "optimize" → REORGANIZE for better flow immediately
-4. "suggest restaurants" → ADD 2-3 top restaurants immediately
-5. "add attractions" → ADD 2-3 must-see places immediately
+1. "add [place]" → ADD it immediately to the best time slot and return action
+2. "remove [place]" → REMOVE it immediately and return action
+3. "optimize" → REORGANIZE for better flow immediately and return action
+4. "suggest restaurants" → ADD 2-3 top restaurants immediately and return actions
+5. "add attractions" → ADD 2-3 must-see places immediately and return actions
+6. When user asks for suggestion then says "other than X" or confirms → ADD the suggested place and return action
 
 RESPONSE STYLE:
-- ✅ "Added Joe's Pizza to Day 1 at 7pm"
-- ✅ "Optimized your itinerary - reduced travel time by 45 minutes" 
-- ✅ "Added 3 top attractions to your schedule"
-- ❌ "I can help you add restaurants. Here are some options: 1) Joe's Pizza 2) Mario's..."
-- ❌ "Would you like me to add this to Day 1 or Day 2?"
+- ✅ {"response": "Added Joe's Pizza to Day 1 at 7pm", "actions": [{...}]}
+- ✅ {"response": "Optimized your itinerary - reduced travel time by 45 minutes", "actions": [{...}]}
+- ✅ {"response": "Added 3 top attractions to your schedule", "actions": [{...}, {...}, {...}]}
+- ❌ Plain text responses without JSON format
+- ❌ "Would you like me to add this to Day 1 or Day 2?" (just pick the best one)
 
-When you want to suggest itinerary changes, return a JSON response with this structure:
+IMPORTANT: EVERY response must be valid JSON. Even for simple questions without actions, return:
+{"response": "Your answer here", "actions": []}
+
+When you want to make itinerary changes, return a JSON response with this structure:
 
 FOR ADDING NEW PLACES:
 {
@@ -579,22 +600,71 @@ CRITICAL INSTRUCTIONS:
 5. When reorganizing, consider geographic proximity and logical flow
 6. NEVER respond with "which ones would you like me to..." - make intelligent choices
 
-For informational questions without itinerary changes, just return:
+For informational questions or suggestions without immediate actions, return:
 {
-  "response": "Your helpful response"
+  "response": "Your helpful response",
+  "actions": []
+}
+
+EXAMPLES OF CORRECT RESPONSES:
+
+User: "What's a kid-friendly restaurant near Central Park?"
+Response:
+{
+  "response": "Shake Shack is a great kid-friendly place near Central Park!",
+  "actions": []
+}
+
+User: "I want another option"
+Response:
+{
+  "response": "Added Ellen's Stardust Diner to Day 1 at 7pm!",
+  "actions": [{
+    "type": "add",
+    "description": "Add Ellen's Stardust Diner",
+    "data": {
+      "name": "Ellen's Stardust Diner",
+      "address": "1650 Broadway, New York, NY 10019",
+      "category": "restaurant",
+      "day": 1,
+      "start_time": "19:00",
+      "duration": 90,
+      "notes": "Kid-friendly restaurant with singing waitstaff"
+    }
+  }]
 }
 
 Remember: You are a SMART AUTONOMOUS assistant. The user trusts you to make excellent decisions about their itinerary without asking for micro-confirmations.`
 
     try {
+      // Build messages array with conversation history
+      const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+        { role: 'system', content: systemPrompt }
+      ]
+
+      // If no conversation history, include trip context with the first message
+      // Otherwise, just add the question (trip context was in the first message)
+      if (!conversationHistory || conversationHistory.length === 0) {
+        messages.push({
+          role: 'user',
+          content: `${tripContext}\n\nQuestion: ${question}`
+        })
+      } else {
+        // Add conversation history
+        messages.push(...conversationHistory)
+        // Add just the current question without repeating trip context
+        messages.push({
+          role: 'user',
+          content: question
+        })
+      }
+
       const response = await this.client.chat.completions.create({
         model: API_CONFIG.openai.model,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: `${tripContext}\n\nQuestion: ${question}` }
-        ],
+        messages,
         max_tokens: 1500,
         temperature: 0.7,
+        response_format: { type: "json_object" }
       })
 
       const content = response.choices[0]?.message?.content

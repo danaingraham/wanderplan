@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react'
 import { Send, X, Sparkles, Utensils, Camera, Plus, Trash2, Edit3, ArrowUpDown, RotateCcw } from 'lucide-react'
 import { openaiService } from '../../services/openai'
-import { isOpenAIConfigured } from '../../config/api'
+import { isOpenAIConfigured, isGoogleMapsConfigured } from '../../config/api'
+import { googlePlacesService } from '../../services/googlePlaces'
 import type { Trip, Place } from '../../types'
 
 interface Message {
@@ -141,22 +142,35 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
     setIsLoading(true)
 
     try {
-      const { response, actions } = await openaiService.getTripAdviceWithActions(trip, places, content)
+      // Convert messages to format expected by OpenAI, excluding the welcome message
+      const conversationHistory = messages
+        .filter(msg => msg.id !== '1') // Exclude welcome message
+        .map(msg => ({
+          role: msg.role,
+          content: msg.content
+        }))
+
+      const { response, actions } = await openaiService.getTripAdviceWithActions(
+        trip,
+        places,
+        content,
+        conversationHistory
+      )
       
       // Auto-execute simple actions immediately for one-shot behavior
       let autoExecutedCount = 0
       if (actions && actions.length > 0) {
-        const simpleActions = actions.filter(action => 
-          action.type === 'add' || 
-          action.type === 'remove' || 
+        const simpleActions = actions.filter(action =>
+          action.type === 'add' ||
+          action.type === 'remove' ||
           (action.type === 'reorder' && actions.length <= 3)
         )
-        
+
         // Auto-execute if it's a simple request with 1-3 clear actions
         if (simpleActions.length > 0 && simpleActions.length <= 3) {
           for (const action of simpleActions) {
             try {
-              executeAction(action)
+              await executeAction(action)
               autoExecutedCount++
             } catch (error) {
               console.error('Auto-execution failed:', error)
@@ -198,7 +212,46 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
     handleSendMessage(inputValue)
   }
 
-  const executeAction = (action: ItineraryAction) => {
+  const enrichPlaceWithGoogleData = async (placeData: any): Promise<any> => {
+    // If Google Maps is not configured, return the place as-is
+    if (!isGoogleMapsConfigured()) {
+      console.log('⚠️ Google Maps not configured, skipping place enrichment')
+      return placeData
+    }
+
+    try {
+      // Search for the place using name and address
+      const searchQuery = `${placeData.name}, ${placeData.address}`
+      console.log('🔍 Looking up place in Google Places:', searchQuery)
+
+      const results = await googlePlacesService.searchPlaces(searchQuery)
+
+      if (results && results.length > 0) {
+        const googlePlace = results[0]
+        console.log('✅ Found Google Place:', googlePlace.name, 'with', googlePlace.photos?.length || 0, 'photos')
+
+        return {
+          ...placeData,
+          place_id: googlePlace.place_id,
+          photo_url: googlePlace.photos && googlePlace.photos.length > 0
+            ? googlePlace.photos[0].photo_reference
+            : undefined,
+          latitude: googlePlace.geometry.location.lat,
+          longitude: googlePlace.geometry.location.lng,
+          // Update address with the canonical one from Google
+          address: googlePlace.formatted_address,
+        }
+      } else {
+        console.log('⚠️ No Google Places results found for:', searchQuery)
+        return placeData
+      }
+    } catch (error) {
+      console.error('❌ Failed to enrich place with Google data:', error)
+      return placeData // Return original data if enrichment fails
+    }
+  }
+
+  const executeAction = async (action: ItineraryAction) => {
     console.log('🎬 Executing action:', action.type, action.description, action.data)
     console.log('🎬 Current places count:', places.length)
     try {
@@ -206,8 +259,12 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
         case 'add':
           const dayPlaces = places.filter(p => p.day === action.data.day)
           console.log(`🎬 Adding place to day ${action.data.day}, existing places on this day:`, dayPlaces.length)
+
+          // Enrich the place with Google Places data (photo, place_id, lat/lng)
+          const enrichedData = await enrichPlaceWithGoogleData(action.data)
+
           const newPlace = {
-            ...action.data,
+            ...enrichedData,
             trip_id: trip.id,
             // Calculate proper order based on day and existing places
             order: dayPlaces.length
@@ -342,9 +399,9 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
                   {message.actions.map((action, index) => (
                     <button
                       key={index}
-                      onClick={() => executeAction(action)}
+                      onClick={async () => await executeAction(action)}
                       className={`flex items-center space-x-2 w-full text-left p-2 rounded-lg transition-colors border ${
-                        message.role === 'user' 
+                        message.role === 'user'
                           ? 'bg-white bg-opacity-20 hover:bg-opacity-30 border-white border-opacity-30 text-white'
                           : 'bg-primary-50 hover:bg-primary-100 border-primary-200 text-primary-700'
                       }`}
