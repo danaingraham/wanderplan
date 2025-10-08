@@ -242,7 +242,20 @@ export function TripAssistant({ trip, places, onCreatePlace, onUpdatePlace, onDe
           address: googlePlace.formatted_address,
         }
       } else {
-        console.log('⚠️ No Google Places results found for:', searchQuery)
+        // Fallback: Try geocoding the address to at least get coordinates
+        console.log('⚠️ No Google Places results found, trying geocoding for:', placeData.address)
+        const coords = await googlePlacesService.geocodeAddress(placeData.address)
+
+        if (coords) {
+          console.log('✅ Geocoded address successfully:', coords)
+          return {
+            ...placeData,
+            latitude: coords.lat,
+            longitude: coords.lng,
+          }
+        }
+
+        console.log('❌ Could not geocode address, place will not show on map')
         return placeData
       }
     } catch (error) {

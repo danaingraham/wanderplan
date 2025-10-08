@@ -290,6 +290,32 @@ class GooglePlacesService {
     })
   }
 
+  // Geocode an address to get coordinates
+  async geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
+    if (!isGoogleMapsConfigured()) {
+      throw new Error('Google Maps API key not configured')
+    }
+
+    await this.initialize()
+
+    return new Promise((resolve) => {
+      const geocoder = new window.google.maps.Geocoder()
+
+      geocoder.geocode({ address }, (results, status) => {
+        if (status === window.google.maps.GeocoderStatus.OK && results && results.length > 0) {
+          const location = results[0].geometry.location
+          resolve({
+            lat: location.lat(),
+            lng: location.lng()
+          })
+        } else {
+          console.warn('⚠️ Geocoding failed for address:', address, status)
+          resolve(null)
+        }
+      })
+    })
+  }
+
   // Get photo URL from photo reference
   getPhotoUrl(photoReference: string): string {
     // Google Places photos are already returned as full URLs from getUrl()
