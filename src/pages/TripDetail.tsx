@@ -95,7 +95,7 @@ const PlaceItem = ({
 }: PlaceItemProps) => {
   const [photoUrl, setPhotoUrl] = useState<string | null>(null)
   const [showMobileMenu, setShowMobileMenu] = useState(false)
-  const [expandedState, setExpandedState] = useState(false)  // Local state for expand/collapse
+  const [isNoteExpanded, setIsNoteExpanded] = useState(false)  // Track if this place's note is expanded
   const { deletePlace, getPlacesByDay, bulkUpdatePlaces } = useTrips()
 
   // Fetch photo from Google Places
@@ -223,19 +223,22 @@ const PlaceItem = ({
             {/* Notes - collapsible */}
             {place.notes && (
               <>
-                <p className={`mt-1 text-sm text-slate-700 break-words ${
-                  !expandedState ? 'line-clamp-1' : ''
+                <p className={`mt-1 text-sm text-slate-700 break-words whitespace-pre-wrap ${
+                  !isNoteExpanded ? 'line-clamp-1' : ''
                 }`}>
                   {place.notes}
                 </p>
-                
+
                 {/* Show more/less button - show if text is long or contains line breaks */}
                 {(place.notes.length > 80 || place.notes.includes('\n')) && (
                   <button
-                    onClick={() => setExpandedState(!expandedState)}
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setIsNoteExpanded(!isNoteExpanded)
+                    }}
                     className="mt-1 text-sm text-gray-500 hover:text-gray-700 underline underline-offset-2 decoration-dotted"
                   >
-                    {expandedState ? 'Show less' : 'Show more'}
+                    {isNoteExpanded ? 'Show less' : 'Show more'}
                   </button>
                 )}
               </>
@@ -249,7 +252,6 @@ const PlaceItem = ({
         place={place}
         className="hidden sm:block bg-white rounded-lg border border-gray-200 hover:shadow-md transition-shadow overflow-hidden group"
         hideDefaultHandle={true}
-        key={`${place.id}-${expandedState}`} // Force re-render when state changes
         renderDragHandle={(listeners, attributes) => (
             /* Left Rail - Fixed 40px width */
             <div className="w-10 flex-shrink-0 flex flex-col items-center pt-3 bg-transparent">
@@ -352,11 +354,11 @@ const PlaceItem = ({
                   {place.notes && (
                     <>
                       <p className={`text-xs text-gray-600 mt-1 break-words whitespace-pre-wrap ${
-                        !expandedState ? 'line-clamp-1' : ''
+                        !isNoteExpanded ? 'line-clamp-1' : ''
                       }`}>
                         {place.notes}
                       </p>
-                      
+
                       {/* Show more/less button - show if text is long or contains line breaks */}
                       {(place.notes.length > 80 || place.notes.includes('\n')) && (
                         <div className="mt-1">
@@ -365,21 +367,21 @@ const PlaceItem = ({
                             onClick={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
-                              setExpandedState(!expandedState);
+                              setIsNoteExpanded(!isNoteExpanded);
                             }}
                             onMouseDown={(e) => {
                               e.stopPropagation();
                               e.preventDefault();
                             }}
                             className="text-xs text-gray-500 hover:text-gray-700 inline-block relative z-[100] pointer-events-auto underline underline-offset-2 decoration-dotted"
-                            style={{ 
+                            style={{
                               touchAction: 'none',
                               userSelect: 'none',
                               position: 'relative',
                               zIndex: 100
                             }}
                           >
-                            {expandedState ? 'Show less' : 'Show more'}
+                            {isNoteExpanded ? 'Show less' : 'Show more'}
                           </button>
                         </div>
                       )}

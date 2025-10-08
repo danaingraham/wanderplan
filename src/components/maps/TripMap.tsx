@@ -112,26 +112,33 @@ export function TripMap({ places, selectedDay, onPlaceSelect, className = '' }: 
     Object.entries(placesByDay).forEach(([dayStr, dayPlaces]) => {
       const day = parseInt(dayStr)
       const dayColor = dayColors[(day - 1) % dayColors.length]
-      
+
       // Sort places by order within the day
-      const sortedPlaces = dayPlaces
-        .filter(place => place.latitude && place.longitude)
-        .sort((a, b) => a.order - b.order)
+      const sortedPlaces = dayPlaces.sort((a, b) => a.order - b.order)
+
+      // Assign sequence numbers BEFORE filtering
+      const placesWithSequence = sortedPlaces.map((place, index) => ({
+        ...place,
+        sequenceNumber: index + 1
+      }))
+
+      // Filter to only places with coordinates
+      const placesWithCoords = placesWithSequence.filter(place => place.latitude && place.longitude)
 
       // Create markers
-      sortedPlaces.forEach((place, index) => {
+      placesWithCoords.forEach((place) => {
         if (!place.latitude || !place.longitude) return
 
         const latlng = L.latLng(place.latitude, place.longitude)
         bounds.extend(latlng)
 
-        // Create custom icon
+        // Create custom icon using the pre-calculated sequence number
         const icon = L.divIcon({
           html: `
             <div class="relative">
-              <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg" 
+              <div class="w-8 h-8 rounded-full flex items-center justify-center text-white font-bold text-sm shadow-lg"
                    style="background-color: ${dayColor}">
-                ${index + 1}
+                ${place.sequenceNumber}
               </div>
               <div class="absolute -top-8 -left-4 bg-black bg-opacity-75 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity">
                 ${categoryIcons[place.category] || '📍'} ${place.name}
@@ -167,9 +174,9 @@ export function TripMap({ places, selectedDay, onPlaceSelect, className = '' }: 
         markersRef.current.push(marker)
       })
 
-      // Create route between places for this day
-      if (sortedPlaces.length > 1) {
-        const routeCoords = sortedPlaces.map(place => [place.latitude!, place.longitude!] as [number, number])
+      // Create route between places for this day (only for places with coords)
+      if (placesWithCoords.length > 1) {
+        const routeCoords = placesWithCoords.map(place => [place.latitude!, place.longitude!] as [number, number])
         
         const polyline = L.polyline(routeCoords, {
           color: dayColor,
