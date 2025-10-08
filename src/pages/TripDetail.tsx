@@ -1125,9 +1125,13 @@ export function TripDetail() {
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto" style={{ minHeight: 'calc(100vh - 200px)' }}>
                   {/* Accommodation Section */}
                   {accommodations.length > 0 && (
-                    <AccommodationSection 
+                    <AccommodationSection
                       accommodations={accommodations}
                       tripDuration={days.length}
+                      onEdit={handleOpenEditModal}
+                      onDelete={async (placeId) => {
+                        await deletePlace(placeId)
+                      }}
                     />
                   )}
                   
@@ -1260,9 +1264,13 @@ export function TripDetail() {
                 <div className="bg-gray-50 rounded-xl p-4 overflow-y-auto h-[40vh] min-h-[300px] lg:h-auto">
                   {/* Accommodation Section */}
                   {accommodations.length > 0 && (
-                    <AccommodationSection 
+                    <AccommodationSection
                       accommodations={accommodations}
                       tripDuration={days.length}
+                      onEdit={handleOpenEditModal}
+                      onDelete={async (placeId) => {
+                        await deletePlace(placeId)
+                      }}
                     />
                   )}
                   

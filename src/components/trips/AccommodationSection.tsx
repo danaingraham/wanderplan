@@ -1,4 +1,5 @@
-import { Hotel, Home, Building, MapPin, DollarSign } from 'lucide-react';
+import { Hotel, Home, Building, MapPin, DollarSign, MoreVertical, Pencil, Trash2 } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
 import { PlacePhoto } from '../places/PlacePhoto';
 import type { Place } from '../../types';
 
@@ -11,9 +12,28 @@ interface AccommodationPlace extends Place {
 interface AccommodationSectionProps {
   accommodations: AccommodationPlace[];
   tripDuration: number;
+  onEdit?: (place: Place) => void;
+  onDelete?: (placeId: string) => void;
 }
 
-export function AccommodationSection({ accommodations, tripDuration }: AccommodationSectionProps) {
+export function AccommodationSection({ accommodations, tripDuration, onEdit, onDelete }: AccommodationSectionProps) {
+  const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setOpenMenuId(null);
+      }
+    };
+
+    if (openMenuId) {
+      document.addEventListener('mousedown', handleClickOutside);
+      return () => document.removeEventListener('mousedown', handleClickOutside);
+    }
+  }, [openMenuId]);
+
   if (accommodations.length === 0) {
     return null;
   }
@@ -51,11 +71,54 @@ export function AccommodationSection({ accommodations, tripDuration }: Accommoda
           const price = extractPrice(place.description || '');
           
           return (
-            <div 
-              key={place.id} 
-              className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow"
+            <div
+              key={place.id}
+              className="bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden hover:shadow-md transition-shadow relative group"
             >
               <div className="flex flex-col sm:flex-row gap-3 p-3 sm:p-4">
+                {/* Edit/Delete Menu */}
+                {(onEdit || onDelete) && (
+                  <div className="absolute top-2 right-2 z-10" ref={menuRef}>
+                    <button
+                      onClick={() => setOpenMenuId(openMenuId === place.id ? null : place.id)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 transition-colors"
+                      aria-label="More options"
+                    >
+                      <MoreVertical className="w-4 h-4 text-gray-600" />
+                    </button>
+
+                    {openMenuId === place.id && (
+                      <div className="absolute right-0 mt-1 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-20">
+                        {onEdit && (
+                          <button
+                            onClick={() => {
+                              onEdit(place);
+                              setOpenMenuId(null);
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                          >
+                            <Pencil className="w-4 h-4" />
+                            Edit accommodation
+                          </button>
+                        )}
+                        {onDelete && (
+                          <button
+                            onClick={() => {
+                              if (confirm(`Remove ${place.name} from accommodations?`)) {
+                                onDelete(place.id);
+                                setOpenMenuId(null);
+                              }
+                            }}
+                            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Delete accommodation
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
                 {/* Photo */}
                 <div className="w-full sm:w-24 h-32 sm:h-24 rounded-lg overflow-hidden shrink-0 bg-gray-100">
                   <PlacePhoto
