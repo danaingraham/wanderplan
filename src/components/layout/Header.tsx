@@ -66,7 +66,7 @@ export function Header({ context }: HeaderProps) {
             {/* Create button on mobile */}
             <Link
               to="/create"
-              className="flex items-center justify-center w-10 h-10 bg-primary-500 text-white rounded-full hover:bg-primary-600 transition-colors"
+              className="flex items-center justify-center w-10 h-10 bg-gray-900 text-white rounded-full hover:bg-gray-800 transition-colors"
               aria-label="Create new trip"
             >
               <Plus className="h-5 w-5" />

@@ -55,11 +55,11 @@ export function DesktopNav() {
       {/* Create Trip button on far right */}
       <Link
         to="/create"
-        className="flex items-center space-x-2 px-4 py-2 bg-primary-500 text-white hover:bg-primary-600 rounded-lg shadow-sm transition-all duration-200 ml-auto"
+        className="flex items-center space-x-2 px-4 py-2 bg-gray-900 text-white hover:bg-gray-800 rounded-lg shadow-sm transition-all duration-200 ml-auto"
       >
         <Plus className="h-4 w-4" />
         <span className="font-medium text-sm">Create Trip</span>
-        <Sparkles className="h-3 w-3 ml-1 text-primary-200" />
+        <Sparkles className="h-3 w-3 ml-1 text-gray-400" />
       </Link>
     </nav>
   )
